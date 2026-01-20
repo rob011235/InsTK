@@ -12,7 +12,7 @@ env:
   SERVER_PROJECT_FILE: InsTK.Server.csproj
 
   # ===== Build configuration =====
-  DOTNET_VERSION: 8.0.x
+  DOTNET_VERSION: 10.0.x
   RUNTIME_ID: win-x64
   PUBLISH_DIR: ./publish
 
