@@ -15,6 +15,7 @@ public static class MauiProgram
 			});
 
 		builder.Services.AddMauiBlazorWebView();
+		builder.Services.AddSingleton<Services.BrightspaceCourseScraper>();
 
 #if DEBUG
 		builder.Services.AddBlazorWebViewDeveloperTools();

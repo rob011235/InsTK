@@ -1,0 +1,51 @@
+@page "/teams-management"
+@using InsTK.MauiClient.Services
+@inject BrightspaceCourseScraper Scraper
+
+<h1>Teams Management</h1>
+
+<button class="btn btn-primary" @onclick="LoadHtmlAsync" disabled="@isLoading">
+    @(isLoading ? "Loading..." : "Dump Page HTML")
+</button>
+
+@if (!string.IsNullOrWhiteSpace(errorMessage))
+{
+    <div class="alert alert-danger">@errorMessage</div>
+}
+else if (isLoading)
+{
+    <p><em>Waiting for Brightspace login...</em></p>
+}
+else if (!string.IsNullOrWhiteSpace(pageHtml))
+{
+    <pre style="white-space:pre-wrap; max-height:60vh; overflow:auto; border:1px solid #ccc; padding:1rem;">
+    @pageHtml
+        </pre>
+}
+
+@code {
+    private string? pageHtml;
+    private bool isLoading;
+    private string? errorMessage;
+
+    private async Task LoadHtmlAsync()
+    {
+        errorMessage = null;
+        isLoading = true;
+        pageHtml = null;
+        StateHasChanged();
+
+        try
+        {
+            pageHtml = await Scraper.GetFullPageHtmlAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}
