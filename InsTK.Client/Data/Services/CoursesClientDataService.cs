@@ -1,9 +1,9 @@
-﻿using InsTK.Shared.Interfaces;
-using InsTK.Shared.Models;
-using System.Net.Http.Json;
-
-namespace InsTK.Client.Data.Services
+﻿namespace InsTK.Client.Data.Services
 {
+    using System.Net.Http.Json;
+    using InsTK.Shared.Interfaces;
+    using InsTK.Shared.Models;
+
     public class CoursesClientDataService : ICoursesDataService
     {
         private readonly HttpClient http;
