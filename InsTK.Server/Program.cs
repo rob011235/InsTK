@@ -12,6 +12,7 @@ namespace InsTK.Server
     using InsTK.Shared.Interfaces;
     using Microsoft.AspNetCore.Components.Authorization;
     using Microsoft.AspNetCore.Identity;
+    using Microsoft.EntityFrameworkCore;
 
     /// <summary>
     /// Provides the main entry point for the InsTK application.
