@@ -1,20 +1,17 @@
 // <copyright file="Program.cs" company="Rob Garner (rgarner011235@gmail.com)">
 // Copyright (c) Rob Garner (rgarner011235@gmail.com). All rights reserved.
 // </copyright>
-// Test
+
 namespace InsTK.Server
 {
     using System.Threading.Tasks;
-    using InsTK.Client.Pages;
     using InsTK.Server.Components;
     using InsTK.Server.Components.Account;
     using InsTK.Server.Data;
-    using InsTK.Server.Data.Mocks;
     using InsTK.Server.Data.Services;
     using InsTK.Shared.Interfaces;
     using Microsoft.AspNetCore.Components.Authorization;
     using Microsoft.AspNetCore.Identity;
-    using Microsoft.EntityFrameworkCore;
 
     /// <summary>
     /// Provides the main entry point for the InsTK application.
