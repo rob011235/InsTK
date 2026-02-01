@@ -1,0 +1,71 @@
+﻿@page "/curve-calc"
+@using Server.Components.SharedComponents
+@rendermode InteractiveServer
+
+<h3>Curve Calc Page</h3>
+<p>Welcome to the Curve Calculator, enter your list of grades and this calculator will adjust them to a curve.</p>
+
+<ul class="list-group">
+  @foreach(var grade in grades)
+  {
+        <li class="list-group-item">
+          @grade - @(grade+dif)
+            <button class="btn btn-danger" type="button" @onclick="(() => RemoveGrade(grade))">Remove</button>
+      </li>
+  }
+</ul>
+
+<div class="mb-3">
+    <label for="grade" class="form-label">Grade:</label>
+    <input class="form-control" type="number" id="grade" name="grade" @bind="newGrade" />
+<button class="btn btn-primary" type="button" @onclick="AddGrade">Add score to list</button>
+</div>
+
+<PopupNotification @ref=popup Title="Info" Message="@message"/>
+@code {
+    PopupNotification popup;
+    protected List<int> grades = new List<int>();
+    protected int newGrade;
+    protected string message = "Enter a grade and click the button to add it to the list.";
+
+    protected int dif = 0;
+
+    protected override void OnInitialized()
+    {
+        grades = new List<int> { 65, 70, 75, 80, 85, 90, 95 };
+        CalcCurve();
+    }
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        popup.ShowModal();
+    }
+
+    protected void AddGrade()
+    {
+        message = "Clicked the button!"; 
+        popup.ShowModal();
+        grades.Add(newGrade);
+        CalcCurve();
+    }
+
+    protected void RemoveGrade(int grade)
+    {
+        grades.Remove(grade);
+        CalcCurve();
+    }
+
+    protected void CalcCurve()
+    {
+        // Find highest grade
+        int highestGrade = 0;
+        foreach(var grade in grades)
+        {
+            if(highestGrade < grade)
+            {
+                highestGrade = grade;
+            }
+        }
+        dif = 100 - highestGrade;
+    }
+}
