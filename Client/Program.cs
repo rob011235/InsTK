@@ -14,7 +14,7 @@ namespace Client
 
             builder.Services.AddAuthorizationCore();
             builder.Services.AddCascadingAuthenticationState();
-            builder.Services.AddSingleton<AuthenticationStateProvider, PersistentAuthenticationStateProvider>();
+            builder.Services.AddAuthenticationStateDeserialization();
 
             // Add http client
             builder.Services.AddScoped(sp =>
