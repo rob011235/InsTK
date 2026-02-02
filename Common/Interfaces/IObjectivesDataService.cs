@@ -1,5 +1,5 @@
-﻿// <copyright file="IObjectivesDataService.cs" company="Rob Garner (rgarner7@cnm.edu)">
-// Copyright (c) Rob Garner (rgarner7@cnm.edu). All rights reserved.
+﻿// <copyright file="IObjectivesDataService.cs" company="Rob Garner (rgarner011235@gmail.com)">
+// Copyright (c) Rob Garner (rgarner011235@gmail.com). All rights reserved.
 // </copyright>
 
 namespace Common.Interfaces
@@ -42,7 +42,7 @@ namespace Common.Interfaces
         /// <summary>
         /// Asynchronously deletes the specified <see cref="Objective"/> entity.
         /// </summary>
-        /// <param name="objective">The <see cref="Objective"/> entity to delete from the data store.</param>
+        /// <param name="id">The identifier of the <see cref="Objective"/> entity to delete from the data store.</param>
         /// <returns>
         /// A <see cref="Task"/> representing the result of the asynchronous operation.
         /// </returns>

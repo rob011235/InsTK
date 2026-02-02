@@ -5,7 +5,7 @@
 namespace Server.Components.Account
 {
     using System.Security.Claims;
-    using System.Text.Json; 
+    using System.Text.Json;
     using Microsoft.AspNetCore.Antiforgery;
     using Microsoft.AspNetCore.Authentication;
     using Microsoft.AspNetCore.Components.Authorization;
@@ -40,8 +40,8 @@ namespace Server.Components.Account
                 [FromForm] string returnUrl) =>
             {
                 IEnumerable<KeyValuePair<string, StringValues>> query = [
-                    new("ReturnUrl", returnUrl),
-                    new("Action", ExternalLogin.LoginCallbackAction)];
+                    new ("ReturnUrl", returnUrl),
+                    new ("Action", ExternalLogin.LoginCallbackAction)];
 
                 var redirectUrl = UriHelper.BuildRelative(
                     context.Request.PathBase,
@@ -77,11 +77,11 @@ namespace Server.Components.Account
 
                 var userId = await userManager.GetUserIdAsync(user);
                 var userName = await userManager.GetUserNameAsync(user) ?? "User";
-                var optionsJson = await signInManager.MakePasskeyCreationOptionsAsync(new()
+                var optionsJson = await signInManager.MakePasskeyCreationOptionsAsync(new ()
                 {
                     Id = userId,
                     Name = userName,
-                    DisplayName = userName
+                    DisplayName = userName,
                 });
                 return TypedResults.Content(optionsJson, contentType: "application/json");
             });
@@ -134,7 +134,10 @@ namespace Server.Components.Account
                 }
 
                 var userId = await userManager.GetUserIdAsync(user);
-                downloadLogger.LogInformation("User with ID '{UserId}' asked for their personal data.", userId);
+                if (downloadLogger.IsEnabled(LogLevel.Information))
+                {
+                    downloadLogger.LogInformation("User with ID '{UserId}' asked for their personal data.", userId);
+                }
 
                 // Only include personal data for download
                 var personalData = new Dictionary<string, string>();
@@ -151,7 +154,7 @@ namespace Server.Components.Account
                     personalData.Add($"{l.LoginProvider} external login provider key", l.ProviderKey);
                 }
 
-                personalData.Add("Authenticator Key", (await userManager.GetAuthenticatorKeyAsync(user))!);
+                personalData.Add("Authenticator Key", (await userManager.GetAuthenticatorKeyAsync(user)) !);
                 var fileBytes = JsonSerializer.SerializeToUtf8Bytes(personalData);
 
                 context.Response.Headers.TryAdd("Content-Disposition", "attachment; filename=PersonalData.json");

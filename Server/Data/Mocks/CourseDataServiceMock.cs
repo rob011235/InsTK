@@ -80,14 +80,7 @@ namespace Server.Data.Mocks
         public Task UpdateAsync(Course course)
         {
             // Find the course to udate
-            Course? courseToUpdate = this.courses.Where(c => c.Id == course.Id).FirstOrDefault();
-
-            // If we found it update it
-            if (courseToUpdate == null)
-            {
-                throw new ArgumentException("Course not found in database;");
-            }
-
+            Course? courseToUpdate = this.courses.Where(c => c.Id == course.Id).FirstOrDefault() ?? throw new ArgumentException("Course not found in database;");
             courseToUpdate.Number = course.Number;
             courseToUpdate.Name = course.Name;
             courseToUpdate.Description = course.Description;
@@ -97,19 +90,13 @@ namespace Server.Data.Mocks
         /// <summary>
         /// Asynchronously deletes an existing course from the mock data source.
         /// </summary>
-        /// <param name="course">The <see cref="Course"/> object to delete.</param>
+        /// <param name="id">The unique identifier of the <see cref="Course"/> object to delete.</param>
         /// <returns>
         /// A <see cref="Task"/> representing the asynchronous delete operation.
         /// </returns>
         public Task DeleteAsync(string id)
         {
-            Course? courseToDelete = this.courses.Where(c=>c.Id == id).FirstOrDefault();
-
-            if (courseToDelete == null)
-            {
-                throw new ArgumentException("Course not found in database;");
-            }
-
+            Course? courseToDelete = this.courses.Where(c => c.Id == id).FirstOrDefault() ?? throw new ArgumentException("Course not found in database;");
             this.courses.Remove(courseToDelete);
             return Task.FromResult(courseToDelete);
         }

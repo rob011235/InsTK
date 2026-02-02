@@ -23,7 +23,7 @@
 
 <PopupNotification @ref=popup Title="Info" Message="@message"/>
 @code {
-    PopupNotification popup;
+    PopupNotification popup = default!;
     protected List<int> grades = new List<int>();
     protected int newGrade;
     protected string message = "Enter a grade and click the button to add it to the list.";

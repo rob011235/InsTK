@@ -5,7 +5,8 @@
             "type": "dotnet",
             "request": "launch",
             "projectPath": "${workspaceFolder}\\Server\\Server.csproj",
-            "launchConfigurationId": "TargetFramework=;https"
+            "launchConfigurationId": "TargetFramework=;https",
+            "preLaunchTask": "Start Dev Tunnel"
         }
     ]
 }

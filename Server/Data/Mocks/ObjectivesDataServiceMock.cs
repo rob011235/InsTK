@@ -16,8 +16,8 @@ namespace Server.Data.Mocks
         /// <summary>
         /// In-memory list of <see cref="Objective"/> entities.
         /// </summary>
-        private List<Objective> objectives = new List<Objective>
-        {
+        private readonly List<Objective> objectives =
+        [
             new Objective
             {
                 Id = Guid.NewGuid().ToString(),
@@ -58,7 +58,7 @@ namespace Server.Data.Mocks
                 Title = "Handle Errors and Exceptions",
                 Description = "Utilize Python exception handling to manage errors and ensure program stability.",
             },
-        };
+        ];
 
         /// <summary>
         /// Asynchronously retrieves all <see cref="Objective"/> entities.
@@ -96,14 +96,7 @@ namespace Server.Data.Mocks
         public Task UpdateAsync(Objective objective)
         {
             // Find the objective to update
-            Objective? objectiveToUpdate = this.objectives.Where(o => o.Id == objective.Id).FirstOrDefault();
-
-            // If we found it update it
-            if (objectiveToUpdate == null)
-            {
-                throw new ArgumentException("Objective not found in database;");
-            }
-
+            Objective? objectiveToUpdate = this.objectives.Where(o => o.Id == objective.Id).FirstOrDefault() ?? throw new ArgumentException("Objective not found in database;");
             objectiveToUpdate.ObjNumber = objective.ObjNumber;
             objectiveToUpdate.ParentObj = objective.ParentObj;
             objectiveToUpdate.Title = objective.Title;
@@ -114,20 +107,14 @@ namespace Server.Data.Mocks
         /// <summary>
         /// Asynchronously deletes the specified <see cref="Objective"/> entity from the in-memory list.
         /// </summary>
-        /// <param name="objective">The <see cref="Objective"/> entity to delete from the data store.</param>
+        /// <param name="id">The unique identifier of the <see cref="Objective"/> entity to delete from the data store.</param>
         /// <returns>
         /// A <see cref="Task"/> representing the result of the asynchronous operation.
         /// </returns>
         /// <exception cref="ArgumentException">Thrown when the objective is not found in the database.</exception>
         public Task DeleteAsync(string id)
         {
-            Objective? objectiveToDelete = this.objectives.Where(o => o.Id == id).FirstOrDefault();
-
-            if (objectiveToDelete == null)
-            {
-                throw new ArgumentException("Course not found in database;");
-            }
-
+            Objective? objectiveToDelete = this.objectives.Where(o => o.Id == id).FirstOrDefault() ?? throw new ArgumentException("Course not found in database;");
             this.objectives.Remove(objectiveToDelete);
             return Task.FromResult(objectiveToDelete);
         }

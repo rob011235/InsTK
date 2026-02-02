@@ -1,5 +1,5 @@
-// <copyright file="ObjectivesClientDataService.cs" company="Rob Garner (rgarner7@cnm.edu)">
-// Copyright (c) Rob Garner (rgarner7@cnm.edu). All rights reserved.
+// <copyright file="ObjectivesClientDataService.cs" company="Rob Garner (rgarner011235@gmail.com)">
+// Copyright (c) Rob Garner (rgarner011235@gmail.com). All rights reserved.
 // </copyright>
 
 namespace Client.Data.Services
@@ -33,7 +33,7 @@ namespace Client.Data.Services
             var courses = await this.http.GetFromJsonAsync<List<Objective>>("/api/Objectives");
             if (courses == null)
             {
-                return new List<Objective>();
+                return [];
             }
             else
             {

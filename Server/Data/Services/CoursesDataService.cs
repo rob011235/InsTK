@@ -1,5 +1,5 @@
-﻿// <copyright file="CoursesDataService.cs" company="PlaceholderCompany">
-// Copyright (c) PlaceholderCompany. All rights reserved.
+﻿// <copyright file="CoursesDataService.cs" company="Rob Garner (rgarner011235@gmail.com)">
+// Copyright (c) Rob Garner (rgarner011235@gmail.com). All rights reserved.
 // </copyright>
 
 namespace Server.Data.Services
@@ -54,12 +54,7 @@ namespace Server.Data.Services
         public async Task UpdateAsync(Course course)
         {
             // Find the one in the database
-            var curentCourse = await this.context.Courses.Where(c => c.Id == course.Id).FirstOrDefaultAsync();
-
-            if (curentCourse == null)
-            {
-                throw new InvalidOperationException("Course not found.");
-            }
+            var curentCourse = await this.context.Courses.Where(c => c.Id == course.Id).FirstOrDefaultAsync() ?? throw new InvalidOperationException("Course not found.");
 
             // Update it from the values in the parameter course
             curentCourse.Number = course.Number;
@@ -78,13 +73,7 @@ namespace Server.Data.Services
         public async Task DeleteAsync(string id)
         {
             // Find the one in the database
-            var curentCourse = await this.context.Courses.Where(c => c.Id == id).FirstOrDefaultAsync();
-
-            if (curentCourse == null)
-            {
-                throw new InvalidOperationException("Course not found.");
-            }
-
+            var curentCourse = await this.context.Courses.Where(c => c.Id == id).FirstOrDefaultAsync() ?? throw new InvalidOperationException("Course not found.");
             this.context.Courses.Remove(curentCourse);
             await this.context.SaveChangesAsync();
         }

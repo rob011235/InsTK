@@ -1,11 +1,11 @@
-﻿// <copyright file="Course.cs" company="Rob Garner (rgarner7@cnm.edu)">
-// Copyright (c) Rob Garner (rgarner7@cnm.edu). All rights reserved.
+﻿// <copyright file="Course.cs" company="Rob Garner (rgarner011235@gmail.com)">
+// Copyright (c) Rob Garner (rgarner011235@gmail.com). All rights reserved.
 // </copyright>
-
-using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Common.Models
 {
+    using System.ComponentModel.DataAnnotations.Schema;
+
     /// <summary>
     /// Represents a course with its identifying information and description.
     /// </summary>

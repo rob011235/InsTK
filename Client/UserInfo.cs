@@ -1,11 +1,27 @@
+// <copyright file="UserInfo.cs" company="Rob Garner (rgarner011235@gmail.com)">
+// Copyright (c) Rob Garner (rgarner011235@gmail.com). All rights reserved.
+// </copyright>
+
 namespace Client
 {
-    // Add properties to this class and update the server and client AuthenticationStateProviders
-    // to expose more information about the authenticated user to the client.
+    /// <summary>
+    /// Represents information about an authenticated user.
+    /// </summary>
     public class UserInfo
     {
-        public required string UserId { get; set; }
-        public required string Email { get; set; }
-        public required IEnumerable<string> Roles { get; set; }
+        /// <summary>
+        /// Gets or sets the unique identifier for the user.
+        /// </summary>
+        required public string UserId { get; set; }
+
+        /// <summary>
+        /// Gets or sets the email address of the user.
+        /// </summary>
+        required public string Email { get; set; }
+
+        /// <summary>
+        /// Gets or sets the roles assigned to the user.
+        /// </summary>
+        required public IEnumerable<string> Roles { get; set; }
     }
 }

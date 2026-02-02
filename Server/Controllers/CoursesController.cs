@@ -9,23 +9,39 @@ namespace Server.Controllers
     using Microsoft.AspNetCore.Authorization;
     using Microsoft.AspNetCore.Mvc;
 
+    /// <summary>
+    /// API controller for managing course resources.
+    /// </summary>
     [Route("api/[controller]")] // api/Courses
     [ApiController]
     public class CoursesController : ControllerBase
     {
         private readonly ICoursesDataService dataService;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CoursesController"/> class.
+        /// </summary>
+        /// <param name="dataService">The courses data service.</param>
         public CoursesController(ICoursesDataService dataService)
         {
             this.dataService = dataService;
         }
 
+        /// <summary>
+        /// Retrieves all courses.
+        /// </summary>
+        /// <returns>A <see cref="Task{TResult}"/> representing the result of the asynchronous operation.</returns>
         [HttpGet]
         public async Task<IActionResult> GetAllAsync()
         {
-            return Ok(await dataService?.GetAllAsync());
+            return this.Ok(await this.dataService.GetAllAsync());
         }
 
+        /// <summary>
+        /// Adds a new course.
+        /// </summary>
+        /// <param name="course">The course to add.</param>
+        /// <returns>A <see cref="Task"/> representing the result of the asynchronous operation.</returns>
         [HttpPost]
         [Authorize(Roles = "Admin")]
         public async Task AddAsync(Course course)
@@ -33,6 +49,11 @@ namespace Server.Controllers
             await this.dataService.AddAsync(course);
         }
 
+        /// <summary>
+        /// Updates an existing course.
+        /// </summary>
+        /// <param name="course">The course to update.</param>
+        /// <returns>A <see cref="Task"/> representing the result of the asynchronous operation.</returns>
         [HttpPut]
         [Authorize(Roles = "Admin")]
         public async Task UpdateAsync(Course course)
@@ -40,6 +61,11 @@ namespace Server.Controllers
             await this.dataService.UpdateAsync(course);
         }
 
+        /// <summary>
+        /// Deletes a course by identifier.
+        /// </summary>
+        /// <param name="id">The identifier of the course to delete.</param>
+        /// <returns>A <see cref="Task"/> representing the result of the asynchronous operation.</returns>
         [HttpDelete]
         [Authorize(Roles = "Admin")]
         [Route("{id}")]

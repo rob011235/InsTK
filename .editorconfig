@@ -1,0 +1,12 @@
+root = true
+
+[*.cs]
+# Prefer formatter-driven style; avoid legacy spacing rules fights
+dotnet_diagnostic.SA1009.severity = none   # Closing parenthesis spacing
+dotnet_diagnostic.SA1010.severity = none   # Opening square bracket spacing
+
+# OPTIONAL: if you want to embrace newer patterns
+dotnet_diagnostic.IDE0290.severity = none  # Primary constructors
+
+# If you’re using XML docs + StyleCop and don’t want XML verbosity warnings:
+dotnet_diagnostic.CS1591.severity = none

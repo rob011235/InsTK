@@ -4,10 +4,10 @@
 
 namespace Server.Data.Services
 {
-    using Server.Data;
-    using Microsoft.EntityFrameworkCore;
     using Common.Interfaces;
     using Common.Models;
+    using Microsoft.EntityFrameworkCore;
+    using Server.Data;
 
     /// <summary>
     /// Provides data access methods for <see cref="Objective"/> entities.
@@ -17,7 +17,7 @@ namespace Server.Data.Services
         /// <summary>
         /// The database context used for data operations.
         /// </summary>
-        private ApplicationDbContext context;
+        private readonly ApplicationDbContext context;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ObjectivesDataService"/> class.
@@ -41,6 +41,7 @@ namespace Server.Data.Services
         /// Adds a new objective to the database.
         /// </summary>
         /// <param name="objective">The objective to add.</param>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         public async Task AddAsync(Objective objective)
         {
             objective.Id = Guid.NewGuid().ToString();
@@ -52,18 +53,12 @@ namespace Server.Data.Services
         /// Updates an existing objective in the database.
         /// </summary>
         /// <param name="objective">The objective with updated values.</param>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         /// <exception cref="ArgumentException">Thrown if the objective is not found.</exception>
         public async Task UpdateAsync(Objective objective)
         {
             // Find the objective to update
-            Objective? objectiveToUpdate = this.context.Objectives.Where(o => o.Id == objective.Id).FirstOrDefault();
-
-            // If we found it update it
-            if (objectiveToUpdate == null)
-            {
-                throw new ArgumentException("Objective not found in database;");
-            }
-
+            Objective? objectiveToUpdate = this.context.Objectives.Where(o => o.Id == objective.Id).FirstOrDefault() ?? throw new ArgumentException("Objective not found in database;");
             objectiveToUpdate.ObjNumber = objective.ObjNumber;
             objectiveToUpdate.ParentObj = objective.ParentObj;
             objectiveToUpdate.Title = objective.Title;
@@ -74,17 +69,12 @@ namespace Server.Data.Services
         /// <summary>
         /// Deletes an objective from the database.
         /// </summary>
-        /// <param name="objective">The objective to delete.</param>
+        /// <param name="id">The ID of the objective to delete.</param>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         /// <exception cref="ArgumentException">Thrown if the objective is not found.</exception>
         public async Task DeleteAsync(string id)
         {
-            Objective? objectiveToDelete = this.context.Objectives.Where(o => o.Id == id).FirstOrDefault();
-
-            if (objectiveToDelete == null)
-            {
-                throw new ArgumentException("Course not found in database;");
-            }
-
+            Objective? objectiveToDelete = this.context.Objectives.Where(o => o.Id == id).FirstOrDefault() ?? throw new ArgumentException("Course not found in database;");
             this.context.Objectives.Remove(objectiveToDelete);
             await this.context.SaveChangesAsync();
         }
