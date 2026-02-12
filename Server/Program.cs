@@ -7,9 +7,13 @@ namespace Server
     using System.Threading.Tasks;
     using Client.Pages;
     using Common.Interfaces;
+    using Microsoft.AspNetCore.Authentication;
+    using Microsoft.AspNetCore.Authentication.Cookies;
+    using Microsoft.AspNetCore.Authentication.OAuth;
     using Microsoft.AspNetCore.Components.Authorization;
     using Microsoft.AspNetCore.Identity;
     using Microsoft.EntityFrameworkCore;
+    using Microsoft.Extensions.DependencyInjection;
     using Server.Components;
     using Server.Components.Account;
     using Server.Data;
@@ -40,11 +44,50 @@ namespace Server
             builder.Services.AddScoped<AuthenticationStateProvider, IdentityRevalidatingAuthenticationStateProvider>();
 
             builder.Services.AddAuthentication(options =>
+            {
+                options.DefaultScheme = IdentityConstants.ApplicationScheme;
+                options.DefaultSignInScheme = IdentityConstants.ExternalScheme;
+            })
+            .AddIdentityCookies();
+
+            // GitHub auth is separate because AddIdentityCookies() returns IdentityCookiesBuilder
+            builder.Services
+                .AddAuthentication()
+                .AddCookie("GitHubCookie")
+                .AddOAuth("GitHub", options =>
                 {
-                    options.DefaultScheme = IdentityConstants.ApplicationScheme;
-                    options.DefaultSignInScheme = IdentityConstants.ExternalScheme;
-                })
-                .AddIdentityCookies();
+                    options.ClientId = builder.Configuration["GitHub:ClientId"]!;
+                    options.ClientSecret = builder.Configuration["GitHub:ClientSecret"]!;
+                    options.CallbackPath = "/signin-github";
+
+                    // IMPORTANT: keep GitHub auth isolated from Identity sign-in
+                    options.SignInScheme = "GitHubCookie";
+
+                    // Pick one:
+                    options.Scope.Add("public_repo");
+
+                    // options.Scope.Add("repo");
+
+                    options.AuthorizationEndpoint = "https://github.com/login/oauth/authorize";
+                    options.TokenEndpoint = "https://github.com/login/oauth/access_token";
+                    options.UserInformationEndpoint = "https://api.github.com/user";
+
+                    options.SaveTokens = true;
+
+                    options.Events.OnCreatingTicket = async ctx =>
+                    {
+                        using var req = new HttpRequestMessage(HttpMethod.Get, ctx.Options.UserInformationEndpoint);
+                        req.Headers.Add("Accept", "application/vnd.github+json");
+                        req.Headers.Add("User-Agent", "InsTK");
+                        req.Headers.Authorization =
+                            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", ctx.AccessToken);
+
+                        using var resp = await ctx.Backchannel.SendAsync(req);
+                        resp.EnsureSuccessStatusCode();
+                    };
+                });
+
+            builder.Services.AddHttpClient();
 
             var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
             builder.Services.AddDbContext<ApplicationDbContext>(options =>
@@ -94,6 +137,10 @@ namespace Server
             app.UseAntiforgery();
             app.UseStaticFiles();
             app.MapStaticAssets();
+
+            app.UseAuthentication();
+            app.UseAuthorization();
+
             app.MapRazorComponents<App>()
                 .AddInteractiveServerRenderMode()
                 .AddInteractiveWebAssemblyRenderMode()
@@ -113,7 +160,7 @@ namespace Server
                 {
                     if (!await roleManager.RoleExistsAsync(role))
                     {
-                        IdentityRole roleRole = new IdentityRole(role);
+                        IdentityRole roleRole = new (role);
                         await roleManager.CreateAsync(roleRole);
                     }
                 }
@@ -126,12 +173,14 @@ namespace Server
                 string? password = builder.Configuration.GetSection("Admin:Password").Value;
                 if (!string.IsNullOrEmpty(email) && !string.IsNullOrEmpty(password) && await userManager.FindByNameAsync(email) == null)
                 {
-                    var user = new ApplicationUser();
-                    user.Email = email;
-                    user.UserName = email;
+                    var user = new ApplicationUser
+                    {
+                        Email = email,
+                        UserName = email,
 
-                    // Optional, add if you want the account live right away without email confirmation
-                    user.EmailConfirmed = true;
+                        // Optional, add if you want the account live right away without email confirmation
+                        EmailConfirmed = true,
+                    };
 
                     var results = await userManager.CreateAsync(user, password);
                     await userManager.AddToRoleAsync(user, "Admin");

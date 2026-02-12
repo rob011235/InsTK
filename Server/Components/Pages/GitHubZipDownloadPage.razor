@@ -1,0 +1,34 @@
+﻿@page "/github-zip"
+@rendermode InteractiveServer
+
+@inject NavigationManager Nav
+
+<h3>GitHub Repo ZIP Download</h3>
+
+<div class="mb-3">
+    <button class="btn btn-primary" @onclick="Login">Login with GitHub</button>
+    <a class="btn btn-outline-secondary ms-2" href="/auth/github/logout?returnUrl=/github-zip">Logout GitHub</a>
+</div>
+
+<input class="form-control mb-2" placeholder="Owner (org or user)" @bind="Owner" />
+<input class="form-control mb-2" placeholder="Repo" @bind="Repo" />
+<input class="form-control mb-2" placeholder="Ref (optional: main, tag, sha)" @bind="Ref" />
+
+<button class="btn btn-success" @onclick="Download">Download ZIP</button>
+
+@code {
+    string Owner = "";
+    string Repo = "";
+    string? Ref = "main";
+
+    void Login() => Nav.NavigateTo("/auth/github/login?returnUrl=/github-zip", forceLoad: true);
+
+    void Download()
+    {
+        var url = $"/github/repo-zip?owner={Uri.EscapeDataString(Owner)}&repo={Uri.EscapeDataString(Repo)}";
+        if (!string.IsNullOrWhiteSpace(Ref))
+            url += $"&ref={Uri.EscapeDataString(Ref!)}";
+
+        Nav.NavigateTo(url, forceLoad: true);
+    }
+}

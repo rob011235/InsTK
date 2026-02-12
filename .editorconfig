@@ -8,5 +8,7 @@ dotnet_diagnostic.SA1010.severity = none   # Opening square bracket spacing
 # OPTIONAL: if you want to embrace newer patterns
 dotnet_diagnostic.IDE0290.severity = none  # Primary constructors
 
+dotnet_diagnostic.SA1011.severity = none  # Closing square bracket spacing
+
 # If you’re using XML docs + StyleCop and don’t want XML verbosity warnings:
 dotnet_diagnostic.CS1591.severity = none
