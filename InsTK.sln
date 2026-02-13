@@ -9,7 +9,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Client", "Client\Client.csp
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Common", "Common\Common.csproj", "{24EFFEB3-538F-4A25-ADD5-F9E6CF90F4A2}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Test", "Test\Test.csproj", "{88DE9972-A997-4A36-A1E8-06FF1C6080BE}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tests", "Tests\Tests.csproj", "{88DE9972-A997-4A36-A1E8-06FF1C6080BE}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Design Notes", "Design Notes", "{514E8758-BA01-4263-9028-1DC6F019B837}"
 	ProjectSection(SolutionItems) = preProject

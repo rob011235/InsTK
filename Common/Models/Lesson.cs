@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Common.Models;
 
 public class Lesson
 {

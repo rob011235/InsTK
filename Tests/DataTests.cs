@@ -2,7 +2,7 @@
 // Copyright (c) PlaceholderCompany. All rights reserved.
 // </copyright>
 
-namespace Test
+namespace Tests
 {
     using System.Threading.Tasks;
     using Common.Models;
