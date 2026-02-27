@@ -1,18 +1,195 @@
 @page "/sme-questionnaire/{Token}/profile"
 @rendermode InteractiveServer
 @attribute [AllowAnonymous]
+@using System.ComponentModel.DataAnnotations
+@using Common.Interfaces
+@using Common.Models.SmeQuestionnaire
+@inject ISmeQuestionnaireDataService SmeQuestionnaireDataService
+@inject NavigationManager Navigation
 
 <PageTitle>SME Questionnaire Profile</PageTitle>
 
 <h1>SME Questionnaire</h1>
 <p><strong>Step 1 of 6:</strong> Profile</p>
-<p>This profile page is ready for field implementation.</p>
 
-<p>
-    <a href="/sme-questionnaire/privacy">How we use your data (Privacy Notice)</a>
-</p>
+@if (isLoading)
+{
+    <p>Loading profile...</p>
+}
+else if (!string.IsNullOrWhiteSpace(errorMessage))
+{
+    <p class="text-danger">@errorMessage</p>
+}
+else
+{
+    <EditForm Model="model" OnValidSubmit="SaveAndNextAsync" FormName="SmeQuestionnaireProfileForm">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        @if (!string.IsNullOrWhiteSpace(saveMessage))
+        {
+            <p class="text-success">@saveMessage</p>
+        }
+
+        <div class="mb-3">
+            <label for="fullNameInput" class="form-label">Full Name</label>
+            <InputText id="fullNameInput" class="form-control" @bind-Value="model.FullName" />
+        </div>
+
+        <div class="mb-3">
+            <label for="companyInput" class="form-label">Company</label>
+            <InputText id="companyInput" class="form-control" @bind-Value="model.Company" />
+        </div>
+
+        <div class="mb-3">
+            <label for="jobTitleInput" class="form-label">Job Title</label>
+            <InputText id="jobTitleInput" class="form-control" @bind-Value="model.JobTitle" />
+        </div>
+
+        <div class="mb-3">
+            <label for="emailInput" class="form-label">Email</label>
+            <InputText id="emailInput" class="form-control" @bind-Value="model.Email" />
+        </div>
+
+        <div class="mb-3">
+            <label for="phoneInput" class="form-label">Phone</label>
+            <InputText id="phoneInput" class="form-control" @bind-Value="model.Phone" />
+        </div>
+
+        <div class="mb-3">
+            <label for="websiteInput" class="form-label">Website</label>
+            <InputText id="websiteInput" class="form-control" @bind-Value="model.Website" />
+        </div>
+
+        <div class="mb-3">
+            <label for="locationInput" class="form-label">Location</label>
+            <InputText id="locationInput" class="form-control" @bind-Value="model.Location" />
+        </div>
+
+        <div class="d-flex gap-2 mb-3">
+            <button type="button" class="btn btn-outline-secondary" @onclick="GoBack">
+                Back
+            </button>
+            <button type="button" class="btn btn-outline-primary" @onclick="SaveDraftAsync">
+                Save Draft
+            </button>
+            <button type="submit" class="btn btn-primary">
+                Next
+            </button>
+        </div>
+    </EditForm>
+
+    <p>
+        <a href="/sme-questionnaire/privacy">How we use your data (Privacy Notice)</a>
+    </p>
+}
 
 @code {
     [Parameter]
     public string Token { get; set; } = string.Empty;
+
+    private readonly ProfileModel model = new ProfileModel();
+    private Guid responseId;
+    private bool isLoading = true;
+    private string? errorMessage;
+    private string? saveMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Guid.TryParse(Token, out responseId))
+        {
+            errorMessage = "Invalid questionnaire link.";
+            isLoading = false;
+            return;
+        }
+
+        SubjectMatterExpert? profile = await SmeQuestionnaireDataService.GetSmeProfileByResponseIdAsync(responseId);
+
+        if (profile is null)
+        {
+            errorMessage = "Unable to load profile for this questionnaire.";
+            isLoading = false;
+            return;
+        }
+
+        model.FullName = profile.FullName;
+        model.Company = profile.Company;
+        model.JobTitle = profile.JobTitle;
+        model.Email = profile.Email;
+        model.Phone = profile.Phone;
+        model.Website = profile.Website;
+        model.Location = profile.Location;
+
+        isLoading = false;
+    }
+
+    private async Task SaveDraftAsync()
+    {
+        bool success = await SaveProfileAsync();
+        saveMessage = success ? "Draft saved." : "Unable to save draft.";
+    }
+
+    private async Task SaveAndNextAsync()
+    {
+        bool success = await SaveProfileAsync();
+        if (!success)
+        {
+            saveMessage = "Unable to save profile.";
+            return;
+        }
+
+        Navigation.NavigateTo($"/sme-questionnaire/{Token}/skills");
+    }
+
+    private void GoBack()
+    {
+        Navigation.NavigateTo($"/sme-questionnaire/{Token}");
+    }
+
+    private async Task<bool> SaveProfileAsync()
+    {
+        SubjectMatterExpert updatedProfile = new SubjectMatterExpert
+        {
+            FullName = model.FullName.Trim(),
+            Company = Normalize(model.Company),
+            JobTitle = Normalize(model.JobTitle),
+            Email = Normalize(model.Email),
+            Phone = Normalize(model.Phone),
+            Website = Normalize(model.Website),
+            Location = Normalize(model.Location),
+        };
+
+        return await SmeQuestionnaireDataService.UpdateSmeProfileByResponseIdAsync(responseId, updatedProfile);
+    }
+
+    private static string? Normalize(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+    }
+
+    private sealed class ProfileModel
+    {
+        [Required]
+        [MaxLength(200)]
+        public string FullName { get; set; } = string.Empty;
+
+        [MaxLength(200)]
+        public string? Company { get; set; }
+
+        [MaxLength(200)]
+        public string? JobTitle { get; set; }
+
+        [EmailAddress]
+        [MaxLength(300)]
+        public string? Email { get; set; }
+
+        [MaxLength(100)]
+        public string? Phone { get; set; }
+
+        [MaxLength(300)]
+        public string? Website { get; set; }
+
+        [MaxLength(200)]
+        public string? Location { get; set; }
+    }
 }

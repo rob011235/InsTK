@@ -164,6 +164,52 @@ namespace Server.Data.Services
         }
 
         /// <inheritdoc/>
+        public async Task<SubjectMatterExpert?> GetSmeProfileByResponseIdAsync(Guid responseId)
+        {
+            SmeQuestionnaireResponse? response = await this.context.SmeQuestionnaireResponses
+                .FirstOrDefaultAsync(x => x.Id == responseId);
+
+            if (response is null)
+            {
+                return null;
+            }
+
+            return await this.context.SubjectMatterExperts
+                .FirstOrDefaultAsync(x => x.Id == response.SubjectMatterExpertId);
+        }
+
+        /// <inheritdoc/>
+        public async Task<bool> UpdateSmeProfileByResponseIdAsync(Guid responseId, SubjectMatterExpert updatedProfile)
+        {
+            SmeQuestionnaireResponse? response = await this.context.SmeQuestionnaireResponses
+                .FirstOrDefaultAsync(x => x.Id == responseId);
+
+            if (response is null)
+            {
+                return false;
+            }
+
+            SubjectMatterExpert? existing = await this.context.SubjectMatterExperts
+                .FirstOrDefaultAsync(x => x.Id == response.SubjectMatterExpertId);
+
+            if (existing is null)
+            {
+                return false;
+            }
+
+            existing.FullName = updatedProfile.FullName;
+            existing.Company = updatedProfile.Company;
+            existing.JobTitle = updatedProfile.JobTitle;
+            existing.Email = updatedProfile.Email;
+            existing.Phone = updatedProfile.Phone;
+            existing.Website = updatedProfile.Website;
+            existing.Location = updatedProfile.Location;
+
+            await this.context.SaveChangesAsync();
+            return true;
+        }
+
+        /// <inheritdoc/>
         public async Task<DateTimeOffset?> AcknowledgePrivacyAsync(Guid responseId)
         {
             SmeQuestionnaireResponse? response = await this.context.SmeQuestionnaireResponses

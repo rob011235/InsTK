@@ -80,6 +80,21 @@ namespace Common.Interfaces
         public Task<SmeQuestionnaireResponse?> GetResponseByIdAsync(Guid responseId);
 
         /// <summary>
+        /// Gets the subject matter expert profile associated with a questionnaire response.
+        /// </summary>
+        /// <param name="responseId">The response identifier.</param>
+        /// <returns>The SME profile if found; otherwise <see langword="null"/>.</returns>
+        public Task<SubjectMatterExpert?> GetSmeProfileByResponseIdAsync(Guid responseId);
+
+        /// <summary>
+        /// Updates the subject matter expert profile associated with a questionnaire response.
+        /// </summary>
+        /// <param name="responseId">The response identifier.</param>
+        /// <param name="updatedProfile">The profile values to persist.</param>
+        /// <returns><see langword="true"/> if updated; otherwise <see langword="false"/>.</returns>
+        public Task<bool> UpdateSmeProfileByResponseIdAsync(Guid responseId, SubjectMatterExpert updatedProfile);
+
+        /// <summary>
         /// Sets the privacy acknowledgment timestamp for the response if one does not already exist.
         /// </summary>
         /// <param name="responseId">The response identifier.</param>

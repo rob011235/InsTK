@@ -1,0 +1,18 @@
+@page "/sme-questionnaire/{Token}/skills"
+@rendermode InteractiveServer
+@attribute [AllowAnonymous]
+
+<PageTitle>SME Questionnaire Skills</PageTitle>
+
+<h1>SME Questionnaire</h1>
+<p><strong>Step 2 of 6:</strong> Skills</p>
+<p>Skills step placeholder. Profile saved successfully and routing is wired.</p>
+
+<p>
+    <a href="/sme-questionnaire/privacy">How we use your data (Privacy Notice)</a>
+</p>
+
+@code {
+    [Parameter]
+    public string Token { get; set; } = string.Empty;
+}
