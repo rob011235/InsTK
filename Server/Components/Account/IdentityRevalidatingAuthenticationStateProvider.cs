@@ -38,7 +38,7 @@ namespace Server.Components.Account
             // Get the user manager from a new scope to ensure it fetches fresh data
             await using var scope = scopeFactory.CreateAsyncScope();
             var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-            return await ValidateSecurityStampAsync(userManager, authenticationState.User);
+            return await this.ValidateSecurityStampAsync(userManager, authenticationState.User);
         }
 
         /// <summary>

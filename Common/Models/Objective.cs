@@ -1,5 +1,5 @@
-﻿// <copyright file="Objective.cs" company="Rob Garner (rgarner7@cnm.edu)">
-// Copyright (c) Rob Garner (rgarner7@cnm.edu). All rights reserved.
+﻿// <copyright file="Objective.cs" company="Rob Garner (rgarner011235@gmail.com)">
+// Copyright (c) Rob Garner (rgarner011235@gmail.com). All rights reserved.
 // </copyright>
 
 namespace Common.Models

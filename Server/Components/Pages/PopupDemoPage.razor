@@ -8,10 +8,10 @@
 
 <button class="btn btn-primary" @onclick="OnClickShowModal">Show Modal</button>
 @code {
-    private PopupNotification popup;
+    private PopupNotification? popup = default!;
 
     void OnClickShowModal()
     {
-        popup.ShowModal();
+        popup?.ShowModal();
     }
 }

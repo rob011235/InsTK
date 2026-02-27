@@ -4,10 +4,10 @@
 
 namespace Server.Data.Services
 {
-    using Server.Data;
-    using Microsoft.EntityFrameworkCore;
     using Common.Interfaces;
     using Common.Models;
+    using Microsoft.EntityFrameworkCore;
+    using Server.Data;
 
     /// <summary>
     /// Provides data access methods for <see cref="Objective"/> entities.
@@ -41,6 +41,7 @@ namespace Server.Data.Services
         /// Adds a new objective to the database.
         /// </summary>
         /// <param name="objective">The objective to add.</param>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         public async Task AddAsync(Objective objective)
         {
             objective.Id = Guid.NewGuid().ToString();
@@ -53,6 +54,7 @@ namespace Server.Data.Services
         /// </summary>
         /// <param name="objective">The objective with updated values.</param>
         /// <exception cref="ArgumentException">Thrown if the objective is not found.</exception>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         public async Task UpdateAsync(Objective objective)
         {
             // Find the objective to update
@@ -76,6 +78,7 @@ namespace Server.Data.Services
         /// </summary>
         /// <param name="objective">The objective to delete.</param>
         /// <exception cref="ArgumentException">Thrown if the objective is not found.</exception>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         public async Task DeleteAsync(string id)
         {
             Objective? objectiveToDelete = this.context.Objectives.Where(o => o.Id == id).FirstOrDefault();

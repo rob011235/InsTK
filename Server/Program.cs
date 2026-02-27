@@ -33,7 +33,7 @@ namespace Server
             builder.Services.AddRazorComponents()
                 .AddInteractiveServerComponents()
                 .AddInteractiveWebAssemblyComponents()
-                .AddAuthenticationStateSerialization(); ;
+                .AddAuthenticationStateSerialization();
 
             builder.Services.AddCascadingAuthenticationState();
             builder.Services.AddScoped<IdentityRedirectManager>();
@@ -92,7 +92,6 @@ namespace Server
             app.UseHttpsRedirection();
 
             app.UseAntiforgery();
-            // app.UseStaticFiles();
             app.MapStaticAssets();
             app.MapRazorComponents<App>()
                 .AddInteractiveServerRenderMode()

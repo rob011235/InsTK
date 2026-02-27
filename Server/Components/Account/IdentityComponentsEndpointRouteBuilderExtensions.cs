@@ -5,7 +5,7 @@
 namespace Server.Components.Account
 {
     using System.Security.Claims;
-    using System.Text.Json; 
+    using System.Text.Json;
     using Microsoft.AspNetCore.Antiforgery;
     using Microsoft.AspNetCore.Authentication;
     using Microsoft.AspNetCore.Components.Authorization;
@@ -81,7 +81,7 @@ namespace Server.Components.Account
                 {
                     Id = userId,
                     Name = userName,
-                    DisplayName = userName
+                    DisplayName = userName,
                 });
                 return TypedResults.Content(optionsJson, contentType: "application/json");
             });

@@ -34,7 +34,7 @@ namespace Server.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAllAsync()
         {
-            return Ok(await dataService?.GetAllAsync());
+            return this.Ok(await this.dataService.GetAllAsync());
         }
 
         /// <summary>

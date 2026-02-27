@@ -14,10 +14,10 @@ namespace Client
     /// </summary>
     internal class PersistentAuthenticationStateProvider : AuthenticationStateProvider
     {
-        private static readonly Task<AuthenticationState> defaultUnauthenticatedTask =
+        private static readonly Task<AuthenticationState> DefaultUnauthenticatedTask =
             Task.FromResult(new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity())));
 
-        private readonly Task<AuthenticationState> authenticationStateTask = defaultUnauthenticatedTask;
+        private readonly Task<AuthenticationState> authenticationStateTask = DefaultUnauthenticatedTask;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PersistentAuthenticationStateProvider"/> class.
@@ -42,8 +42,9 @@ namespace Client
                 claims.AddRange(userInfo.Roles.Select(x => new Claim(ClaimTypes.Role, x)));
             }
 
-            authenticationStateTask = Task.FromResult(
-                new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity(claims,
+            this.authenticationStateTask = Task.FromResult(
+                new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity(
+                    claims,
                     authenticationType: nameof(PersistentAuthenticationStateProvider)))));
         }
 
@@ -51,6 +52,6 @@ namespace Client
         /// Gets the current authentication state for the client application.
         /// </summary>
         /// <returns>The current authentication state task.</returns>
-        public override Task<AuthenticationState> GetAuthenticationStateAsync() => authenticationStateTask;
+        public override Task<AuthenticationState> GetAuthenticationStateAsync() => this.authenticationStateTask;
     }
 }

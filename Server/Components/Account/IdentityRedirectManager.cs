@@ -38,20 +38,25 @@ namespace Server.Components.Account
         }
 
         /// <summary>
+        /// Gets the current absolute path.
+        /// </summary>
+        private string CurrentPath => this.navigationManager.ToAbsoluteUri(this.navigationManager.Uri).GetLeftPart(UriPartial.Path);
+
+        /// <summary>
         /// Redirects to the specified URI.
         /// </summary>
         /// <param name="uri">The URI to redirect to.</param>
         public void RedirectTo(string? uri)
         {
-            uri ??= "";
+            uri ??= string.Empty;
 
             // Prevent open redirects.
             if (!Uri.IsWellFormedUriString(uri, UriKind.Relative))
             {
-                uri = navigationManager.ToBaseRelativePath(uri);
+                uri = this.navigationManager.ToBaseRelativePath(uri);
             }
 
-            navigationManager.NavigateTo(uri);
+            this.navigationManager.NavigateTo(uri);
         }
 
         /// <summary>
@@ -61,9 +66,9 @@ namespace Server.Components.Account
         /// <param name="queryParameters">The query parameters to append.</param>
         public void RedirectTo(string uri, Dictionary<string, object?> queryParameters)
         {
-            var uriWithoutQuery = navigationManager.ToAbsoluteUri(uri).GetLeftPart(UriPartial.Path);
-            var newUri = navigationManager.GetUriWithQueryParameters(uriWithoutQuery, queryParameters);
-            RedirectTo(newUri);
+            var uriWithoutQuery = this.navigationManager.ToAbsoluteUri(uri).GetLeftPart(UriPartial.Path);
+            var newUri = this.navigationManager.GetUriWithQueryParameters(uriWithoutQuery, queryParameters);
+            this.RedirectTo(newUri);
         }
 
         /// <summary>
@@ -75,18 +80,13 @@ namespace Server.Components.Account
         public void RedirectToWithStatus(string uri, string message, HttpContext context)
         {
             context.Response.Cookies.Append(StatusCookieName, message, StatusCookieBuilder.Build(context));
-            RedirectTo(uri);
+            this.RedirectTo(uri);
         }
-
-        /// <summary>
-        /// Gets the current absolute path.
-        /// </summary>
-        private string CurrentPath => navigationManager.ToAbsoluteUri(navigationManager.Uri).GetLeftPart(UriPartial.Path);
 
         /// <summary>
         /// Redirects to the current page.
         /// </summary>
-        public void RedirectToCurrentPage() => RedirectTo(CurrentPath);
+        public void RedirectToCurrentPage() => this.RedirectTo(this.CurrentPath);
 
         /// <summary>
         /// Redirects to the current page and sets a status message cookie.
@@ -94,7 +94,7 @@ namespace Server.Components.Account
         /// <param name="message">The status message to set in the cookie.</param>
         /// <param name="context">The HTTP context for setting the cookie.</param>
         public void RedirectToCurrentPageWithStatus(string message, HttpContext context)
-            => RedirectToWithStatus(CurrentPath, message, context);
+            => this.RedirectToWithStatus(this.CurrentPath, message, context);
 
         /// <summary>
         /// Redirects to the invalid user page with an error message.
@@ -102,6 +102,6 @@ namespace Server.Components.Account
         /// <param name="userManager">The user manager for retrieving the user ID.</param>
         /// <param name="context">The HTTP context for setting the cookie.</param>
         public void RedirectToInvalidUser(UserManager<ApplicationUser> userManager, HttpContext context)
-            => RedirectToWithStatus("Account/InvalidUser", $"Error: Unable to load user with ID '{userManager.GetUserId(context.User)}'.", context);
+            => this.RedirectToWithStatus("Account/InvalidUser", $"Error: Unable to load user with ID '{userManager.GetUserId(context.User)}'.", context);
     }
 }

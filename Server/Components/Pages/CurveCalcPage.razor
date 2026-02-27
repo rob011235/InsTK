@@ -6,24 +6,24 @@
 <p>Welcome to the Curve Calculator, enter your list of grades and this calculator will adjust them to a curve.</p>
 
 <ul class="list-group">
-  @foreach(var grade in grades)
-  {
+    @foreach (var grade in grades)
+    {
         <li class="list-group-item">
-          @grade - @(grade+dif)
+            @grade - @(grade + dif)
             <button class="btn btn-danger" type="button" @onclick="(() => RemoveGrade(grade))">Remove</button>
-      </li>
-  }
+        </li>
+    }
 </ul>
 
 <div class="mb-3">
     <label for="grade" class="form-label">Grade:</label>
     <input class="form-control" type="number" id="grade" name="grade" @bind="newGrade" />
-<button class="btn btn-primary" type="button" @onclick="AddGrade">Add score to list</button>
+    <button class="btn btn-primary" type="button" @onclick="AddGrade">Add score to list</button>
 </div>
 
-<PopupNotification @ref=popup Title="Info" Message="@message"/>
+<PopupNotification @ref=popup Title="Info" Message="@message" />
 @code {
-    PopupNotification popup;
+    PopupNotification? popup = default!;
     protected List<int> grades = new List<int>();
     protected int newGrade;
     protected string message = "Enter a grade and click the button to add it to the list.";
@@ -38,13 +38,13 @@
 
     protected override void OnAfterRender(bool firstRender)
     {
-        popup.ShowModal();
+        popup?.ShowModal();
     }
 
     protected void AddGrade()
     {
-        message = "Clicked the button!"; 
-        popup.ShowModal();
+        message = "Clicked the button!";
+        popup?.ShowModal();
         grades.Add(newGrade);
         CalcCurve();
     }
@@ -59,9 +59,9 @@
     {
         // Find highest grade
         int highestGrade = 0;
-        foreach(var grade in grades)
+        foreach (var grade in grades)
         {
-            if(highestGrade < grade)
+            if (highestGrade < grade)
             {
                 highestGrade = grade;
             }

@@ -24,7 +24,7 @@ namespace Server.Components.Account
         /// <param name="confirmationLink">The confirmation link to include in the email.</param>
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         public Task SendConfirmationLinkAsync(ApplicationUser user, string email, string confirmationLink) =>
-            emailSender.SendEmailAsync(email, "Confirm your email", $"Please confirm your account by <a href='{confirmationLink}'>clicking here</a>.");
+            this.emailSender.SendEmailAsync(email, "Confirm your email", $"Please confirm your account by <a href='{confirmationLink}'>clicking here</a>.");
 
         /// <summary>
         /// Sends a password reset link email to the specified user.
@@ -34,7 +34,7 @@ namespace Server.Components.Account
         /// <param name="resetLink">The password reset link to include in the email.</param>
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         public Task SendPasswordResetLinkAsync(ApplicationUser user, string email, string resetLink) =>
-            emailSender.SendEmailAsync(email, "Reset your password", $"Please reset your password by <a href='{resetLink}'>clicking here</a>.");
+            this.emailSender.SendEmailAsync(email, "Reset your password", $"Please reset your password by <a href='{resetLink}'>clicking here</a>.");
 
         /// <summary>
         /// Sends a password reset code email to the specified user.
@@ -44,6 +44,6 @@ namespace Server.Components.Account
         /// <param name="resetCode">The password reset code to include in the email.</param>
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         public Task SendPasswordResetCodeAsync(ApplicationUser user, string email, string resetCode) =>
-            emailSender.SendEmailAsync(email, "Reset your password", $"Please reset your password using the following code: {resetCode}");
+            this.emailSender.SendEmailAsync(email, "Reset your password", $"Please reset your password using the following code: {resetCode}");
     }
 }

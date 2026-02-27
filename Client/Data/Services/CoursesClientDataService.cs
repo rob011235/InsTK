@@ -1,9 +1,13 @@
-﻿using Common.Interfaces;
-using Common.Models;
-using System.Net.Http.Json;
+﻿// <copyright file="CoursesClientDataService.cs" company="Rob Garner (rgarner011235@gmail.com)">
+// Copyright (c) Rob Garner (rgarner011235@gmail.com). All rights reserved.
+// </copyright>
 
 namespace Client.Data.Services
 {
+    using System.Net.Http.Json;
+    using Common.Interfaces;
+    using Common.Models;
+
     /// <summary>
     /// Client-side implementation for course data operations.
     /// </summary>

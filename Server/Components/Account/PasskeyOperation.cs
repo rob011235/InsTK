@@ -1,3 +1,7 @@
+// <copyright file="PasskeyOperation.cs" company="Rob Garner (rgarner011235@gmail.com)">
+// Copyright (c) Rob Garner (rgarner011235@gmail.com). All rights reserved.
+// </copyright>
+
 namespace Server.Components.Account
 {
     /// <summary>
