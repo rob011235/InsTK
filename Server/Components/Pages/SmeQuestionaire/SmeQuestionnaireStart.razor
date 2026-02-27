@@ -50,11 +50,13 @@ else if (response is not null)
             I have read the Privacy Notice
         </button>
 
-        <button class="btn btn-primary"
-                @onclick="GoToProfile"
-                disabled="@(!response.PrivacyAcknowledgedOn.HasValue)">
-            Begin
-        </button>
+        @if (response.PrivacyAcknowledgedOn.HasValue)
+        {
+            <button class="btn btn-primary"
+                    @onclick="GoToProfile">
+                Next
+            </button>
+        }
     </div>
 }
 
