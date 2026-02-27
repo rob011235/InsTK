@@ -68,6 +68,7 @@ namespace Server
             // Data services
             builder.Services.AddTransient<ICoursesDataService, CoursesDataService>();
             builder.Services.AddTransient<IObjectivesDataService, ObjectivesDataService>();
+            builder.Services.AddTransient<ISmeQuestionnaireDataService, SmeQuestionnaireDataService>();
 
             // To enable web api
             builder.Services.AddControllers();

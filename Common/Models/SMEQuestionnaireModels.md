@@ -87,6 +87,7 @@ A single SME submission for a questionnaire.
 -   ResponseStatus: Status (Draft, Submitted, Reviewed)
 -   DateTimeOffset: StartedOn
 -   DateTimeOffset?: SubmittedOn
+-   DateTimeOffset?: PrivacyAcknowledgedOn
 -   string?: ReviewerNotes
 -   string?: FinalOpenEndedAnswer
 -   List: Answers

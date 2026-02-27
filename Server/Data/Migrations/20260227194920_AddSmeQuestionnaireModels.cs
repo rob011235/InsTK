@@ -1,10 +1,14 @@
-﻿using System;
-using Microsoft.EntityFrameworkCore.Migrations;
+﻿// <copyright file="20260227194920_AddSmeQuestionnaireModels.cs" company="Rob Garner (rgarner011235@gmail.com)">
+// Copyright (c) Rob Garner (rgarner011235@gmail.com). All rights reserved.
+// </copyright>
 
 #nullable disable
 
 namespace Server.Data.Migrations
 {
+    using System;
+    using Microsoft.EntityFrameworkCore.Migrations;
+
     /// <inheritdoc />
     public partial class AddSmeQuestionnaireModels : Migration
     {
@@ -19,7 +23,7 @@ namespace Server.Data.Migrations
                     Title = table.Column<string>(type: "TEXT", nullable: false),
                     Description = table.Column<string>(type: "TEXT", nullable: true),
                     TargetStartDate = table.Column<DateTimeOffset>(type: "TEXT", nullable: true),
-                    TargetEndDate = table.Column<DateTimeOffset>(type: "TEXT", nullable: true)
+                    TargetEndDate = table.Column<DateTimeOffset>(type: "TEXT", nullable: true),
                 },
                 constraints: table =>
                 {
@@ -35,7 +39,9 @@ namespace Server.Data.Migrations
                     Title = table.Column<string>(type: "TEXT", nullable: false),
                     Description = table.Column<string>(type: "TEXT", nullable: true),
                     IsActive = table.Column<bool>(type: "INTEGER", nullable: false),
-                    CreatedOn = table.Column<DateTimeOffset>(type: "TEXT", nullable: false)
+                    CreatedOn = table.Column<DateTimeOffset>(type: "TEXT", nullable: false),
+                    FinalOpenEndedPrompt = table.Column<string>(type: "TEXT", nullable: true),
+                    IsFinalOpenEndedRequired = table.Column<bool>(type: "INTEGER", nullable: false),
                 },
                 constraints: table =>
                 {
@@ -60,7 +66,7 @@ namespace Server.Data.Migrations
                     Phone = table.Column<string>(type: "TEXT", nullable: true),
                     Website = table.Column<string>(type: "TEXT", nullable: true),
                     Location = table.Column<string>(type: "TEXT", nullable: true),
-                    CurriculumId = table.Column<Guid>(type: "TEXT", nullable: true)
+                    CurriculumId = table.Column<Guid>(type: "TEXT", nullable: true),
                 },
                 constraints: table =>
                 {
@@ -82,7 +88,7 @@ namespace Server.Data.Migrations
                     Title = table.Column<string>(type: "TEXT", nullable: false),
                     Instructions = table.Column<string>(type: "TEXT", nullable: true),
                     DisplayOrder = table.Column<int>(type: "INTEGER", nullable: false),
-                    SmeQuestionnaireId = table.Column<Guid>(type: "TEXT", nullable: true)
+                    SmeQuestionnaireId = table.Column<Guid>(type: "TEXT", nullable: true),
                 },
                 constraints: table =>
                 {
@@ -104,7 +110,9 @@ namespace Server.Data.Migrations
                     Status = table.Column<int>(type: "INTEGER", nullable: false),
                     StartedOn = table.Column<DateTimeOffset>(type: "TEXT", nullable: false),
                     SubmittedOn = table.Column<DateTimeOffset>(type: "TEXT", nullable: true),
-                    ReviewerNotes = table.Column<string>(type: "TEXT", nullable: true)
+                    PrivacyAcknowledgedOn = table.Column<DateTimeOffset>(type: "TEXT", nullable: true),
+                    ReviewerNotes = table.Column<string>(type: "TEXT", nullable: true),
+                    FinalOpenEndedAnswer = table.Column<string>(type: "TEXT", nullable: true),
                 },
                 constraints: table =>
                 {
@@ -128,7 +136,7 @@ namespace Server.Data.Migrations
                     IsRequired = table.Column<bool>(type: "INTEGER", nullable: false),
                     DisplayOrder = table.Column<int>(type: "INTEGER", nullable: false),
                     HelpText = table.Column<string>(type: "TEXT", nullable: true),
-                    QuestionnaireSectionId = table.Column<Guid>(type: "TEXT", nullable: true)
+                    QuestionnaireSectionId = table.Column<Guid>(type: "TEXT", nullable: true),
                 },
                 constraints: table =>
                 {
@@ -151,7 +159,7 @@ namespace Server.Data.Migrations
                     ValueNumber = table.Column<decimal>(type: "TEXT", nullable: true),
                     ValueBool = table.Column<bool>(type: "INTEGER", nullable: true),
                     ValueRating = table.Column<int>(type: "INTEGER", nullable: true),
-                    SmeQuestionnaireResponseId = table.Column<Guid>(type: "TEXT", nullable: true)
+                    SmeQuestionnaireResponseId = table.Column<Guid>(type: "TEXT", nullable: true),
                 },
                 constraints: table =>
                 {
@@ -177,7 +185,7 @@ namespace Server.Data.Migrations
                     Frequency = table.Column<int>(type: "INTEGER", nullable: false),
                     RequiredForJob = table.Column<bool>(type: "INTEGER", nullable: false),
                     Notes = table.Column<string>(type: "TEXT", nullable: true),
-                    SmeQuestionnaireResponseId = table.Column<Guid>(type: "TEXT", nullable: true)
+                    SmeQuestionnaireResponseId = table.Column<Guid>(type: "TEXT", nullable: true),
                 },
                 constraints: table =>
                 {
@@ -200,7 +208,7 @@ namespace Server.Data.Migrations
                     YearsExperience = table.Column<int>(type: "INTEGER", nullable: true),
                     IsPrimary = table.Column<bool>(type: "INTEGER", nullable: false),
                     Notes = table.Column<string>(type: "TEXT", nullable: true),
-                    SmeQuestionnaireResponseId = table.Column<Guid>(type: "TEXT", nullable: true)
+                    SmeQuestionnaireResponseId = table.Column<Guid>(type: "TEXT", nullable: true),
                 },
                 constraints: table =>
                 {
@@ -225,7 +233,7 @@ namespace Server.Data.Migrations
                     Frequency = table.Column<int>(type: "INTEGER", nullable: false),
                     RequiredForJob = table.Column<bool>(type: "INTEGER", nullable: false),
                     Notes = table.Column<string>(type: "TEXT", nullable: true),
-                    SmeQuestionnaireResponseId = table.Column<Guid>(type: "TEXT", nullable: true)
+                    SmeQuestionnaireResponseId = table.Column<Guid>(type: "TEXT", nullable: true),
                 },
                 constraints: table =>
                 {
@@ -246,7 +254,7 @@ namespace Server.Data.Migrations
                     Value = table.Column<string>(type: "TEXT", nullable: false),
                     Label = table.Column<string>(type: "TEXT", nullable: false),
                     DisplayOrder = table.Column<int>(type: "INTEGER", nullable: false),
-                    QuestionnaireQuestionId = table.Column<Guid>(type: "TEXT", nullable: true)
+                    QuestionnaireQuestionId = table.Column<Guid>(type: "TEXT", nullable: true),
                 },
                 constraints: table =>
                 {

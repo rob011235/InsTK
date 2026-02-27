@@ -43,6 +43,11 @@ namespace Common.Models.SmeQuestionnaire
         public DateTimeOffset? SubmittedOn { get; set; }
 
         /// <summary>
+        /// Gets or sets the time the SME acknowledged reading the privacy notice.
+        /// </summary>
+        public DateTimeOffset? PrivacyAcknowledgedOn { get; set; }
+
+        /// <summary>
         /// Gets or sets reviewer notes.
         /// </summary>
         public string? ReviewerNotes { get; set; }

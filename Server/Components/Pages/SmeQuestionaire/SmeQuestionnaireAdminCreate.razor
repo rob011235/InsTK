@@ -1,0 +1,124 @@
+@page "/admin/sme-questionnaires/create"
+@rendermode InteractiveServer
+@attribute [Authorize(Roles = "Admin")]
+@using System.ComponentModel.DataAnnotations
+@using Common.Interfaces
+@using Common.Models.SmeQuestionnaire
+@inject ISmeQuestionnaireDataService SmeQuestionnaireDataService
+@inject NavigationManager Navigation
+
+<PageTitle>Create Questionnaire</PageTitle>
+
+<h1>Create SME Questionnaire</h1>
+
+@if (isLoading)
+{
+    <p>Loading form data...</p>
+}
+else if (!string.IsNullOrWhiteSpace(errorMessage))
+{
+    <p class="text-danger">@errorMessage</p>
+}
+else
+{
+    <EditForm Model="model" OnValidSubmit="CreateAsync" FormName="CreateSmeQuestionnaireForm">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <div class="mb-3">
+            <label for="curriculumSelect" class="form-label">Curriculum</label>
+            <select id="curriculumSelect" class="form-select" @bind="model.CurriculumId">
+                @foreach (Curriculum curriculum in curriculums)
+                {
+                    <option value="@curriculum.Id">@curriculum.Title</option>
+                }
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label for="titleInput" class="form-label">Title</label>
+            <InputText id="titleInput" class="form-control" @bind-Value="model.Title" />
+        </div>
+
+        <div class="mb-3">
+            <label for="descriptionInput" class="form-label">Description</label>
+            <InputTextArea id="descriptionInput" class="form-control" @bind-Value="model.Description" />
+        </div>
+
+        <div class="mb-3">
+            <label for="finalPromptInput" class="form-label">Final Open-Ended Prompt</label>
+            <InputTextArea id="finalPromptInput" class="form-control" @bind-Value="model.FinalOpenEndedPrompt" />
+        </div>
+
+        <div class="form-check mb-2">
+            <InputCheckbox id="isFinalRequired" class="form-check-input" @bind-Value="model.IsFinalOpenEndedRequired" />
+            <label for="isFinalRequired" class="form-check-label">Final open-ended response is required</label>
+        </div>
+
+        <div class="form-check mb-3">
+            <InputCheckbox id="isActive" class="form-check-input" @bind-Value="model.IsActive" />
+            <label for="isActive" class="form-check-label">Active questionnaire</label>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Create Questionnaire</button>
+        <a class="btn btn-link" href="/admin/sme-questionnaires">Cancel</a>
+    </EditForm>
+}
+
+@code {
+    private readonly CreateQuestionnaireModel model = new CreateQuestionnaireModel();
+    private List<Curriculum> curriculums = new List<Curriculum>();
+    private bool isLoading = true;
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        curriculums = await SmeQuestionnaireDataService.GetCurriculumsAsync();
+
+        if (curriculums.Count == 0)
+        {
+            errorMessage = "Create at least one curriculum before creating a questionnaire.";
+            isLoading = false;
+            return;
+        }
+
+        model.CurriculumId = curriculums[0].Id;
+        isLoading = false;
+    }
+
+    private async Task CreateAsync()
+    {
+        SmeQuestionnaire questionnaire = new SmeQuestionnaire
+        {
+            CurriculumId = model.CurriculumId,
+            Title = model.Title.Trim(),
+            Description = string.IsNullOrWhiteSpace(model.Description) ? null : model.Description.Trim(),
+            IsActive = model.IsActive,
+            FinalOpenEndedPrompt = string.IsNullOrWhiteSpace(model.FinalOpenEndedPrompt) ? null : model.FinalOpenEndedPrompt.Trim(),
+            IsFinalOpenEndedRequired = model.IsFinalOpenEndedRequired,
+        };
+
+        await SmeQuestionnaireDataService.CreateQuestionnaireAsync(questionnaire);
+        Navigation.NavigateTo("/admin/sme-questionnaires");
+    }
+
+    private sealed class CreateQuestionnaireModel
+    {
+        [Required]
+        public Guid CurriculumId { get; set; }
+
+        [Required]
+        [MaxLength(200)]
+        public string Title { get; set; } = string.Empty;
+
+        [MaxLength(2000)]
+        public string? Description { get; set; }
+
+        [MaxLength(1000)]
+        public string? FinalOpenEndedPrompt { get; set; }
+
+        public bool IsFinalOpenEndedRequired { get; set; }
+
+        public bool IsActive { get; set; } = true;
+    }
+}

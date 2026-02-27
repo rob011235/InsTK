@@ -1,0 +1,125 @@
+@page "/admin/sme-questionnaire-invites"
+@rendermode InteractiveServer
+@attribute [Authorize(Roles = "Admin")]
+@using Common.Interfaces
+@using Common.Models.SmeQuestionnaire
+@inject ISmeQuestionnaireDataService SmeQuestionnaireDataService
+@inject NavigationManager Navigation
+
+<PageTitle>SME Questionnaire Invites</PageTitle>
+
+<h1>SME Questionnaire Invites</h1>
+
+@if (isLoading)
+{
+    <p>Loading invite options...</p>
+}
+else
+{
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <p class="text-danger">@errorMessage</p>
+    }
+
+    <div class="mb-3">
+        <label for="questionnaireSelect" class="form-label">Questionnaire</label>
+        <select id="questionnaireSelect" class="form-select" @bind="selectedQuestionnaireId">
+            @foreach (SmeQuestionnaire questionnaire in questionnaires)
+            {
+                <option value="@questionnaire.Id">@questionnaire.Title</option>
+            }
+        </select>
+    </div>
+
+    <div class="mb-3">
+        <label for="smeSelect" class="form-label">Subject Matter Expert</label>
+        <select id="smeSelect" class="form-select" @bind="selectedSmeId">
+            @foreach (SubjectMatterExpert sme in subjectMatterExperts)
+            {
+                string emailPart = string.IsNullOrWhiteSpace(sme.Email) ? string.Empty : $" ({sme.Email})";
+                <option value="@sme.Id">@($"{sme.FullName}{emailPart}")</option>
+            }
+        </select>
+    </div>
+
+    <button class="btn btn-primary"
+            @onclick="GenerateInviteAsync"
+            disabled="@(questionnaires.Count == 0 || subjectMatterExperts.Count == 0)">
+        Generate Invite Link
+    </button>
+
+    @if (!string.IsNullOrWhiteSpace(inviteUrl))
+    {
+        <hr />
+        <h2>Invite Generated</h2>
+        <p>Share this link with the SME:</p>
+        <p><a href="@inviteUrl" target="_blank">@inviteUrl</a></p>
+
+        @if (!string.IsNullOrWhiteSpace(emailPreview))
+        {
+            <p>Email preview:</p>
+            <pre>@emailPreview</pre>
+        }
+    }
+}
+
+@code {
+    private List<SmeQuestionnaire> questionnaires = new List<SmeQuestionnaire>();
+    private List<SubjectMatterExpert> subjectMatterExperts = new List<SubjectMatterExpert>();
+    private Guid selectedQuestionnaireId;
+    private Guid selectedSmeId;
+    private bool isLoading = true;
+    private string? inviteUrl;
+    private string? emailPreview;
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        questionnaires = await SmeQuestionnaireDataService.GetActiveQuestionnairesAsync();
+        subjectMatterExperts = await SmeQuestionnaireDataService.GetSubjectMatterExpertsAsync();
+
+        if (questionnaires.Count > 0)
+        {
+            selectedQuestionnaireId = questionnaires[0].Id;
+        }
+
+        if (subjectMatterExperts.Count > 0)
+        {
+            selectedSmeId = subjectMatterExperts[0].Id;
+        }
+
+        if (questionnaires.Count == 0 || subjectMatterExperts.Count == 0)
+        {
+            errorMessage = "You need at least one active questionnaire and one SME before generating invites.";
+        }
+
+        isLoading = false;
+    }
+
+    private async Task GenerateInviteAsync()
+    {
+        errorMessage = null;
+
+        try
+        {
+            SmeQuestionnaireResponse response = await SmeQuestionnaireDataService.CreateInviteResponseAsync(
+                selectedQuestionnaireId,
+                selectedSmeId);
+
+            inviteUrl = new Uri(new Uri(Navigation.BaseUri), $"sme-questionnaire/{response.Id}").ToString();
+
+            SubjectMatterExpert? selectedSme = subjectMatterExperts
+                .FirstOrDefault(x => x.Id == selectedSmeId);
+
+            emailPreview =
+                $"Hello {selectedSme?.FullName},\n\n" +
+                "Please complete the SME questionnaire using the link below:\n" +
+                $"{inviteUrl}\n\n" +
+                "Thank you.";
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+    }
+}

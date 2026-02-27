@@ -1,0 +1,107 @@
+@page "/sme-questionnaire/{Token}"
+@rendermode InteractiveServer
+@attribute [AllowAnonymous]
+@using Common.Interfaces
+@using Common.Models.SmeQuestionnaire
+@inject ISmeQuestionnaireDataService SmeQuestionnaireDataService
+@inject NavigationManager Navigation
+
+<PageTitle>SME Questionnaire Start</PageTitle>
+
+<h1>SME Questionnaire</h1>
+
+@if (isLoading)
+{
+    <p>Loading questionnaire...</p>
+}
+else if (!string.IsNullOrEmpty(loadError))
+{
+    <p class="text-danger">@loadError</p>
+}
+else if (response is not null)
+{
+    <p>
+        Before you begin, review how we use your data. You must acknowledge the privacy notice
+        before continuing.
+    </p>
+
+    <ul>
+        <li>We collect this information to support curriculum development.</li>
+        <li>Access is limited to authorized team members.</li>
+        <li>We do not sell personal information.</li>
+        <li>Full details are available at <a href="/sme-questionnaire/privacy">/sme-questionnaire/privacy</a>.</li>
+    </ul>
+
+    <p>
+        <a href="/sme-questionnaire/privacy">How we use your data (Privacy Notice)</a>
+    </p>
+
+    @if (response.PrivacyAcknowledgedOn.HasValue)
+    {
+        <p>
+            <strong>Acknowledged on @response.PrivacyAcknowledgedOn.Value.ToLocalTime().ToString("f").</strong>
+        </p>
+    }
+
+    <div class="d-flex gap-2">
+        <button class="btn btn-outline-secondary"
+                @onclick="AcknowledgePrivacy"
+                disabled="@response.PrivacyAcknowledgedOn.HasValue">
+            I have read the Privacy Notice
+        </button>
+
+        <button class="btn btn-primary"
+                @onclick="GoToProfile"
+                disabled="@(!response.PrivacyAcknowledgedOn.HasValue)">
+            Begin
+        </button>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public string Token { get; set; } = string.Empty;
+
+    private SmeQuestionnaireResponse? response;
+    private bool isLoading = true;
+    private string? loadError;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Guid.TryParse(Token, out Guid responseId))
+        {
+            loadError = "Invalid questionnaire link.";
+            isLoading = false;
+            return;
+        }
+
+        response = await SmeQuestionnaireDataService.GetResponseByIdAsync(responseId);
+
+        if (response is null)
+        {
+            loadError = "Questionnaire request not found.";
+        }
+
+        isLoading = false;
+    }
+
+    private async Task AcknowledgePrivacy()
+    {
+        if (response is null || response.PrivacyAcknowledgedOn.HasValue)
+        {
+            return;
+        }
+
+        response.PrivacyAcknowledgedOn = await SmeQuestionnaireDataService.AcknowledgePrivacyAsync(response.Id);
+    }
+
+    private void GoToProfile()
+    {
+        if (response is null || !response.PrivacyAcknowledgedOn.HasValue)
+        {
+            return;
+        }
+
+        Navigation.NavigateTo($"/sme-questionnaire/{Token}/profile");
+    }
+}

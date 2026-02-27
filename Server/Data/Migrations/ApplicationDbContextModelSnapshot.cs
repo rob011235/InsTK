@@ -301,6 +301,9 @@ namespace Server.Data.Migrations
                     b.Property<string>("FinalOpenEndedAnswer")
                         .HasColumnType("TEXT");
 
+                    b.Property<DateTimeOffset?>("PrivacyAcknowledgedOn")
+                        .HasColumnType("TEXT");
+
                     b.Property<Guid>("QuestionnaireId")
                         .HasColumnType("TEXT");
 

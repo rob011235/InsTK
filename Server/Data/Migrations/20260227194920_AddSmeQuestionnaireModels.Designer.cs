@@ -11,7 +11,7 @@ using Server.Data;
 namespace Server.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260227185705_AddSmeQuestionnaireModels")]
+    [Migration("20260227194920_AddSmeQuestionnaireModels")]
     partial class AddSmeQuestionnaireModels
     {
         /// <inheritdoc />
@@ -275,7 +275,13 @@ namespace Server.Data.Migrations
                     b.Property<string>("Description")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("FinalOpenEndedPrompt")
+                        .HasColumnType("TEXT");
+
                     b.Property<bool>("IsActive")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsFinalOpenEndedRequired")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("Title")
@@ -293,6 +299,12 @@ namespace Server.Data.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("FinalOpenEndedAnswer")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset?>("PrivacyAcknowledgedOn")
                         .HasColumnType("TEXT");
 
                     b.Property<Guid>("QuestionnaireId")

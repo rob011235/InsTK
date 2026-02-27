@@ -1,0 +1,86 @@
+// <copyright file="ISmeQuestionnaireDataService.cs" company="Rob Garner (rgarner011235@gmail.com)">
+// Copyright (c) Rob Garner (rgarner011235@gmail.com). All rights reserved.
+// </copyright>
+
+namespace Common.Interfaces
+{
+    using System;
+    using System.Collections.Generic;
+    using Common.Models.SmeQuestionnaire;
+
+    /// <summary>
+    /// Provides data access operations for SME questionnaire workflow pages.
+    /// </summary>
+    public interface ISmeQuestionnaireDataService
+    {
+        /// <summary>
+        /// Gets all questionnaires.
+        /// </summary>
+        /// <returns>A list of questionnaires ordered by creation date.</returns>
+        public Task<List<SmeQuestionnaire>> GetAllQuestionnairesAsync();
+
+        /// <summary>
+        /// Gets all curriculums.
+        /// </summary>
+        /// <returns>A list of curriculums ordered by title.</returns>
+        public Task<List<Curriculum>> GetCurriculumsAsync();
+
+        /// <summary>
+        /// Creates a new curriculum.
+        /// </summary>
+        /// <param name="curriculum">The curriculum to create.</param>
+        /// <returns>The created curriculum.</returns>
+        public Task<Curriculum> CreateCurriculumAsync(Curriculum curriculum);
+
+        /// <summary>
+        /// Creates a new questionnaire definition.
+        /// </summary>
+        /// <param name="questionnaire">The questionnaire to create.</param>
+        /// <returns>The created questionnaire.</returns>
+        public Task<SmeQuestionnaire> CreateQuestionnaireAsync(SmeQuestionnaire questionnaire);
+
+        /// <summary>
+        /// Gets active SME questionnaires that can be sent as invites.
+        /// </summary>
+        /// <returns>A list of active questionnaires.</returns>
+        public Task<List<SmeQuestionnaire>> GetActiveQuestionnairesAsync();
+
+        /// <summary>
+        /// Gets available subject matter experts.
+        /// </summary>
+        /// <returns>A list of SMEs.</returns>
+        public Task<List<SubjectMatterExpert>> GetSubjectMatterExpertsAsync();
+
+        /// <summary>
+        /// Creates a new subject matter expert.
+        /// </summary>
+        /// <param name="subjectMatterExpert">The SME to create.</param>
+        /// <returns>The created SME.</returns>
+        public Task<SubjectMatterExpert> CreateSubjectMatterExpertAsync(SubjectMatterExpert subjectMatterExpert);
+
+        /// <summary>
+        /// Creates a new draft questionnaire response that can be used as an invite token.
+        /// </summary>
+        /// <param name="questionnaireId">The questionnaire identifier.</param>
+        /// <param name="subjectMatterExpertId">The SME identifier.</param>
+        /// <returns>The created response.</returns>
+        public Task<SmeQuestionnaireResponse> CreateInviteResponseAsync(Guid questionnaireId, Guid subjectMatterExpertId);
+
+        /// <summary>
+        /// Gets an SME questionnaire response by its identifier.
+        /// </summary>
+        /// <param name="responseId">The response identifier.</param>
+        /// <returns>The matching response if found; otherwise <see langword="null"/>.</returns>
+        public Task<SmeQuestionnaireResponse?> GetResponseByIdAsync(Guid responseId);
+
+        /// <summary>
+        /// Sets the privacy acknowledgment timestamp for the response if one does not already exist.
+        /// </summary>
+        /// <param name="responseId">The response identifier.</param>
+        /// <returns>
+        /// The persisted acknowledgment timestamp if the response exists and has or receives an acknowledgment;
+        /// otherwise <see langword="null"/>.
+        /// </returns>
+        public Task<DateTimeOffset?> AcknowledgePrivacyAsync(Guid responseId);
+    }
+}

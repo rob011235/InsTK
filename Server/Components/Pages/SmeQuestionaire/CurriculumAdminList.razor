@@ -1,0 +1,63 @@
+@page "/admin/curriculums"
+@rendermode InteractiveServer
+@attribute [Authorize(Roles = "Admin")]
+@using Common.Interfaces
+@using Common.Models.SmeQuestionnaire
+@inject ISmeQuestionnaireDataService SmeQuestionnaireDataService
+
+<PageTitle>Manage Curriculums</PageTitle>
+
+<h1>Manage Curriculums</h1>
+
+<p>
+    <a class="btn btn-primary" href="/admin/curriculums/create">Create New Curriculum</a>
+</p>
+
+@if (isLoading)
+{
+    <p>Loading curriculums...</p>
+}
+else if (curriculums.Count == 0)
+{
+    <p>No curriculums found.</p>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Title</th>
+                <th>Description</th>
+                <th>Target Start</th>
+                <th>Target End</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (Curriculum curriculum in curriculums)
+            {
+                <tr>
+                    <td>@curriculum.Title</td>
+                    <td>@(string.IsNullOrWhiteSpace(curriculum.Description) ? "-" : curriculum.Description)</td>
+                    <td>@FormatDate(curriculum.TargetStartDate)</td>
+                    <td>@FormatDate(curriculum.TargetEndDate)</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<Curriculum> curriculums = new List<Curriculum>();
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        curriculums = await SmeQuestionnaireDataService.GetCurriculumsAsync();
+        isLoading = false;
+    }
+
+    private static string FormatDate(DateTimeOffset? value)
+    {
+        return value.HasValue ? value.Value.ToLocalTime().ToString("d") : "-";
+    }
+}
