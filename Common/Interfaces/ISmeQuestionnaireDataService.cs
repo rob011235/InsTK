@@ -52,6 +52,12 @@ namespace Common.Interfaces
         public Task<List<SubjectMatterExpert>> GetSubjectMatterExpertsAsync();
 
         /// <summary>
+        /// Gets all invite/response records for admin review.
+        /// </summary>
+        /// <returns>A list of invite rows with questionnaire and SME display information.</returns>
+        public Task<List<SmeInviteListItem>> GetInviteListAsync();
+
+        /// <summary>
         /// Creates a new subject matter expert.
         /// </summary>
         /// <param name="subjectMatterExpert">The SME to create.</param>

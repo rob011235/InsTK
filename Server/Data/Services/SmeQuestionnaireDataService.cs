@@ -81,6 +81,40 @@ namespace Server.Data.Services
         }
 
         /// <inheritdoc/>
+        public async Task<List<SmeInviteListItem>> GetInviteListAsync()
+        {
+            List<SmeQuestionnaireResponse> responses = await this.context.SmeQuestionnaireResponses.ToListAsync();
+            List<SmeQuestionnaire> questionnaires = await this.context.SmeQuestionnaires.ToListAsync();
+            List<SubjectMatterExpert> smes = await this.context.SubjectMatterExperts.ToListAsync();
+
+            Dictionary<Guid, SmeQuestionnaire> questionnaireById = questionnaires
+                .ToDictionary(x => x.Id, x => x);
+            Dictionary<Guid, SubjectMatterExpert> smeById = smes
+                .ToDictionary(x => x.Id, x => x);
+
+            return responses
+                .Select(response =>
+                {
+                    questionnaireById.TryGetValue(response.QuestionnaireId, out SmeQuestionnaire? questionnaire);
+                    smeById.TryGetValue(response.SubjectMatterExpertId, out SubjectMatterExpert? sme);
+
+                    return new SmeInviteListItem
+                    {
+                        ResponseId = response.Id,
+                        QuestionnaireTitle = questionnaire?.Title ?? "(Unknown Questionnaire)",
+                        SmeFullName = sme?.FullName ?? "(Unknown SME)",
+                        SmeEmail = sme?.Email,
+                        Status = response.Status,
+                        StartedOn = response.StartedOn,
+                        PrivacyAcknowledgedOn = response.PrivacyAcknowledgedOn,
+                        SubmittedOn = response.SubmittedOn,
+                    };
+                })
+                .OrderByDescending(x => x.StartedOn)
+                .ToList();
+        }
+
+        /// <inheritdoc/>
         public async Task<SubjectMatterExpert> CreateSubjectMatterExpertAsync(SubjectMatterExpert subjectMatterExpert)
         {
             subjectMatterExpert.Id = Guid.NewGuid();
