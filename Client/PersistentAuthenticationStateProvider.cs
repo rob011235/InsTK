@@ -19,6 +19,10 @@ namespace Client
 
         private readonly Task<AuthenticationState> authenticationStateTask = defaultUnauthenticatedTask;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="PersistentAuthenticationStateProvider"/> class.
+        /// </summary>
+        /// <param name="state">The persisted component state used to hydrate user information.</param>
         public PersistentAuthenticationStateProvider(PersistentComponentState state)
         {
             if (!state.TryTakeFromJson<UserInfo>(nameof(UserInfo), out var userInfo) || userInfo is null)
@@ -43,6 +47,10 @@ namespace Client
                     authenticationType: nameof(PersistentAuthenticationStateProvider)))));
         }
 
+        /// <summary>
+        /// Gets the current authentication state for the client application.
+        /// </summary>
+        /// <returns>The current authentication state task.</returns>
         public override Task<AuthenticationState> GetAuthenticationStateAsync() => authenticationStateTask;
     }
 }
