@@ -38,6 +38,8 @@ Represents the questionnaire template sent to SMEs.
 -   string?: Description
 -   bool: IsActive
 -   DateTimeOffset: CreatedOn
+-   string?: FinalOpenEndedPrompt
+-   bool: IsFinalOpenEndedRequired
 -   List: Sections
 
 ## QuestionnaireSection.cs
@@ -86,6 +88,7 @@ A single SME submission for a questionnaire.
 -   DateTimeOffset: StartedOn
 -   DateTimeOffset?: SubmittedOn
 -   string?: ReviewerNotes
+-   string?: FinalOpenEndedAnswer
 -   List: Answers
 -   List: Skills
 -   List: Equipment

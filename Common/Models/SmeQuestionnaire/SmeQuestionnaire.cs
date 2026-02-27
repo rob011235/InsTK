@@ -43,6 +43,16 @@ namespace Common.Models.SmeQuestionnaire
         public DateTimeOffset CreatedOn { get; set; }
 
         /// <summary>
+        /// Gets or sets the final open-ended prompt shown before submission.
+        /// </summary>
+        public string? FinalOpenEndedPrompt { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the final open-ended response is required.
+        /// </summary>
+        public bool IsFinalOpenEndedRequired { get; set; }
+
+        /// <summary>
         /// Gets or sets the sections contained in this questionnaire.
         /// </summary>
         public List<QuestionnaireSection> Sections { get; set; } = new List<QuestionnaireSection>();

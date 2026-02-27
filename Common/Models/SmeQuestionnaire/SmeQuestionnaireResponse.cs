@@ -48,6 +48,11 @@ namespace Common.Models.SmeQuestionnaire
         public string? ReviewerNotes { get; set; }
 
         /// <summary>
+        /// Gets or sets the SME's final open-ended answer provided before submission.
+        /// </summary>
+        public string? FinalOpenEndedAnswer { get; set; }
+
+        /// <summary>
         /// Gets or sets raw answers to questionnaire questions.
         /// </summary>
         public List<QuestionnaireAnswer> Answers { get; set; } = new List<QuestionnaireAnswer>();
