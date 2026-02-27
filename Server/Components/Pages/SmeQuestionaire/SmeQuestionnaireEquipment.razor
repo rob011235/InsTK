@@ -1,0 +1,18 @@
+@page "/sme-questionnaire/{Token}/equipment"
+@rendermode InteractiveServer
+@attribute [AllowAnonymous]
+
+<PageTitle>SME Questionnaire Equipment</PageTitle>
+
+<h1>SME Questionnaire</h1>
+<p><strong>Step 3 of 6:</strong> Equipment</p>
+<p>Equipment step placeholder.</p>
+
+<p>
+    <a href="/sme-questionnaire/privacy">How we use your data (Privacy Notice)</a>
+</p>
+
+@code {
+    [Parameter]
+    public string Token { get; set; } = string.Empty;
+}

@@ -95,6 +95,21 @@ namespace Common.Interfaces
         public Task<bool> UpdateSmeProfileByResponseIdAsync(Guid responseId, SubjectMatterExpert updatedProfile);
 
         /// <summary>
+        /// Gets skill rows associated with a questionnaire response.
+        /// </summary>
+        /// <param name="responseId">The response identifier.</param>
+        /// <returns>A list of skills for the response.</returns>
+        public Task<List<SmeSkill>> GetSkillsByResponseIdAsync(Guid responseId);
+
+        /// <summary>
+        /// Replaces the skill rows associated with a questionnaire response.
+        /// </summary>
+        /// <param name="responseId">The response identifier.</param>
+        /// <param name="skills">The skills to persist.</param>
+        /// <returns><see langword="true"/> if the response exists and was updated; otherwise <see langword="false"/>.</returns>
+        public Task<bool> SaveSkillsByResponseIdAsync(Guid responseId, List<SmeSkill> skills);
+
+        /// <summary>
         /// Sets the privacy acknowledgment timestamp for the response if one does not already exist.
         /// </summary>
         /// <param name="responseId">The response identifier.</param>

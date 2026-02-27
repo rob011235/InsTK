@@ -210,6 +210,59 @@ namespace Server.Data.Services
         }
 
         /// <inheritdoc/>
+        public async Task<List<SmeSkill>> GetSkillsByResponseIdAsync(Guid responseId)
+        {
+            return await this.context.SmeSkills
+                .Where(x => x.ResponseId == responseId)
+                .OrderByDescending(x => x.IsPrimary)
+                .ThenBy(x => x.Name)
+                .ToListAsync();
+        }
+
+        /// <inheritdoc/>
+        public async Task<bool> SaveSkillsByResponseIdAsync(Guid responseId, List<SmeSkill> skills)
+        {
+            bool responseExists = await this.context.SmeQuestionnaireResponses
+                .AnyAsync(x => x.Id == responseId);
+
+            if (!responseExists)
+            {
+                return false;
+            }
+
+            List<SmeSkill> existing = await this.context.SmeSkills
+                .Where(x => x.ResponseId == responseId)
+                .ToListAsync();
+
+            if (existing.Count > 0)
+            {
+                this.context.SmeSkills.RemoveRange(existing);
+            }
+
+            List<SmeSkill> sanitized = skills
+                .Where(x => !string.IsNullOrWhiteSpace(x.Name))
+                .Select(x => new SmeSkill
+                {
+                    Id = Guid.NewGuid(),
+                    ResponseId = responseId,
+                    Name = x.Name.Trim(),
+                    Proficiency = x.Proficiency,
+                    YearsExperience = x.YearsExperience,
+                    IsPrimary = x.IsPrimary,
+                    Notes = string.IsNullOrWhiteSpace(x.Notes) ? null : x.Notes.Trim(),
+                })
+                .ToList();
+
+            if (sanitized.Count > 0)
+            {
+                this.context.SmeSkills.AddRange(sanitized);
+            }
+
+            await this.context.SaveChangesAsync();
+            return true;
+        }
+
+        /// <inheritdoc/>
         public async Task<DateTimeOffset?> AcknowledgePrivacyAsync(Guid responseId)
         {
             SmeQuestionnaireResponse? response = await this.context.SmeQuestionnaireResponses
