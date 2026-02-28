@@ -12899,3 +12899,107 @@ header.masthead .h1 {
 #portfolio .container-xxl .portfolio-box:hover .portfolio-box-caption {
     opacity: 1;
 }
+
+/* InsTK brand palette overrides */
+:root {
+    --instk-dark-goldenrod: #A17E0D;
+    --instk-khaki: #F5D198;
+    --instk-dark-khaki: #CAA369;
+    --instk-black: #282725;
+    --instk-dark-olive: #63573F;
+
+    --bs-primary: var(--instk-dark-goldenrod);
+    --bs-primary-rgb: 161, 126, 13;
+    --bs-link-color: var(--instk-dark-goldenrod);
+    --bs-link-hover-color: var(--instk-dark-olive);
+    --bs-body-color: var(--instk-black);
+}
+
+body {
+    color: var(--instk-black);
+    background-color: #f9f3e5;
+}
+
+a,
+.btn-link {
+    color: var(--instk-dark-goldenrod);
+}
+
+a:hover,
+.btn-link:hover {
+    color: var(--instk-dark-olive);
+}
+
+.btn-primary {
+    color: #fff;
+    background-color: var(--instk-dark-goldenrod);
+    border-color: var(--instk-dark-olive);
+}
+
+.btn-primary:hover,
+.btn-primary:focus {
+    color: #fff;
+    background-color: var(--instk-dark-olive);
+    border-color: var(--instk-black);
+}
+
+.bg-primary {
+    background-color: var(--instk-dark-goldenrod) !important;
+}
+
+.text-primary {
+    color: var(--instk-dark-goldenrod) !important;
+}
+
+hr.divider {
+    background-color: var(--instk-dark-goldenrod);
+}
+
+#mainNav {
+    background-color: var(--instk-black);
+}
+
+#mainNav .navbar-brand {
+    color: var(--instk-khaki);
+}
+
+#mainNav .navbar-brand:hover,
+#mainNav .navbar-brand:focus {
+    color: var(--instk-dark-khaki);
+}
+
+#mainNav .navbar-nav .nav-item .nav-link {
+    color: var(--instk-khaki);
+}
+
+#mainNav .navbar-nav .nav-item .nav-link:hover,
+#mainNav .navbar-nav .nav-item .nav-link:active,
+#mainNav .navbar-nav .nav-item .nav-link.active {
+    color: var(--instk-dark-goldenrod) !important;
+}
+
+#mainNav.navbar-shrink {
+    background-color: var(--instk-black) !important;
+}
+
+#mainNav.navbar-shrink .navbar-brand {
+    color: var(--instk-khaki);
+}
+
+#mainNav.navbar-shrink .navbar-brand:hover,
+#mainNav.navbar-shrink .navbar-brand:focus {
+    color: var(--instk-dark-khaki) !important;
+}
+
+#mainNav.navbar-shrink .navbar-nav .nav-item .nav-link {
+    color: var(--instk-khaki);
+}
+
+#portfolio .container-fluid .portfolio-box .portfolio-box-caption,
+#portfolio .container-sm .portfolio-box .portfolio-box-caption,
+#portfolio .container-md .portfolio-box .portfolio-box-caption,
+#portfolio .container-lg .portfolio-box .portfolio-box-caption,
+#portfolio .container-xl .portfolio-box .portfolio-box-caption,
+#portfolio .container-xxl .portfolio-box .portfolio-box-caption {
+    background: rgba(161, 126, 13, 0.88);
+}

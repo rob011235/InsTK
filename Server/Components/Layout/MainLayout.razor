@@ -6,7 +6,9 @@
 <NavMenu />
 
 <main class="@GetMainContentClass()">
-    @Body
+    <div class="@GetBodyContainerClass()">
+        @Body
+    </div>
 </main>
 
 <div id="blazor-error-ui">
@@ -36,6 +38,14 @@
         var isHomeRoute = string.IsNullOrWhiteSpace(routePath);
 
         return isHomeRoute ? "layout-body layout-body-home" : "layout-body";
+    }
+
+    private string GetBodyContainerClass()
+    {
+        var routePath = currentUrl?.Split('?', '#')[0];
+        var isHomeRoute = string.IsNullOrWhiteSpace(routePath);
+
+        return isHomeRoute ? "container-fluid px-0" : "container";
     }
 
     public void Dispose()

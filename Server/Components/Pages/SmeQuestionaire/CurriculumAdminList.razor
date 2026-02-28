@@ -5,9 +5,9 @@
 @using Common.Models.SmeQuestionnaire
 @inject ISmeQuestionnaireDataService SmeQuestionnaireDataService
 
-<PageTitle>Manage Curriculums</PageTitle>
+<PageTitle>Manage Curricula</PageTitle>
 
-<h1>Manage Curriculums</h1>
+<h1>Manage Curricula</h1>
 
 <p>
     <a class="btn btn-primary" href="/admin/curriculums/create">Create New Curriculum</a>
@@ -15,11 +15,11 @@
 
 @if (isLoading)
 {
-    <p>Loading curriculums...</p>
+    <p>Loading curricula...</p>
 }
 else if (curriculums.Count == 0)
 {
-    <p>No curriculums found.</p>
+    <p>No curricula found.</p>
 }
 else
 {

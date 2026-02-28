@@ -8,8 +8,7 @@
 @inject PersistentComponentState ApplicationState
 
 @attribute [Authorize(Roles = "Admin")]
-<section class="page-section bg-secondary" id="about">
-    <div class="container px-4 px-lg-5">
+
 <h3>Courses Page</h3>
 
 @if (model?.Courses == null)
@@ -41,37 +40,38 @@ else
         <p>Id: @model.Course.Id</p>
         <div class="mb-3">
             <label for="number" class="form-label">Number</label>
-            <input @bind-value="model.Course.Number" type="text" class="form-control" id="number" aria-describedby="course number">
-        </div>
-        <div class="mb-3">
-            <label for="name" class="form-label">Name</label>
-            <input @bind-value="model.Course.Name" type=" text" class="form-control" id="name" aria-describedby="course name">
-        </div>
-        <div class="mb-3">
-            <label for="description" class="form-label">Description</label>
-            <textarea @bind="model.Course.Description" class="form-control" id="description" aria-describedby="course description" />
-        </div>
-        <div class="mb-3">
-            @if (model.Course.Objectives == null)
-            {
-            <p>No objectives.</p>
-            }
-            else
-            {
-                foreach (var objective in model.Course.Objectives)
-                {
-                    <div class="mb-3">
-                        @objective.Title
-                    </div>
-                }
-            }
-            <button class="btn btn-secondary">Add Objective</button>
-        </div>
-    }
-</ModalDialogue>
-
+            <input @bind-value="model.Course.Number" type="text" class="form-control" id="number"
+                   aria-describedby="course number">
             </div>
-        </Section>
+            <div class="mb-3">
+                <label for="name" class="form-label">Name</label>
+                <input @bind-value="model.Course.Name" type=" text" class="form-control" id="name"
+                       aria-describedby="course name">
+                </div>
+                <div class="mb-3">
+                    <label for="description" class="form-label">Description</label>
+                    <textarea @bind="model.Course.Description" class="form-control" id="description"
+                              aria-describedby="course description" />
+                </div>
+                <div class="mb-3">
+                    @if (model.Course.Objectives == null)
+                    {
+                        <p>No objectives.</p>
+                    }
+                    else
+                    {
+                        foreach (var objective in model.Course.Objectives)
+                        {
+                            <div class="mb-3">
+                                @objective.Title
+                            </div>
+                        }
+                    }
+                    <button class="btn btn-secondary">Add Objective</button>
+                </div>
+            }
+        </ModalDialogue>
+
 @code {
     private ModalDialogue dialogue = default!;
     protected CoursesPageVM model = default!;
