@@ -446,6 +446,27 @@ namespace Server.Data.Services
         }
 
         /// <inheritdoc/>
+        public async Task<bool> MarkResponseSubmittedAsync(Guid responseId)
+        {
+            SmeQuestionnaireResponse? response = await this.context.SmeQuestionnaireResponses
+                .FirstOrDefaultAsync(x => x.Id == responseId);
+
+            if (response is null)
+            {
+                return false;
+            }
+
+            response.Status = ResponseStatus.Submitted;
+            if (!response.SubmittedOn.HasValue)
+            {
+                response.SubmittedOn = DateTimeOffset.UtcNow;
+            }
+
+            await this.context.SaveChangesAsync();
+            return true;
+        }
+
+        /// <inheritdoc/>
         public async Task<DateTimeOffset?> AcknowledgePrivacyAsync(Guid responseId)
         {
             SmeQuestionnaireResponse? response = await this.context.SmeQuestionnaireResponses

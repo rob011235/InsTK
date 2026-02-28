@@ -140,6 +140,13 @@ namespace Common.Interfaces
         public Task<bool> SaveFacilityTourPreferenceByResponseIdAsync(Guid responseId, SmeFacilityTourPreference preference);
 
         /// <summary>
+        /// Marks a questionnaire response as submitted.
+        /// </summary>
+        /// <param name="responseId">The response identifier.</param>
+        /// <returns><see langword="true"/> if the response exists and was updated; otherwise <see langword="false"/>.</returns>
+        public Task<bool> MarkResponseSubmittedAsync(Guid responseId);
+
+        /// <summary>
         /// Sets the privacy acknowledgment timestamp for the response if one does not already exist.
         /// </summary>
         /// <param name="responseId">The response identifier.</param>

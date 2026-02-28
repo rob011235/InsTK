@@ -1,3 +1,4 @@
+@page "/admin/sme-surveys"
 @page "/admin/sme-questionnaire-invites/list"
 @rendermode InteractiveServer
 @attribute [Authorize(Roles = "Admin")]
@@ -5,21 +6,21 @@
 @using Common.Models.SmeQuestionnaire
 @inject ISmeQuestionnaireDataService SmeQuestionnaireDataService
 
-<PageTitle>SME Invite List</PageTitle>
+<PageTitle>SME Surveys</PageTitle>
 
-<h1>SME Invite List</h1>
+<h1>SME Surveys</h1>
 
 <p>
-    <a class="btn btn-primary" href="/admin/sme-questionnaire-invites">Generate New Invite</a>
+    <a class="btn btn-primary" href="/admin/sme-questionnaire-invites">Generate New Survey Invite</a>
 </p>
 
 @if (isLoading)
 {
-    <p>Loading invites...</p>
+    <p>Loading surveys...</p>
 }
 else if (invites.Count == 0)
 {
-    <p>No invites found.</p>
+    <p>No surveys found.</p>
 }
 else
 {

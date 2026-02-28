@@ -51,7 +51,7 @@
     </div>
 
     <button type="submit" class="btn btn-primary">Create SME</button>
-    <a class="btn btn-link" href="/admin/sme-questionnaire-invites">Cancel</a>
+    <a class="btn btn-link" href="/admin/sme-surveys">Cancel</a>
 </EditForm>
 
 @code {
@@ -71,7 +71,7 @@
         };
 
         await SmeQuestionnaireDataService.CreateSubjectMatterExpertAsync(sme);
-        Navigation.NavigateTo("/admin/sme-questionnaire-invites");
+        Navigation.NavigateTo("/admin/sme-surveys");
     }
 
     private static string? Normalize(string? value)

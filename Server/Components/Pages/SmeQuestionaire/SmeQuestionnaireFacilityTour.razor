@@ -171,6 +171,13 @@ else
             return;
         }
 
+        bool submitted = await SmeQuestionnaireDataService.MarkResponseSubmittedAsync(responseId);
+        if (!submitted)
+        {
+            saveMessage = "Unable to mark survey as submitted.";
+            return;
+        }
+
         Navigation.NavigateTo($"/sme-questionnaire/{Token}/submitted");
     }
 
