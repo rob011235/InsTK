@@ -29,14 +29,24 @@ else
     @foreach (SkillRow row in skills)
     {
         <div class="border rounded p-3 mb-3" @key="row.RowId">
-            <div class="mb-3">
-                <label class="form-label" for="@($"skillName-{row.RowId}")">Skill Name</label>
-                <InputText id="@($"skillName-{row.RowId}")" class="form-control" @bind-Value="row.Name" />
+            <div class="input-group mb-3">
+                <span class="input-group-text" id="@($"skillNameLabel-{row.RowId}")">Skill</span>
+                <InputText
+                    id="@($"skillName-{row.RowId}")"
+                    class="form-control"
+                    aria-describedby="@($"skillNameLabel-{row.RowId}")"
+                    aria-label="Skill name"
+                    @bind-Value="row.Name" />
             </div>
 
-            <div class="mb-3">
-                <label class="form-label" for="@($"skillDescription-{row.RowId}")">Description</label>
-                <InputTextArea id="@($"skillDescription-{row.RowId}")" class="form-control" @bind-Value="row.Description" />
+            <div class="input-group mb-3">
+                <span class="input-group-text" id="@($"skillDescriptionLabel-{row.RowId}")">Description</span>
+                <InputTextArea
+                    id="@($"skillDescription-{row.RowId}")"
+                    class="form-control"
+                    aria-describedby="@($"skillDescriptionLabel-{row.RowId}")"
+                    aria-label="Skill description"
+                    @bind-Value="row.Description" />
             </div>
 
             <button type="button" class="btn btn-outline-danger" @onclick="() => RemoveSkill(row)" disabled="@(skills.Count == 1)">
