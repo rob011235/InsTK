@@ -9,7 +9,7 @@
 <PageTitle>SME Questionnaire Equipment</PageTitle>
 
 <h1>SME Questionnaire</h1>
-<p><strong>Step 3 of 3:</strong> Equipment</p>
+<p><strong>Step 3 of 4:</strong> Equipment</p>
 
 @if (isLoading)
 {
@@ -65,6 +65,9 @@ else
         </button>
         <button type="button" class="btn btn-outline-primary" @onclick="SaveDraftAsync">
             Save Draft
+        </button>
+        <button type="button" class="btn btn-primary" @onclick="SaveAndNextAsync">
+            Next
         </button>
     </div>
 }
@@ -133,6 +136,18 @@ else
     {
         bool success = await SaveEquipmentAsync();
         saveMessage = success ? "Draft saved." : "Unable to save equipment.";
+    }
+
+    private async Task SaveAndNextAsync()
+    {
+        bool success = await SaveEquipmentAsync();
+        if (!success)
+        {
+            saveMessage = "Unable to save equipment.";
+            return;
+        }
+
+        Navigation.NavigateTo($"/sme-questionnaire/{Token}/facility-tour");
     }
 
     private void GoBack()

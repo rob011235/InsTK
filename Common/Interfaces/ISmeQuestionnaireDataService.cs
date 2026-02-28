@@ -125,6 +125,21 @@ namespace Common.Interfaces
         public Task<bool> SaveEquipmentByResponseIdAsync(Guid responseId, List<SmeEquipment> equipment);
 
         /// <summary>
+        /// Gets the facility tour preference associated with a questionnaire response.
+        /// </summary>
+        /// <param name="responseId">The response identifier.</param>
+        /// <returns>The saved preference for the response, or <see langword="null"/> if no response is found.</returns>
+        public Task<SmeFacilityTourPreference?> GetFacilityTourPreferenceByResponseIdAsync(Guid responseId);
+
+        /// <summary>
+        /// Saves the facility tour preference associated with a questionnaire response.
+        /// </summary>
+        /// <param name="responseId">The response identifier.</param>
+        /// <param name="preference">The preference values to persist.</param>
+        /// <returns><see langword="true"/> if the response exists and was updated; otherwise <see langword="false"/>.</returns>
+        public Task<bool> SaveFacilityTourPreferenceByResponseIdAsync(Guid responseId, SmeFacilityTourPreference preference);
+
+        /// <summary>
         /// Sets the privacy acknowledgment timestamp for the response if one does not already exist.
         /// </summary>
         /// <param name="responseId">The response identifier.</param>

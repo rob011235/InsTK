@@ -15,6 +15,8 @@ namespace Server.Data.Services
     /// </summary>
     public class SmeQuestionnaireDataService : ISmeQuestionnaireDataService
     {
+        private static readonly Guid FacilityTourWillingQuestionId = new Guid("ef4f6c8f-9d52-4f49-9f40-bc309bfd4df8");
+        private static readonly Guid FacilityTourDetailsQuestionId = new Guid("184ab5f0-b98a-4ecd-91e8-e92a093f2f4f");
         private readonly ApplicationDbContext context;
 
         /// <summary>
@@ -311,6 +313,86 @@ namespace Server.Data.Services
             if (sanitized.Count > 0)
             {
                 this.context.SmeEquipment.AddRange(sanitized);
+            }
+
+            await this.context.SaveChangesAsync();
+            return true;
+        }
+
+        /// <inheritdoc/>
+        public async Task<SmeFacilityTourPreference?> GetFacilityTourPreferenceByResponseIdAsync(Guid responseId)
+        {
+            bool responseExists = await this.context.SmeQuestionnaireResponses
+                .AnyAsync(x => x.Id == responseId);
+
+            if (!responseExists)
+            {
+                return null;
+            }
+
+            List<QuestionnaireAnswer> answers = await this.context.QuestionnaireAnswers
+                .Where(x => x.ResponseId == responseId &&
+                    (x.QuestionId == FacilityTourWillingQuestionId || x.QuestionId == FacilityTourDetailsQuestionId))
+                .ToListAsync();
+
+            QuestionnaireAnswer? willingAnswer = answers.FirstOrDefault(x => x.QuestionId == FacilityTourWillingQuestionId);
+            QuestionnaireAnswer? detailsAnswer = answers.FirstOrDefault(x => x.QuestionId == FacilityTourDetailsQuestionId);
+
+            return new SmeFacilityTourPreference
+            {
+                IsWillingToOfferTour = willingAnswer?.ValueBool,
+                Details = string.IsNullOrWhiteSpace(detailsAnswer?.ValueText) ? null : detailsAnswer!.ValueText!.Trim(),
+            };
+        }
+
+        /// <inheritdoc/>
+        public async Task<bool> SaveFacilityTourPreferenceByResponseIdAsync(Guid responseId, SmeFacilityTourPreference preference)
+        {
+            bool responseExists = await this.context.SmeQuestionnaireResponses
+                .AnyAsync(x => x.Id == responseId);
+
+            if (!responseExists)
+            {
+                return false;
+            }
+
+            List<QuestionnaireAnswer> existing = await this.context.QuestionnaireAnswers
+                .Where(x => x.ResponseId == responseId &&
+                    (x.QuestionId == FacilityTourWillingQuestionId || x.QuestionId == FacilityTourDetailsQuestionId))
+                .ToListAsync();
+
+            if (existing.Count > 0)
+            {
+                this.context.QuestionnaireAnswers.RemoveRange(existing);
+            }
+
+            List<QuestionnaireAnswer> answersToSave = new List<QuestionnaireAnswer>();
+
+            if (preference.IsWillingToOfferTour.HasValue)
+            {
+                answersToSave.Add(new QuestionnaireAnswer
+                {
+                    Id = Guid.NewGuid(),
+                    ResponseId = responseId,
+                    QuestionId = FacilityTourWillingQuestionId,
+                    ValueBool = preference.IsWillingToOfferTour.Value,
+                });
+            }
+
+            if (!string.IsNullOrWhiteSpace(preference.Details))
+            {
+                answersToSave.Add(new QuestionnaireAnswer
+                {
+                    Id = Guid.NewGuid(),
+                    ResponseId = responseId,
+                    QuestionId = FacilityTourDetailsQuestionId,
+                    ValueText = preference.Details.Trim(),
+                });
+            }
+
+            if (answersToSave.Count > 0)
+            {
+                this.context.QuestionnaireAnswers.AddRange(answersToSave);
             }
 
             await this.context.SaveChangesAsync();

@@ -1,0 +1,134 @@
+@page "/sme-questionnaire/{Token}/facility-tour"
+@rendermode InteractiveServer
+@attribute [AllowAnonymous]
+@using Common.Interfaces
+@using Common.Models.SmeQuestionnaire
+@inject ISmeQuestionnaireDataService SmeQuestionnaireDataService
+@inject NavigationManager Navigation
+
+<PageTitle>SME Questionnaire Facility Tour</PageTitle>
+
+<h1>SME Questionnaire</h1>
+<p><strong>Step 4 of 4:</strong> Facility Tour</p>
+
+@if (isLoading)
+{
+    <p>Loading...</p>
+}
+else if (!string.IsNullOrWhiteSpace(errorMessage))
+{
+    <p class="text-danger">@errorMessage</p>
+}
+else
+{
+    @if (!string.IsNullOrWhiteSpace(saveMessage))
+    {
+        <p class="text-success">@saveMessage</p>
+    }
+
+    <p>Would you be willing to offer a tour of your facility?</p>
+
+    <InputRadioGroup @bind-Value="model.IsWillingToOfferTour" Name="facilityTourWilling">
+        <div class="form-check">
+            <InputRadio class="form-check-input" id="facilityTourYes" Value="true" />
+            <label class="form-check-label" for="facilityTourYes">Yes</label>
+        </div>
+        <div class="form-check">
+            <InputRadio class="form-check-input" id="facilityTourNo" Value="false" />
+            <label class="form-check-label" for="facilityTourNo">No</label>
+        </div>
+    </InputRadioGroup>
+
+    <div class="input-group my-3">
+        <span class="input-group-text" id="facilityTourDetailsLabel">Details</span>
+        <InputTextArea
+            id="facilityTourDetails"
+            class="form-control"
+            aria-label="Facility tour details"
+            aria-describedby="facilityTourDetailsLabel"
+            @bind-Value="model.Details" />
+    </div>
+
+    <div class="d-flex gap-2 mb-3">
+        <button type="button" class="btn btn-outline-secondary" @onclick="GoBack">
+            Back
+        </button>
+        <button type="button" class="btn btn-outline-primary" @onclick="SaveDraftAsync">
+            Save Draft
+        </button>
+        <button type="button" class="btn btn-primary" @onclick="SaveAndFinishAsync">
+            Finish
+        </button>
+    </div>
+}
+
+<p>
+    <a href="/sme-questionnaire/privacy">How we use your data (Privacy Notice)</a>
+</p>
+
+@code {
+    [Parameter]
+    public string Token { get; set; } = string.Empty;
+
+    private readonly SmeFacilityTourPreference model = new SmeFacilityTourPreference();
+    private Guid responseId;
+    private bool isLoading = true;
+    private string? errorMessage;
+    private string? saveMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Guid.TryParse(Token, out responseId))
+        {
+            errorMessage = "Invalid questionnaire link.";
+            isLoading = false;
+            return;
+        }
+
+        SmeFacilityTourPreference? existing = await SmeQuestionnaireDataService.GetFacilityTourPreferenceByResponseIdAsync(responseId);
+        if (existing is null)
+        {
+            errorMessage = "Unable to load facility tour preference.";
+            isLoading = false;
+            return;
+        }
+
+        model.IsWillingToOfferTour = existing.IsWillingToOfferTour;
+        model.Details = existing.Details;
+        isLoading = false;
+    }
+
+    private async Task SaveDraftAsync()
+    {
+        bool success = await SaveAsync();
+        saveMessage = success ? "Draft saved." : "Unable to save.";
+    }
+
+    private async Task SaveAndFinishAsync()
+    {
+        bool success = await SaveAsync();
+        if (!success)
+        {
+            saveMessage = "Unable to save.";
+            return;
+        }
+
+        Navigation.NavigateTo($"/sme-questionnaire/{Token}/submitted");
+    }
+
+    private void GoBack()
+    {
+        Navigation.NavigateTo($"/sme-questionnaire/{Token}/equipment");
+    }
+
+    private async Task<bool> SaveAsync()
+    {
+        SmeFacilityTourPreference toSave = new SmeFacilityTourPreference
+        {
+            IsWillingToOfferTour = model.IsWillingToOfferTour,
+            Details = string.IsNullOrWhiteSpace(model.Details) ? null : model.Details.Trim(),
+        };
+
+        return await SmeQuestionnaireDataService.SaveFacilityTourPreferenceByResponseIdAsync(responseId, toSave);
+    }
+}
