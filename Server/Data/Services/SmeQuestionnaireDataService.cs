@@ -68,6 +68,35 @@ namespace Server.Data.Services
         }
 
         /// <inheritdoc/>
+        public async Task<SmeQuestionnaire?> GetQuestionnaireByIdAsync(Guid questionnaireId)
+        {
+            return await this.context.SmeQuestionnaires
+                .FirstOrDefaultAsync(x => x.Id == questionnaireId);
+        }
+
+        /// <inheritdoc/>
+        public async Task<bool> UpdateQuestionnaireAsync(SmeQuestionnaire questionnaire)
+        {
+            SmeQuestionnaire? existing = await this.context.SmeQuestionnaires
+                .FirstOrDefaultAsync(x => x.Id == questionnaire.Id);
+
+            if (existing is null)
+            {
+                return false;
+            }
+
+            existing.CurriculumId = questionnaire.CurriculumId;
+            existing.Title = questionnaire.Title;
+            existing.Description = questionnaire.Description;
+            existing.IsActive = questionnaire.IsActive;
+            existing.FinalOpenEndedPrompt = questionnaire.FinalOpenEndedPrompt;
+            existing.IsFinalOpenEndedRequired = questionnaire.IsFinalOpenEndedRequired;
+
+            await this.context.SaveChangesAsync();
+            return true;
+        }
+
+        /// <inheritdoc/>
         public async Task<List<SmeQuestionnaire>> GetActiveQuestionnairesAsync()
         {
             return await this.context.SmeQuestionnaires

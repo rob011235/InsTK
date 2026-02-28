@@ -40,6 +40,20 @@ namespace Common.Interfaces
         public Task<SmeQuestionnaire> CreateQuestionnaireAsync(SmeQuestionnaire questionnaire);
 
         /// <summary>
+        /// Gets a questionnaire definition by its identifier.
+        /// </summary>
+        /// <param name="questionnaireId">The questionnaire identifier.</param>
+        /// <returns>The questionnaire if found; otherwise <see langword="null"/>.</returns>
+        public Task<SmeQuestionnaire?> GetQuestionnaireByIdAsync(Guid questionnaireId);
+
+        /// <summary>
+        /// Updates a questionnaire definition.
+        /// </summary>
+        /// <param name="questionnaire">The questionnaire values to persist.</param>
+        /// <returns><see langword="true"/> if updated; otherwise <see langword="false"/>.</returns>
+        public Task<bool> UpdateQuestionnaireAsync(SmeQuestionnaire questionnaire);
+
+        /// <summary>
         /// Gets active SME questionnaires that can be sent as invites.
         /// </summary>
         /// <returns>A list of active questionnaires.</returns>

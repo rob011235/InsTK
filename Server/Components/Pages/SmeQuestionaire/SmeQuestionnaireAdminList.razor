@@ -30,6 +30,7 @@ else
                 <th>Status</th>
                 <th>Created</th>
                 <th>Final Question</th>
+                <th>Actions</th>
             </tr>
         </thead>
         <tbody>
@@ -40,6 +41,9 @@ else
                     <td>@(questionnaire.IsActive ? "Active" : "Inactive")</td>
                     <td>@questionnaire.CreatedOn.ToLocalTime().ToString("g")</td>
                     <td>@(string.IsNullOrWhiteSpace(questionnaire.FinalOpenEndedPrompt) ? "None" : "Configured")</td>
+                    <td>
+                        <a class="btn btn-sm btn-outline-primary" href="@($"/admin/sme-questionnaires/{questionnaire.Id}/edit")">Edit</a>
+                    </td>
                 </tr>
             }
         </tbody>
