@@ -322,6 +322,60 @@ namespace Server.Data.Services
         }
 
         /// <inheritdoc/>
+        public async Task<List<SmeSoftware>> GetSoftwareByResponseIdAsync(Guid responseId)
+        {
+            return await this.context.SmeSoftware
+                .Where(x => x.ResponseId == responseId)
+                .OrderBy(x => x.Name)
+                .ToListAsync();
+        }
+
+        /// <inheritdoc/>
+        public async Task<bool> SaveSoftwareByResponseIdAsync(Guid responseId, List<SmeSoftware> software)
+        {
+            bool responseExists = await this.context.SmeQuestionnaireResponses
+                .AnyAsync(x => x.Id == responseId);
+
+            if (!responseExists)
+            {
+                return false;
+            }
+
+            List<SmeSoftware> existing = await this.context.SmeSoftware
+                .Where(x => x.ResponseId == responseId)
+                .ToListAsync();
+
+            if (existing.Count > 0)
+            {
+                this.context.SmeSoftware.RemoveRange(existing);
+            }
+
+            List<SmeSoftware> sanitized = software
+                .Where(x => !string.IsNullOrWhiteSpace(x.Name))
+                .Select(x => new SmeSoftware
+                {
+                    Id = Guid.NewGuid(),
+                    ResponseId = responseId,
+                    Name = x.Name.Trim(),
+                    Vendor = string.IsNullOrWhiteSpace(x.Vendor) ? null : x.Vendor.Trim(),
+                    Version = string.IsNullOrWhiteSpace(x.Version) ? null : x.Version.Trim(),
+                    Category = x.Category,
+                    Frequency = x.Frequency,
+                    RequiredForJob = x.RequiredForJob,
+                    Notes = string.IsNullOrWhiteSpace(x.Notes) ? null : x.Notes.Trim(),
+                })
+                .ToList();
+
+            if (sanitized.Count > 0)
+            {
+                this.context.SmeSoftware.AddRange(sanitized);
+            }
+
+            await this.context.SaveChangesAsync();
+            return true;
+        }
+
+        /// <inheritdoc/>
         public async Task<SmeFacilityTourPreference?> GetFacilityTourPreferenceByResponseIdAsync(Guid responseId)
         {
             bool responseExists = await this.context.SmeQuestionnaireResponses

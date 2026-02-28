@@ -48,6 +48,7 @@ namespace Server.Controllers
             SubjectMatterExpert? profile = await this.smeQuestionnaireDataService.GetSmeProfileByResponseIdAsync(responseId);
             List<SmeSkill> skills = await this.smeQuestionnaireDataService.GetSkillsByResponseIdAsync(responseId);
             List<SmeEquipment> equipment = await this.smeQuestionnaireDataService.GetEquipmentByResponseIdAsync(responseId);
+            List<SmeSoftware> software = await this.smeQuestionnaireDataService.GetSoftwareByResponseIdAsync(responseId);
             SmeFacilityTourPreference? tourPreference = await this.smeQuestionnaireDataService.GetFacilityTourPreferenceByResponseIdAsync(responseId);
 
             byte[] pdfBytes = Document.Create(container =>
@@ -107,6 +108,21 @@ namespace Server.Controllers
                             else
                             {
                                 foreach (SmeEquipment item in equipment)
+                                {
+                                    string details = string.IsNullOrWhiteSpace(item.Notes) ? "-" : item.Notes;
+                                    column.Item().Text($"- {item.Name}: {details}");
+                                }
+                            }
+
+                            column.Item().LineHorizontal(1);
+                            column.Item().Text("Software").Bold().FontSize(13);
+                            if (software.Count == 0)
+                            {
+                                column.Item().Text("- None");
+                            }
+                            else
+                            {
+                                foreach (SmeSoftware item in software)
                                 {
                                     string details = string.IsNullOrWhiteSpace(item.Notes) ? "-" : item.Notes;
                                     column.Item().Text($"- {item.Name}: {details}");

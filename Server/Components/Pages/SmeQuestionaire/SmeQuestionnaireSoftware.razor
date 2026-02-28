@@ -1,4 +1,4 @@
-@page "/sme-questionnaire/{Token}/skills"
+@page "/sme-questionnaire/{Token}/software"
 @rendermode InteractiveServer
 @attribute [AllowAnonymous]
 @using Common.Interfaces
@@ -6,14 +6,14 @@
 @inject ISmeQuestionnaireDataService SmeQuestionnaireDataService
 @inject NavigationManager Navigation
 
-<PageTitle>SME Questionnaire Skills</PageTitle>
+<PageTitle>SME Questionnaire Software</PageTitle>
 
 <h1>SME Questionnaire</h1>
-<p><strong>Step 2 of 5:</strong> Skills</p>
+<p><strong>Step 4 of 5:</strong> Software</p>
 
 @if (isLoading)
 {
-    <p>Loading skills...</p>
+    <p>Loading software...</p>
 }
 else if (!string.IsNullOrWhiteSpace(errorMessage))
 {
@@ -26,37 +26,37 @@ else
         <p class="text-success">@saveMessage</p>
     }
 
-    @foreach (SkillRow row in skills)
+    @foreach (SoftwareRow row in software)
     {
         <div class="border rounded p-3 mb-3" @key="row.RowId">
             <div class="input-group mb-3">
-                <span class="input-group-text" id="@($"skillNameLabel-{row.RowId}")">Skill</span>
+                <span class="input-group-text" id="@($"softwareNameLabel-{row.RowId}")">Software</span>
                 <InputText
-                    id="@($"skillName-{row.RowId}")"
+                    id="@($"softwareName-{row.RowId}")"
                     class="form-control"
-                    aria-describedby="@($"skillNameLabel-{row.RowId}")"
-                    aria-label="Skill name"
+                    aria-describedby="@($"softwareNameLabel-{row.RowId}")"
+                    aria-label="Software name"
                     @bind-Value="row.Name" />
             </div>
 
             <div class="input-group mb-3">
-                <span class="input-group-text" id="@($"skillDescriptionLabel-{row.RowId}")">Description</span>
+                <span class="input-group-text" id="@($"softwareDescriptionLabel-{row.RowId}")">Description</span>
                 <InputTextArea
-                    id="@($"skillDescription-{row.RowId}")"
+                    id="@($"softwareDescription-{row.RowId}")"
                     class="form-control"
-                    aria-describedby="@($"skillDescriptionLabel-{row.RowId}")"
-                    aria-label="Skill description"
+                    aria-describedby="@($"softwareDescriptionLabel-{row.RowId}")"
+                    aria-label="Software description"
                     @bind-Value="row.Description" />
             </div>
 
-            <button type="button" class="btn btn-outline-danger" @onclick="() => RemoveSkill(row)" disabled="@(skills.Count == 1)">
-                Remove Skill
+            <button type="button" class="btn btn-outline-danger" @onclick="() => RemoveSoftware(row)" disabled="@(software.Count == 1)">
+                Remove Software
             </button>
         </div>
     }
 
     <div class="mb-3">
-        <button type="button" class="btn btn-outline-secondary" @onclick="AddSkill">Add Skill</button>
+        <button type="button" class="btn btn-outline-secondary" @onclick="AddSoftware">Add Software</button>
     </div>
 
     <div class="d-flex gap-2 mb-3">
@@ -70,11 +70,11 @@ else
             Next
         </button>
     </div>
-
-    <p>
-        <a href="/sme-questionnaire/privacy">How we use your data (Privacy Notice)</a>
-    </p>
 }
+
+<p>
+    <a href="/sme-questionnaire/privacy">How we use your data (Privacy Notice)</a>
+</p>
 
 @code {
     [Parameter]
@@ -84,7 +84,7 @@ else
     private bool isLoading = true;
     private string? errorMessage;
     private string? saveMessage;
-    private List<SkillRow> skills = new List<SkillRow>();
+    private List<SoftwareRow> software = new List<SoftwareRow>();
 
     protected override async Task OnInitializedAsync()
     {
@@ -95,84 +95,84 @@ else
             return;
         }
 
-        List<SmeSkill> existingSkills = await SmeQuestionnaireDataService.GetSkillsByResponseIdAsync(responseId);
-        skills = existingSkills
-            .Select(x => new SkillRow
+        List<SmeSoftware> existingSoftware = await SmeQuestionnaireDataService.GetSoftwareByResponseIdAsync(responseId);
+        software = existingSoftware
+            .Select(x => new SoftwareRow
             {
                 Name = x.Name,
                 Description = x.Notes,
             })
             .ToList();
 
-        if (skills.Count == 0)
+        if (software.Count == 0)
         {
-            skills.Add(new SkillRow());
+            software.Add(new SoftwareRow());
         }
 
         isLoading = false;
     }
 
-    private void AddSkill()
+    private void AddSoftware()
     {
-        skills.Add(new SkillRow());
+        software.Add(new SoftwareRow());
     }
 
-    private void RemoveSkill(SkillRow row)
+    private void RemoveSoftware(SoftwareRow row)
     {
-        if (skills.Count <= 1)
+        if (software.Count <= 1)
         {
             return;
         }
 
-        skills.Remove(row);
+        software.Remove(row);
 
-        if (skills.Count == 0)
+        if (software.Count == 0)
         {
-            skills.Add(new SkillRow());
+            software.Add(new SoftwareRow());
         }
     }
 
     private async Task SaveDraftAsync()
     {
-        bool success = await SaveSkillsAsync();
-        saveMessage = success ? "Draft saved." : "Unable to save skills.";
+        bool success = await SaveSoftwareAsync();
+        saveMessage = success ? "Draft saved." : "Unable to save software.";
     }
 
     private async Task SaveAndNextAsync()
     {
-        bool success = await SaveSkillsAsync();
+        bool success = await SaveSoftwareAsync();
         if (!success)
         {
-            saveMessage = "Unable to save skills.";
+            saveMessage = "Unable to save software.";
             return;
         }
 
-        Navigation.NavigateTo($"/sme-questionnaire/{Token}/equipment");
+        Navigation.NavigateTo($"/sme-questionnaire/{Token}/facility-tour");
     }
 
     private void GoBack()
     {
-        Navigation.NavigateTo($"/sme-questionnaire/{Token}/profile");
+        Navigation.NavigateTo($"/sme-questionnaire/{Token}/equipment");
     }
 
-    private async Task<bool> SaveSkillsAsync()
+    private async Task<bool> SaveSoftwareAsync()
     {
-        List<SmeSkill> rowsToSave = skills
+        List<SmeSoftware> rowsToSave = software
             .Where(x => !string.IsNullOrWhiteSpace(x.Name))
-            .Select(x => new SmeSkill
+            .Select(x => new SmeSoftware
             {
                 Name = x.Name.Trim(),
-                Proficiency = ProficiencyLevel.Beginner,
-                YearsExperience = null,
-                IsPrimary = false,
+                Category = SoftwareCategory.Other,
+                Frequency = UsageFrequency.Weekly,
+                RequiredForJob = false,
                 Notes = string.IsNullOrWhiteSpace(x.Description) ? null : x.Description.Trim(),
             })
             .ToList();
 
-        return await SmeQuestionnaireDataService.SaveSkillsByResponseIdAsync(responseId, rowsToSave);
+        return await SmeQuestionnaireDataService.SaveSoftwareByResponseIdAsync(responseId, rowsToSave);
     }
 
-    private sealed class SkillRow
+    private sealed class SoftwareRow
     {
         public Guid RowId { get; } = Guid.NewGuid();
 

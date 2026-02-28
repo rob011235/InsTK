@@ -125,6 +125,21 @@ namespace Common.Interfaces
         public Task<bool> SaveEquipmentByResponseIdAsync(Guid responseId, List<SmeEquipment> equipment);
 
         /// <summary>
+        /// Gets software rows associated with a questionnaire response.
+        /// </summary>
+        /// <param name="responseId">The response identifier.</param>
+        /// <returns>A list of software for the response.</returns>
+        public Task<List<SmeSoftware>> GetSoftwareByResponseIdAsync(Guid responseId);
+
+        /// <summary>
+        /// Replaces the software rows associated with a questionnaire response.
+        /// </summary>
+        /// <param name="responseId">The response identifier.</param>
+        /// <param name="software">The software to persist.</param>
+        /// <returns><see langword="true"/> if the response exists and was updated; otherwise <see langword="false"/>.</returns>
+        public Task<bool> SaveSoftwareByResponseIdAsync(Guid responseId, List<SmeSoftware> software);
+
+        /// <summary>
         /// Gets the facility tour preference associated with a questionnaire response.
         /// </summary>
         /// <param name="responseId">The response identifier.</param>
