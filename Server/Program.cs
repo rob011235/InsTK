@@ -10,6 +10,7 @@ namespace Server
     using Microsoft.AspNetCore.Components.Authorization;
     using Microsoft.AspNetCore.Identity;
     using Microsoft.EntityFrameworkCore;
+    using QuestPDF.Infrastructure;
     using Server.Components;
     using Server.Components.Account;
     using Server.Data;
@@ -27,6 +28,8 @@ namespace Server
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         public static async Task Main(string[] args)
         {
+            QuestPDF.Settings.License = LicenseType.Community;
+
             var builder = WebApplication.CreateBuilder(args);
 
             // Add services to the container.

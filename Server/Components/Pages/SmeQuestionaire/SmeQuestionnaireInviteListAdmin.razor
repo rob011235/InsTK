@@ -35,6 +35,7 @@ else
                 <th>Privacy Ack</th>
                 <th>Submitted</th>
                 <th>Link</th>
+                <th>PDF</th>
             </tr>
         </thead>
         <tbody>
@@ -49,6 +50,7 @@ else
                     <td>@FormatDateTime(invite.PrivacyAcknowledgedOn)</td>
                     <td>@FormatDateTime(invite.SubmittedOn)</td>
                     <td><a href="@($"/sme-questionnaire/{invite.ResponseId}")" target="_blank">Open</a></td>
+                    <td><a href="@($"/api/sme-surveys/{invite.ResponseId}/pdf")" target="_blank">Download</a></td>
                 </tr>
             }
         </tbody>
