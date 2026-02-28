@@ -2,67 +2,101 @@
 
 @inject NavigationManager NavigationManager
 
-<div class="top-row ps-3 navbar navbar-dark">
-    <div class="container-fluid">
+<!-- Navigation-->
+<nav class="navbar navbar-expand-lg navbar-light fixed-top py-3" id="mainNav">
+    <div class="container px-4 px-lg-5">
         <a class="navbar-brand" href="">
-            <img src="/images/instklogo.png" height="50" />
+            <img src="/images/instklogo.png" height="50" />Instructor Toolkit
         </a>
+        <button class="navbar-toggler navbar-toggler-right" type="button" data-bs-toggle="collapse"
+                data-bs-target="#navbarResponsive" aria-controls="navbarResponsive" aria-expanded="false"
+                aria-label="Toggle navigation"><span class="navbar-toggler-icon"></span></button>
+        <div class="collapse navbar-collapse" id="navbarResponsive">
+            <ul class="navbar-nav ms-auto my-2 my-lg-0">
+                <li class="nav-item">
+                    <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                        <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
+                    </NavLink>
+                </li>
+
+                <AuthorizeView Roles="Admin">
+                    <li class="nav-item">
+                        <NavLink class="nav-link" href="courses">
+                            <span class="bi bi-lock-nav-menu" aria-hidden="true"></span> Courses
+                        </NavLink>
+                    </li>
+
+                    <li class="nav-item">
+                        <NavLink class="nav-link" href="objectives">
+                            <span class="bi bi-lock-nav-menu" aria-hidden="true"></span> Objectives
+                        </NavLink>
+                    </li>
+                </AuthorizeView>
+
+                <AuthorizeView Roles="Admin">
+                    <li class="nav-item">
+                        <NavLink class="nav-link" href="UserManagement">
+                            <span class="bi bi-people" aria-hidden="true"></span> Manage Users
+                        </NavLink>
+                    </li>
+                    <li class="nav-item">
+                        <NavLink class="nav-link" href="admin/curriculums">
+                            <span class="bi bi-journal-text" aria-hidden="true"></span> Curriculums
+                        </NavLink>
+                    </li>
+                    <li class="nav-item">
+                        <NavLink class="nav-link" href="admin/sme-questionnaires">
+                            <span class="bi bi-ui-checks" aria-hidden="true"></span> SME Questionnaires
+                        </NavLink>
+                    </li>
+                    <li class="nav-item">
+                        <NavLink class="nav-link" href="admin/smes/create">
+                            <span class="bi bi-person-plus" aria-hidden="true"></span> Create SME
+                        </NavLink>
+                    </li>
+                    <li class="nav-item">
+                        <NavLink class="nav-link" href="admin/sme-surveys">
+                            <span class="bi bi-list-ul" aria-hidden="true"></span> SME Surveys
+                        </NavLink>
+                    </li>
+                </AuthorizeView>
+                <li class="nav-item"><a class="nav-link" href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a></li>
+                <AuthorizeView>
+                    <NotAuthorized>
+                        <li class="nav-item"><a class="nav-link" href="Account/Register">Register</a></li>
+                        <li class="nav-item"><a class="nav-link" href="Account/Login">Login</a></li>
+                    </NotAuthorized>
+                    <Authorized>
+                        <li class="nav-item"><a class="nav-link" href="Account/Manage">
+                            <span class="bi bi-person-fill-nav-menu" aria-hidden="true"></span>
+                            @context.User.Identity?.Name
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <form action="Account/Logout" method="post">
+                                <AntiforgeryToken />
+                                <input type="hidden" name="ReturnUrl" value="@currentUrl" />
+                                <button type="submit" class="nav-link">
+                                    <span class="bi bi-arrow-bar-left-nav-menu" aria-hidden="true"></span> Logout
+                                </button>
+                            </form>
+                        </li>
+                    </Authorized>
+                </AuthorizeView>
+            </ul>
+        </div>
     </div>
-</div>
+</nav>
+
+@*
 
 <input type="checkbox" title="Navigation menu" class="navbar-toggler" />
 
 <div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
     <nav class="flex-column">
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
-            </NavLink>
-        </div>
 
-        <AuthorizeView Roles="Admin">
-            <div class="nav-item px-3">
-                <NavLink class="nav-link" href="courses">
-                    <span class="bi bi-lock-nav-menu" aria-hidden="true"></span> Courses
-                </NavLink>
-            </div>
-
-            <div class="nav-item px-3">
-                <NavLink class="nav-link" href="objectives">
-                    <span class="bi bi-lock-nav-menu" aria-hidden="true"></span> Objectives
-                </NavLink>
-            </div>
-        </AuthorizeView>
-
-        <AuthorizeView Roles="Admin">
-            <div class="nav-item px-3">
-                <NavLink class="nav-link" href="UserManagement">
-                    <span class="bi bi-people" aria-hidden="true"></span> Manage Users
-                </NavLink>
-            </div>
-            <div class="nav-item px-3">
-                <NavLink class="nav-link" href="admin/curriculums">
-                    <span class="bi bi-journal-text" aria-hidden="true"></span> Curriculums
-                </NavLink>
-            </div>
-            <div class="nav-item px-3">
-                <NavLink class="nav-link" href="admin/sme-questionnaires">
-                    <span class="bi bi-ui-checks" aria-hidden="true"></span> SME Questionnaires
-                </NavLink>
-            </div>
-            <div class="nav-item px-3">
-                <NavLink class="nav-link" href="admin/smes/create">
-                    <span class="bi bi-person-plus" aria-hidden="true"></span> Create SME
-                </NavLink>
-            </div>
-            <div class="nav-item px-3">
-                <NavLink class="nav-link" href="admin/sme-surveys">
-                    <span class="bi bi-list-ul" aria-hidden="true"></span> SME Surveys
-                </NavLink>
-            </div>
-        </AuthorizeView>
     </nav>
-</div>
+</div> *@
 
 @code {
     private string? currentUrl;
