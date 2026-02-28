@@ -32,6 +32,7 @@ namespace Server.Controllers
         /// </summary>
         /// <returns>The HTTP action result containing the list of courses.</returns>
         [HttpGet]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> GetAllAsync()
         {
             return this.Ok(await this.dataService.GetAllAsync());

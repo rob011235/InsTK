@@ -7,6 +7,8 @@
 @inject IObjectivesDataService dataService
 @inject PersistentComponentState ApplicationState
 
+@attribute [Authorize(Roles = "Admin")]
+
 <h3>Objectives Page</h3>
 @if (this.model?.Objectives == null)
 {

@@ -27,6 +27,7 @@ namespace Server.Controllers
         /// </summary>
         /// <returns>A list of objectives.</returns>
         [HttpGet]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> GetAllAsync()
         {
             var result = await this.dataService.GetAllAsync();
