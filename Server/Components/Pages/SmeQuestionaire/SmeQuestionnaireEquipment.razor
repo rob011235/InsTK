@@ -1,12 +1,73 @@
 @page "/sme-questionnaire/{Token}/equipment"
 @rendermode InteractiveServer
 @attribute [AllowAnonymous]
+@using Common.Interfaces
+@using Common.Models.SmeQuestionnaire
+@inject ISmeQuestionnaireDataService SmeQuestionnaireDataService
+@inject NavigationManager Navigation
 
 <PageTitle>SME Questionnaire Equipment</PageTitle>
 
 <h1>SME Questionnaire</h1>
-<p><strong>Step 3 of 6:</strong> Equipment</p>
-<p>Equipment step placeholder.</p>
+<p><strong>Step 3 of 3:</strong> Equipment</p>
+
+@if (isLoading)
+{
+    <p>Loading equipment...</p>
+}
+else if (!string.IsNullOrWhiteSpace(errorMessage))
+{
+    <p class="text-danger">@errorMessage</p>
+}
+else
+{
+    @if (!string.IsNullOrWhiteSpace(saveMessage))
+    {
+        <p class="text-success">@saveMessage</p>
+    }
+
+    @foreach (EquipmentRow row in equipment)
+    {
+        <div class="border rounded p-3 mb-3" @key="row.RowId">
+            <div class="input-group mb-3">
+                <span class="input-group-text" id="@($"equipmentNameLabel-{row.RowId}")">Equipment</span>
+                <InputText
+                    id="@($"equipmentName-{row.RowId}")"
+                    class="form-control"
+                    aria-describedby="@($"equipmentNameLabel-{row.RowId}")"
+                    aria-label="Equipment name"
+                    @bind-Value="row.Name" />
+            </div>
+
+            <div class="input-group mb-3">
+                <span class="input-group-text" id="@($"equipmentDescriptionLabel-{row.RowId}")">Description</span>
+                <InputTextArea
+                    id="@($"equipmentDescription-{row.RowId}")"
+                    class="form-control"
+                    aria-describedby="@($"equipmentDescriptionLabel-{row.RowId}")"
+                    aria-label="Equipment description"
+                    @bind-Value="row.Description" />
+            </div>
+
+            <button type="button" class="btn btn-outline-danger" @onclick="() => RemoveEquipment(row)" disabled="@(equipment.Count == 1)">
+                Remove Equipment
+            </button>
+        </div>
+    }
+
+    <div class="mb-3">
+        <button type="button" class="btn btn-outline-secondary" @onclick="AddEquipment">Add Equipment</button>
+    </div>
+
+    <div class="d-flex gap-2 mb-3">
+        <button type="button" class="btn btn-outline-secondary" @onclick="GoBack">
+            Back
+        </button>
+        <button type="button" class="btn btn-outline-primary" @onclick="SaveDraftAsync">
+            Save Draft
+        </button>
+    </div>
+}
 
 <p>
     <a href="/sme-questionnaire/privacy">How we use your data (Privacy Notice)</a>
@@ -15,4 +76,93 @@
 @code {
     [Parameter]
     public string Token { get; set; } = string.Empty;
+
+    private Guid responseId;
+    private bool isLoading = true;
+    private string? errorMessage;
+    private string? saveMessage;
+    private List<EquipmentRow> equipment = new List<EquipmentRow>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Guid.TryParse(Token, out responseId))
+        {
+            errorMessage = "Invalid questionnaire link.";
+            isLoading = false;
+            return;
+        }
+
+        List<SmeEquipment> existingEquipment = await SmeQuestionnaireDataService.GetEquipmentByResponseIdAsync(responseId);
+        equipment = existingEquipment
+            .Select(x => new EquipmentRow
+            {
+                Name = x.Name,
+                Description = x.Notes,
+            })
+            .ToList();
+
+        if (equipment.Count == 0)
+        {
+            equipment.Add(new EquipmentRow());
+        }
+
+        isLoading = false;
+    }
+
+    private void AddEquipment()
+    {
+        equipment.Add(new EquipmentRow());
+    }
+
+    private void RemoveEquipment(EquipmentRow row)
+    {
+        if (equipment.Count <= 1)
+        {
+            return;
+        }
+
+        equipment.Remove(row);
+
+        if (equipment.Count == 0)
+        {
+            equipment.Add(new EquipmentRow());
+        }
+    }
+
+    private async Task SaveDraftAsync()
+    {
+        bool success = await SaveEquipmentAsync();
+        saveMessage = success ? "Draft saved." : "Unable to save equipment.";
+    }
+
+    private void GoBack()
+    {
+        Navigation.NavigateTo($"/sme-questionnaire/{Token}/skills");
+    }
+
+    private async Task<bool> SaveEquipmentAsync()
+    {
+        List<SmeEquipment> rowsToSave = equipment
+            .Where(x => !string.IsNullOrWhiteSpace(x.Name))
+            .Select(x => new SmeEquipment
+            {
+                Name = x.Name.Trim(),
+                Type = EquipmentType.Hardware,
+                Frequency = UsageFrequency.Weekly,
+                RequiredForJob = false,
+                Notes = string.IsNullOrWhiteSpace(x.Description) ? null : x.Description.Trim(),
+            })
+            .ToList();
+
+        return await SmeQuestionnaireDataService.SaveEquipmentByResponseIdAsync(responseId, rowsToSave);
+    }
+
+    private sealed class EquipmentRow
+    {
+        public Guid RowId { get; } = Guid.NewGuid();
+
+        public string Name { get; set; } = string.Empty;
+
+        public string? Description { get; set; }
+    }
 }

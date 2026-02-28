@@ -263,6 +263,61 @@ namespace Server.Data.Services
         }
 
         /// <inheritdoc/>
+        public async Task<List<SmeEquipment>> GetEquipmentByResponseIdAsync(Guid responseId)
+        {
+            return await this.context.SmeEquipment
+                .Where(x => x.ResponseId == responseId)
+                .OrderBy(x => x.Name)
+                .ToListAsync();
+        }
+
+        /// <inheritdoc/>
+        public async Task<bool> SaveEquipmentByResponseIdAsync(Guid responseId, List<SmeEquipment> equipment)
+        {
+            bool responseExists = await this.context.SmeQuestionnaireResponses
+                .AnyAsync(x => x.Id == responseId);
+
+            if (!responseExists)
+            {
+                return false;
+            }
+
+            List<SmeEquipment> existing = await this.context.SmeEquipment
+                .Where(x => x.ResponseId == responseId)
+                .ToListAsync();
+
+            if (existing.Count > 0)
+            {
+                this.context.SmeEquipment.RemoveRange(existing);
+            }
+
+            List<SmeEquipment> sanitized = equipment
+                .Where(x => !string.IsNullOrWhiteSpace(x.Name))
+                .Select(x => new SmeEquipment
+                {
+                    Id = Guid.NewGuid(),
+                    ResponseId = responseId,
+                    Name = x.Name.Trim(),
+                    Type = x.Type,
+                    Manufacturer = string.IsNullOrWhiteSpace(x.Manufacturer) ? null : x.Manufacturer.Trim(),
+                    Model = string.IsNullOrWhiteSpace(x.Model) ? null : x.Model.Trim(),
+                    VersionOrSpec = string.IsNullOrWhiteSpace(x.VersionOrSpec) ? null : x.VersionOrSpec.Trim(),
+                    Frequency = x.Frequency,
+                    RequiredForJob = x.RequiredForJob,
+                    Notes = string.IsNullOrWhiteSpace(x.Notes) ? null : x.Notes.Trim(),
+                })
+                .ToList();
+
+            if (sanitized.Count > 0)
+            {
+                this.context.SmeEquipment.AddRange(sanitized);
+            }
+
+            await this.context.SaveChangesAsync();
+            return true;
+        }
+
+        /// <inheritdoc/>
         public async Task<DateTimeOffset?> AcknowledgePrivacyAsync(Guid responseId)
         {
             SmeQuestionnaireResponse? response = await this.context.SmeQuestionnaireResponses

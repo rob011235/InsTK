@@ -110,6 +110,21 @@ namespace Common.Interfaces
         public Task<bool> SaveSkillsByResponseIdAsync(Guid responseId, List<SmeSkill> skills);
 
         /// <summary>
+        /// Gets equipment rows associated with a questionnaire response.
+        /// </summary>
+        /// <param name="responseId">The response identifier.</param>
+        /// <returns>A list of equipment for the response.</returns>
+        public Task<List<SmeEquipment>> GetEquipmentByResponseIdAsync(Guid responseId);
+
+        /// <summary>
+        /// Replaces the equipment rows associated with a questionnaire response.
+        /// </summary>
+        /// <param name="responseId">The response identifier.</param>
+        /// <param name="equipment">The equipment to persist.</param>
+        /// <returns><see langword="true"/> if the response exists and was updated; otherwise <see langword="false"/>.</returns>
+        public Task<bool> SaveEquipmentByResponseIdAsync(Guid responseId, List<SmeEquipment> equipment);
+
+        /// <summary>
         /// Sets the privacy acknowledgment timestamp for the response if one does not already exist.
         /// </summary>
         /// <param name="responseId">The response identifier.</param>
