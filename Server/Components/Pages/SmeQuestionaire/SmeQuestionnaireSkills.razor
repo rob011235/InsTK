@@ -26,40 +26,20 @@ else
         <p class="text-success">@saveMessage</p>
     }
 
-    @for (int i = 0; i < skills.Count; i++)
+    @foreach (SkillRow row in skills)
     {
-        <div class="border rounded p-3 mb-3">
+        <div class="border rounded p-3 mb-3" @key="row.RowId">
             <div class="mb-3">
-                <label class="form-label" for="@($"skillName-{i}")">Skill Name</label>
-                <InputText id="@($"skillName-{i}")" class="form-control" @bind-Value="skills[i].Name" />
-            </div>
-
-            <div class="mb-3">
-                <label class="form-label" for="@($"skillProficiency-{i}")">Proficiency</label>
-                <InputSelect id="@($"skillProficiency-{i}")" class="form-select" @bind-Value="skills[i].Proficiency">
-                    @foreach (ProficiencyLevel level in Enum.GetValues<ProficiencyLevel>())
-                    {
-                        <option value="@level">@level</option>
-                    }
-                </InputSelect>
+                <label class="form-label" for="@($"skillName-{row.RowId}")">Skill Name</label>
+                <InputText id="@($"skillName-{row.RowId}")" class="form-control" @bind-Value="row.Name" />
             </div>
 
             <div class="mb-3">
-                <label class="form-label" for="@($"skillYears-{i}")">Years Experience</label>
-                <InputNumber id="@($"skillYears-{i}")" class="form-control" @bind-Value="skills[i].YearsExperience" />
+                <label class="form-label" for="@($"skillDescription-{row.RowId}")">Description</label>
+                <InputTextArea id="@($"skillDescription-{row.RowId}")" class="form-control" @bind-Value="row.Description" />
             </div>
 
-            <div class="form-check mb-3">
-                <InputCheckbox id="@($"skillPrimary-{i}")" class="form-check-input" @bind-Value="skills[i].IsPrimary" />
-                <label class="form-check-label" for="@($"skillPrimary-{i}")">Primary skill</label>
-            </div>
-
-            <div class="mb-3">
-                <label class="form-label" for="@($"skillNotes-{i}")">Notes</label>
-                <InputTextArea id="@($"skillNotes-{i}")" class="form-control" @bind-Value="skills[i].Notes" />
-            </div>
-
-            <button type="button" class="btn btn-outline-danger" @onclick="() => RemoveSkill(i)" disabled="@(skills.Count == 1)">
+            <button type="button" class="btn btn-outline-danger" @onclick="() => RemoveSkill(row)" disabled="@(skills.Count == 1)">
                 Remove Skill
             </button>
         </div>
@@ -110,10 +90,7 @@ else
             .Select(x => new SkillRow
             {
                 Name = x.Name,
-                Proficiency = x.Proficiency,
-                YearsExperience = x.YearsExperience,
-                IsPrimary = x.IsPrimary,
-                Notes = x.Notes,
+                Description = x.Notes,
             })
             .ToList();
 
@@ -130,12 +107,14 @@ else
         skills.Add(new SkillRow());
     }
 
-    private void RemoveSkill(int index)
+    private void RemoveSkill(SkillRow row)
     {
-        if (index >= 0 && index < skills.Count)
+        if (skills.Count <= 1)
         {
-            skills.RemoveAt(index);
+            return;
         }
+
+        skills.Remove(row);
 
         if (skills.Count == 0)
         {
@@ -173,10 +152,10 @@ else
             .Select(x => new SmeSkill
             {
                 Name = x.Name.Trim(),
-                Proficiency = x.Proficiency,
-                YearsExperience = x.YearsExperience,
-                IsPrimary = x.IsPrimary,
-                Notes = string.IsNullOrWhiteSpace(x.Notes) ? null : x.Notes.Trim(),
+                Proficiency = ProficiencyLevel.Beginner,
+                YearsExperience = null,
+                IsPrimary = false,
+                Notes = string.IsNullOrWhiteSpace(x.Description) ? null : x.Description.Trim(),
             })
             .ToList();
 
@@ -185,14 +164,10 @@ else
 
     private sealed class SkillRow
     {
+        public Guid RowId { get; } = Guid.NewGuid();
+
         public string Name { get; set; } = string.Empty;
 
-        public ProficiencyLevel Proficiency { get; set; } = ProficiencyLevel.Beginner;
-
-        public int? YearsExperience { get; set; }
-
-        public bool IsPrimary { get; set; }
-
-        public string? Notes { get; set; }
+        public string? Description { get; set; }
     }
 }
