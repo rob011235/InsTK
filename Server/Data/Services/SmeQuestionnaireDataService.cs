@@ -6,6 +6,7 @@ namespace Server.Data.Services
 {
     using System;
     using System.Collections.Generic;
+    using System.Text.Json;
     using Common.Interfaces;
     using Common.Models.SmeQuestionnaire;
     using Microsoft.EntityFrameworkCore;
@@ -17,6 +18,7 @@ namespace Server.Data.Services
     {
         private static readonly Guid FacilityTourWillingQuestionId = new Guid("ef4f6c8f-9d52-4f49-9f40-bc309bfd4df8");
         private static readonly Guid FacilityTourDetailsQuestionId = new Guid("184ab5f0-b98a-4ecd-91e8-e92a093f2f4f");
+        private static readonly Guid FacilityTourAvailabilitiesQuestionId = new Guid("90f4f4c5-9478-4d91-b0db-183fd2bb1a12");
         private readonly ApplicationDbContext context;
 
         /// <summary>
@@ -332,16 +334,34 @@ namespace Server.Data.Services
 
             List<QuestionnaireAnswer> answers = await this.context.QuestionnaireAnswers
                 .Where(x => x.ResponseId == responseId &&
-                    (x.QuestionId == FacilityTourWillingQuestionId || x.QuestionId == FacilityTourDetailsQuestionId))
+                    (x.QuestionId == FacilityTourWillingQuestionId ||
+                     x.QuestionId == FacilityTourDetailsQuestionId ||
+                     x.QuestionId == FacilityTourAvailabilitiesQuestionId))
                 .ToListAsync();
 
             QuestionnaireAnswer? willingAnswer = answers.FirstOrDefault(x => x.QuestionId == FacilityTourWillingQuestionId);
             QuestionnaireAnswer? detailsAnswer = answers.FirstOrDefault(x => x.QuestionId == FacilityTourDetailsQuestionId);
+            QuestionnaireAnswer? availabilityAnswer = answers.FirstOrDefault(x => x.QuestionId == FacilityTourAvailabilitiesQuestionId);
+
+            List<SmeFacilityTourAvailability> availabilities = new List<SmeFacilityTourAvailability>();
+            if (!string.IsNullOrWhiteSpace(availabilityAnswer?.ValueText))
+            {
+                try
+                {
+                    availabilities = JsonSerializer.Deserialize<List<SmeFacilityTourAvailability>>(availabilityAnswer.ValueText) ??
+                        new List<SmeFacilityTourAvailability>();
+                }
+                catch (JsonException)
+                {
+                    availabilities = new List<SmeFacilityTourAvailability>();
+                }
+            }
 
             return new SmeFacilityTourPreference
             {
                 IsWillingToOfferTour = willingAnswer?.ValueBool,
                 Details = string.IsNullOrWhiteSpace(detailsAnswer?.ValueText) ? null : detailsAnswer!.ValueText!.Trim(),
+                Availabilities = availabilities,
             };
         }
 
@@ -358,7 +378,9 @@ namespace Server.Data.Services
 
             List<QuestionnaireAnswer> existing = await this.context.QuestionnaireAnswers
                 .Where(x => x.ResponseId == responseId &&
-                    (x.QuestionId == FacilityTourWillingQuestionId || x.QuestionId == FacilityTourDetailsQuestionId))
+                    (x.QuestionId == FacilityTourWillingQuestionId ||
+                     x.QuestionId == FacilityTourDetailsQuestionId ||
+                     x.QuestionId == FacilityTourAvailabilitiesQuestionId))
                 .ToListAsync();
 
             if (existing.Count > 0)
@@ -387,6 +409,30 @@ namespace Server.Data.Services
                     ResponseId = responseId,
                     QuestionId = FacilityTourDetailsQuestionId,
                     ValueText = preference.Details.Trim(),
+                });
+            }
+
+            List<SmeFacilityTourAvailability> sanitizedAvailabilities = preference.Availabilities
+                .Where(x =>
+                    !string.IsNullOrWhiteSpace(x.Date) ||
+                    !string.IsNullOrWhiteSpace(x.StartTime) ||
+                    !string.IsNullOrWhiteSpace(x.EndTime))
+                .Select(x => new SmeFacilityTourAvailability
+                {
+                    Date = string.IsNullOrWhiteSpace(x.Date) ? null : x.Date.Trim(),
+                    StartTime = string.IsNullOrWhiteSpace(x.StartTime) ? null : x.StartTime.Trim(),
+                    EndTime = string.IsNullOrWhiteSpace(x.EndTime) ? null : x.EndTime.Trim(),
+                })
+                .ToList();
+
+            if (sanitizedAvailabilities.Count > 0)
+            {
+                answersToSave.Add(new QuestionnaireAnswer
+                {
+                    Id = Guid.NewGuid(),
+                    ResponseId = responseId,
+                    QuestionId = FacilityTourAvailabilitiesQuestionId,
+                    ValueText = JsonSerializer.Serialize(sanitizedAvailabilities),
                 });
             }
 

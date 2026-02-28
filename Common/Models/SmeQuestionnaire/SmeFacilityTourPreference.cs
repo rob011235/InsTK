@@ -4,6 +4,8 @@
 
 namespace Common.Models.SmeQuestionnaire
 {
+    using System.Collections.Generic;
+
     /// <summary>
     /// Represents an SME's willingness to provide a facility tour.
     /// </summary>
@@ -18,5 +20,10 @@ namespace Common.Models.SmeQuestionnaire
         /// Gets or sets optional details related to the tour availability.
         /// </summary>
         public string? Details { get; set; }
+
+        /// <summary>
+        /// Gets or sets optional date/time slots when the SME is available to offer a tour.
+        /// </summary>
+        public List<SmeFacilityTourAvailability> Availabilities { get; set; } = new List<SmeFacilityTourAvailability>();
     }
 }
