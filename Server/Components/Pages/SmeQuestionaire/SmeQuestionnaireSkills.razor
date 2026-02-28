@@ -9,7 +9,7 @@
 <PageTitle>SME Questionnaire Skills</PageTitle>
 
 <h1>SME Questionnaire</h1>
-<p><strong>Step 2 of 5:</strong> Skills</p>
+<p><strong>Step 4 of 5:</strong> Skills</p>
 
 @if (isLoading)
 {
@@ -147,12 +147,12 @@ else
             return;
         }
 
-        Navigation.NavigateTo($"/sme-questionnaire/{Token}/equipment");
+        Navigation.NavigateTo($"/sme-questionnaire/{Token}/facility-tour");
     }
 
     private void GoBack()
     {
-        Navigation.NavigateTo($"/sme-questionnaire/{Token}/profile");
+        Navigation.NavigateTo($"/sme-questionnaire/{Token}/software");
     }
 
     private async Task<bool> SaveSkillsAsync()
