@@ -1,107 +1,20 @@
 @page "/admin/smes/create"
 @rendermode InteractiveServer
 @attribute [Authorize(Roles = "Admin")]
-@using System.ComponentModel.DataAnnotations
-@using Common.Interfaces
 @using Common.Models.SmeQuestionnaire
-@inject ISmeQuestionnaireDataService SmeQuestionnaireDataService
 @inject NavigationManager Navigation
 
 <PageTitle>Create SME</PageTitle>
 
 <h1>Create Subject Matter Expert</h1>
 
-<EditForm Model="model" OnValidSubmit="CreateAsync" FormName="CreateSmeForm">
-    <DataAnnotationsValidator />
-    <ValidationSummary />
-
-    <div class="mb-3">
-        <label for="fullNameInput" class="form-label">Full Name</label>
-        <InputText id="fullNameInput" class="form-control" @bind-Value="model.FullName" />
-    </div>
-
-    <div class="mb-3">
-        <label for="companyInput" class="form-label">Company</label>
-        <InputText id="companyInput" class="form-control" @bind-Value="model.Company" />
-    </div>
-
-    <div class="mb-3">
-        <label for="jobTitleInput" class="form-label">Job Title</label>
-        <InputText id="jobTitleInput" class="form-control" @bind-Value="model.JobTitle" />
-    </div>
-
-    <div class="mb-3">
-        <label for="emailInput" class="form-label">Email</label>
-        <InputText id="emailInput" class="form-control" @bind-Value="model.Email" />
-    </div>
-
-    <div class="mb-3">
-        <label for="phoneInput" class="form-label">Phone</label>
-        <InputText id="phoneInput" class="form-control" @bind-Value="model.Phone" />
-    </div>
-
-    <div class="mb-3">
-        <label for="websiteInput" class="form-label">Website</label>
-        <InputText id="websiteInput" class="form-control" @bind-Value="model.Website" />
-    </div>
-
-    <div class="mb-3">
-        <label for="locationInput" class="form-label">Location</label>
-        <InputText id="locationInput" class="form-control" @bind-Value="model.Location" />
-    </div>
-
-    <button type="submit" class="btn btn-primary">Create SME</button>
-    <a class="btn btn-link" href="/admin/sme-surveys">Cancel</a>
-</EditForm>
+<SmeCreateForm FormIdPrefix="create-sme-page" OnCreated="HandleCreatedAsync" SubmitButtonText="Create SME" />
+<a class="btn btn-link mt-3" href="/admin/sme-surveys">Cancel</a>
 
 @code {
-    private readonly CreateSmeModel model = new CreateSmeModel();
-
-    private async Task CreateAsync()
+    private Task HandleCreatedAsync(SubjectMatterExpert _)
     {
-        SubjectMatterExpert sme = new SubjectMatterExpert
-        {
-            FullName = model.FullName.Trim(),
-            Company = Normalize(model.Company),
-            JobTitle = Normalize(model.JobTitle),
-            Email = Normalize(model.Email),
-            Phone = Normalize(model.Phone),
-            Website = Normalize(model.Website),
-            Location = Normalize(model.Location),
-        };
-
-        await SmeQuestionnaireDataService.CreateSubjectMatterExpertAsync(sme);
         Navigation.NavigateTo("/admin/sme-surveys");
-    }
-
-    private static string? Normalize(string? value)
-    {
-        return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
-    }
-
-    private sealed class CreateSmeModel
-    {
-        [Required]
-        [MaxLength(200)]
-        public string FullName { get; set; } = string.Empty;
-
-        [MaxLength(200)]
-        public string? Company { get; set; }
-
-        [MaxLength(200)]
-        public string? JobTitle { get; set; }
-
-        [EmailAddress]
-        [MaxLength(300)]
-        public string? Email { get; set; }
-
-        [MaxLength(100)]
-        public string? Phone { get; set; }
-
-        [MaxLength(300)]
-        public string? Website { get; set; }
-
-        [MaxLength(200)]
-        public string? Location { get; set; }
+        return Task.CompletedTask;
     }
 }

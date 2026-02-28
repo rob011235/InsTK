@@ -1,0 +1,136 @@
+@using System.ComponentModel.DataAnnotations
+@using Common.Interfaces
+@using Common.Models.SmeQuestionnaire
+@inject ISmeQuestionnaireDataService SmeQuestionnaireDataService
+
+<EditForm Model="model" OnValidSubmit="CreateAsync" FormName="CreateSmeForm">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <p class="text-danger">@errorMessage</p>
+    }
+
+    <div class="mb-3">
+        <label for="@($"{formIdPrefix}-fullNameInput")" class="form-label">Full Name</label>
+        <InputText id="@($"{formIdPrefix}-fullNameInput")" class="form-control" @bind-Value="model.FullName" />
+    </div>
+
+    <div class="mb-3">
+        <label for="@($"{formIdPrefix}-companyInput")" class="form-label">Company</label>
+        <InputText id="@($"{formIdPrefix}-companyInput")" class="form-control" @bind-Value="model.Company" />
+    </div>
+
+    <div class="mb-3">
+        <label for="@($"{formIdPrefix}-jobTitleInput")" class="form-label">Job Title</label>
+        <InputText id="@($"{formIdPrefix}-jobTitleInput")" class="form-control" @bind-Value="model.JobTitle" />
+    </div>
+
+    <div class="mb-3">
+        <label for="@($"{formIdPrefix}-emailInput")" class="form-label">Email</label>
+        <InputText id="@($"{formIdPrefix}-emailInput")" class="form-control" @bind-Value="model.Email" />
+    </div>
+
+    <div class="mb-3">
+        <label for="@($"{formIdPrefix}-phoneInput")" class="form-label">Phone</label>
+        <InputText id="@($"{formIdPrefix}-phoneInput")" class="form-control" @bind-Value="model.Phone" />
+    </div>
+
+    <div class="mb-3">
+        <label for="@($"{formIdPrefix}-websiteInput")" class="form-label">Website</label>
+        <InputText id="@($"{formIdPrefix}-websiteInput")" class="form-control" @bind-Value="model.Website" />
+    </div>
+
+    <div class="mb-3">
+        <label for="@($"{formIdPrefix}-locationInput")" class="form-label">Location</label>
+        <InputText id="@($"{formIdPrefix}-locationInput")" class="form-control" @bind-Value="model.Location" />
+    </div>
+
+    <button type="submit" class="btn btn-primary" disabled="@isSubmitting">@SubmitButtonText</button>
+</EditForm>
+
+@code {
+    [Parameter]
+    public EventCallback<SubjectMatterExpert> OnCreated { get; set; }
+
+    [Parameter]
+    public string SubmitButtonText { get; set; } = "Create SME";
+
+    [Parameter]
+    public string FormIdPrefix { get; set; } = "create-sme";
+
+    private CreateSmeModel model = new();
+    private bool isSubmitting;
+    private string? errorMessage;
+
+    private string formIdPrefix => string.IsNullOrWhiteSpace(FormIdPrefix) ? "create-sme" : FormIdPrefix.Trim();
+
+    private async Task CreateAsync()
+    {
+        errorMessage = null;
+        isSubmitting = true;
+
+        try
+        {
+            SubjectMatterExpert sme = new()
+            {
+                FullName = model.FullName.Trim(),
+                Company = Normalize(model.Company),
+                JobTitle = Normalize(model.JobTitle),
+                Email = Normalize(model.Email),
+                Phone = Normalize(model.Phone),
+                Website = Normalize(model.Website),
+                Location = Normalize(model.Location),
+            };
+
+            SubjectMatterExpert created = await SmeQuestionnaireDataService.CreateSubjectMatterExpertAsync(sme);
+
+            if (OnCreated.HasDelegate)
+            {
+                await OnCreated.InvokeAsync(created);
+            }
+
+            model = new CreateSmeModel();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+
+    private static string? Normalize(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+    }
+
+    private sealed class CreateSmeModel
+    {
+        [Required]
+        [MaxLength(200)]
+        public string FullName { get; set; } = string.Empty;
+
+        [MaxLength(200)]
+        public string? Company { get; set; }
+
+        [MaxLength(200)]
+        public string? JobTitle { get; set; }
+
+        [EmailAddress]
+        [MaxLength(300)]
+        public string? Email { get; set; }
+
+        [MaxLength(100)]
+        public string? Phone { get; set; }
+
+        [MaxLength(300)]
+        public string? Website { get; set; }
+
+        [MaxLength(200)]
+        public string? Location { get; set; }
+    }
+}

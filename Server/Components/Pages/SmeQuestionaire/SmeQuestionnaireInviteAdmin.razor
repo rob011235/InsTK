@@ -3,8 +3,10 @@
 @attribute [Authorize(Roles = "Admin")]
 @using Common.Interfaces
 @using Common.Models.SmeQuestionnaire
+@using Microsoft.JSInterop
 @inject ISmeQuestionnaireDataService SmeQuestionnaireDataService
 @inject NavigationManager Navigation
+@inject IJSRuntime JS
 
 <PageTitle>SME Questionnaire Invites</PageTitle>
 
@@ -37,13 +39,21 @@ else
 
     <div class="mb-3">
         <label for="smeSelect" class="form-label">Subject Matter Expert</label>
-        <select id="smeSelect" class="form-select" @bind="selectedSmeId">
-            @foreach (SubjectMatterExpert sme in subjectMatterExperts)
-            {
-                string emailPart = string.IsNullOrWhiteSpace(sme.Email) ? string.Empty : $" ({sme.Email})";
-                <option value="@sme.Id">@($"{sme.FullName}{emailPart}")</option>
-            }
-        </select>
+        <div class="input-group">
+            <select id="smeSelect" class="form-select" @bind="selectedSmeId">
+                @foreach (SubjectMatterExpert sme in subjectMatterExperts)
+                {
+                    string emailPart = string.IsNullOrWhiteSpace(sme.Email) ? string.Empty : $" ({sme.Email})";
+                    <option value="@sme.Id">@($"{sme.FullName}{emailPart}")</option>
+                }
+            </select>
+            <button class="btn btn-outline-secondary"
+                    type="button"
+                    data-bs-toggle="modal"
+                    data-bs-target="#createSmeModal">
+                Create SME
+            </button>
+        </div>
     </div>
 
     <button class="btn btn-primary"
@@ -65,6 +75,26 @@ else
             <pre>@emailPreview</pre>
         }
     }
+
+    <div class="modal fade" id="createSmeModal" tabindex="-1" aria-labelledby="createSmeModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 class="modal-title fs-5" id="createSmeModalLabel">Create Subject Matter Expert</h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <SmeCreateForm
+                        FormIdPrefix="create-sme-modal"
+                        SubmitButtonText="Create SME"
+                        OnCreated="HandleSmeCreatedAsync" />
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
 }
 
 @code {
@@ -125,5 +155,40 @@ else
         {
             errorMessage = ex.Message;
         }
+    }
+
+    private async Task ReloadSmesAsync()
+    {
+        subjectMatterExperts = await SmeQuestionnaireDataService.GetSubjectMatterExpertsAsync();
+
+        if (subjectMatterExperts.Count > 0 &&
+            !subjectMatterExperts.Any(x => x.Id == selectedSmeId))
+        {
+            selectedSmeId = subjectMatterExperts[0].Id;
+        }
+
+        if (questionnaires.Count > 0 && subjectMatterExperts.Count > 0)
+        {
+            errorMessage = null;
+        }
+    }
+
+    private async Task HandleSmeCreatedAsync(SubjectMatterExpert createdSme)
+    {
+        await ReloadSmesAsync();
+
+        if (subjectMatterExperts.Any(x => x.Id == createdSme.Id))
+        {
+            selectedSmeId = createdSme.Id;
+        }
+        else if (subjectMatterExperts.Count > 0)
+        {
+            selectedSmeId = subjectMatterExperts[0].Id;
+        }
+
+        inviteUrl = null;
+        emailPreview = null;
+
+        await JS.InvokeVoidAsync("instkModal.hide", "createSmeModal");
     }
 }

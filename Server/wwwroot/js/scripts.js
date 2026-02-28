@@ -51,3 +51,13 @@ window.addEventListener('DOMContentLoaded', event => {
         });
     });
 });
+
+window.instkModal = window.instkModal || {};
+window.instkModal.hide = function (modalId) {
+    const modalElement = document.getElementById(modalId);
+    if (!modalElement || typeof bootstrap === 'undefined' || !bootstrap.Modal) {
+        return;
+    }
+
+    bootstrap.Modal.getOrCreateInstance(modalElement).hide();
+};
