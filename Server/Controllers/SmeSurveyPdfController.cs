@@ -150,6 +150,10 @@ namespace Server.Controllers
                                     column.Item().Text($"- {date} ({start} - {end})");
                                 }
                             }
+
+                            column.Item().LineHorizontal(1);
+                            column.Item().Text("Final Question").Bold().FontSize(13);
+                            column.Item().Text(response.FinalOpenEndedAnswer ?? "-");
                         });
                 });
             }).GeneratePdf();

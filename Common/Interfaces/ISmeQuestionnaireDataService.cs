@@ -80,6 +80,13 @@ namespace Common.Interfaces
         public Task<SmeQuestionnaireResponse?> GetResponseByIdAsync(Guid responseId);
 
         /// <summary>
+        /// Gets the questionnaire definition associated with a response.
+        /// </summary>
+        /// <param name="responseId">The response identifier.</param>
+        /// <returns>The questionnaire if found; otherwise <see langword="null"/>.</returns>
+        public Task<SmeQuestionnaire?> GetQuestionnaireByResponseIdAsync(Guid responseId);
+
+        /// <summary>
         /// Gets the subject matter expert profile associated with a questionnaire response.
         /// </summary>
         /// <param name="responseId">The response identifier.</param>
@@ -160,6 +167,14 @@ namespace Common.Interfaces
         /// <param name="responseId">The response identifier.</param>
         /// <returns><see langword="true"/> if the response exists and was updated; otherwise <see langword="false"/>.</returns>
         public Task<bool> MarkResponseSubmittedAsync(Guid responseId);
+
+        /// <summary>
+        /// Saves the final open-ended answer for a response.
+        /// </summary>
+        /// <param name="responseId">The response identifier.</param>
+        /// <param name="answer">The answer text to persist.</param>
+        /// <returns><see langword="true"/> if the response exists and was updated; otherwise <see langword="false"/>.</returns>
+        public Task<bool> SaveFinalOpenEndedAnswerByResponseIdAsync(Guid responseId, string? answer);
 
         /// <summary>
         /// Sets the privacy acknowledgment timestamp for the response if one does not already exist.

@@ -168,6 +168,21 @@ namespace Server.Data.Services
         }
 
         /// <inheritdoc/>
+        public async Task<SmeQuestionnaire?> GetQuestionnaireByResponseIdAsync(Guid responseId)
+        {
+            SmeQuestionnaireResponse? response = await this.context.SmeQuestionnaireResponses
+                .FirstOrDefaultAsync(x => x.Id == responseId);
+
+            if (response is null)
+            {
+                return null;
+            }
+
+            return await this.context.SmeQuestionnaires
+                .FirstOrDefaultAsync(x => x.Id == response.QuestionnaireId);
+        }
+
+        /// <inheritdoc/>
         public async Task<SubjectMatterExpert?> GetSmeProfileByResponseIdAsync(Guid responseId)
         {
             SmeQuestionnaireResponse? response = await this.context.SmeQuestionnaireResponses
@@ -516,6 +531,22 @@ namespace Server.Data.Services
                 response.SubmittedOn = DateTimeOffset.UtcNow;
             }
 
+            await this.context.SaveChangesAsync();
+            return true;
+        }
+
+        /// <inheritdoc/>
+        public async Task<bool> SaveFinalOpenEndedAnswerByResponseIdAsync(Guid responseId, string? answer)
+        {
+            SmeQuestionnaireResponse? response = await this.context.SmeQuestionnaireResponses
+                .FirstOrDefaultAsync(x => x.Id == responseId);
+
+            if (response is null)
+            {
+                return false;
+            }
+
+            response.FinalOpenEndedAnswer = string.IsNullOrWhiteSpace(answer) ? null : answer.Trim();
             await this.context.SaveChangesAsync();
             return true;
         }

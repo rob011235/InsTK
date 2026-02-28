@@ -9,7 +9,7 @@
 <PageTitle>SME Questionnaire Facility Tour</PageTitle>
 
 <h1>SME Questionnaire</h1>
-<p><strong>Step 5 of 5:</strong> Facility Tour</p>
+<p><strong>Step 6 of 6:</strong> Facility Tour</p>
 
 @if (isLoading)
 {
@@ -99,8 +99,8 @@ else
         <button type="button" class="btn btn-outline-primary" @onclick="SaveDraftAsync">
             Save Draft
         </button>
-        <button type="button" class="btn btn-primary" @onclick="SaveAndFinishAsync">
-            Finish
+        <button type="button" class="btn btn-primary" @onclick="SaveAndSubmitAsync">
+            Submit
         </button>
     </div>
 }
@@ -162,7 +162,7 @@ else
         saveMessage = success ? "Draft saved." : "Unable to save.";
     }
 
-    private async Task SaveAndFinishAsync()
+    private async Task SaveAndSubmitAsync()
     {
         bool success = await SaveAsync();
         if (!success)
@@ -174,7 +174,7 @@ else
         bool submitted = await SmeQuestionnaireDataService.MarkResponseSubmittedAsync(responseId);
         if (!submitted)
         {
-            saveMessage = "Unable to mark survey as submitted.";
+            saveMessage = "Unable to submit survey.";
             return;
         }
 
@@ -183,7 +183,7 @@ else
 
     private void GoBack()
     {
-        Navigation.NavigateTo($"/sme-questionnaire/{Token}/skills");
+        Navigation.NavigateTo($"/sme-questionnaire/{Token}/final-question");
     }
 
     private void AddAvailability()
