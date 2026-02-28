@@ -21,9 +21,9 @@
      inkscape:pageopacity="0.0"
      inkscape:pagecheckerboard="0"
      inkscape:deskcolor="#d1d1d1"
-     inkscape:zoom="0.62359551"
-     inkscape:cx="287.84684"
-     inkscape:cy="414.53153"
+     inkscape:zoom="0.88189723"
+     inkscape:cx="307.29204"
+     inkscape:cy="390.63509"
      inkscape:window-width="1920"
      inkscape:window-height="991"
      inkscape:window-x="2091"
@@ -32,6 +32,36 @@
      inkscape:current-layer="svg8120" />
   <defs
      id="defs8116">
+    <linearGradient
+       id="linearGradient5"
+       x1="0%"
+       y1="0%"
+       x2="0%"
+       y2="100%">
+      <stop
+         offset="0%"
+         stop-color="#202329"
+         id="stop4" />
+      <stop
+         offset="100%"
+         stop-color="#07090d"
+         id="stop5" />
+    </linearGradient>
+    <linearGradient
+       id="linearGradient3"
+       x1="0%"
+       y1="0%"
+       x2="0%"
+       y2="100%">
+      <stop
+         offset="0%"
+         stop-color="#202329"
+         id="stop2" />
+      <stop
+         offset="100%"
+         stop-color="#07090d"
+         id="stop3" />
+    </linearGradient>
     <linearGradient
        id="instkTextBlue"
        x1="0%"
@@ -53,10 +83,10 @@
     </linearGradient>
     <filter
        id="instkTextShadow"
-       x="-0.0058341545"
-       y="-0.012006774"
-       width="1.0172423"
-       height="1.035485">
+       x="-0.038347487"
+       y="-0.025956175"
+       width="1.1133327"
+       height="1.0767112">
       <feOffset
          dx="3"
          dy="3"
@@ -150,6 +180,23 @@
          id="stop8114" />
     </linearGradient>
     <linearGradient
+       id="hatUndersideGrad"
+       x1="93.829628"
+       y1="682.54138"
+       x2="34.19505"
+       y2="751.77919"
+       gradientTransform="scale(2.024353,0.49398498)"
+       gradientUnits="userSpaceOnUse">
+      <stop
+         offset="0%"
+         stop-color="#0f1218"
+         id="stop8114a" />
+      <stop
+         offset="100%"
+         stop-color="#04070c"
+         id="stop8114b" />
+    </linearGradient>
+    <linearGradient
        id="tasselGrad"
        x1="0%"
        y1="0%"
@@ -164,26 +211,6 @@
          stop-color="#07090d"
          id="stop8116" />
     </linearGradient>
-    <linearGradient
-       inkscape:collect="always"
-       xlink:href="#tasselGrad"
-       id="linearGradient8120"
-       x1="410"
-       y1="351"
-       x2="410"
-       y2="377"
-       gradientUnits="userSpaceOnUse"
-       gradientTransform="translate(4.6210937,5.6126126)" />
-    <linearGradient
-       inkscape:collect="always"
-       xlink:href="#tasselGrad"
-       id="linearGradient8121"
-       x1="1441.0663"
-       y1="107.9645"
-       x2="1441.0663"
-       y2="156.46192"
-       gradientTransform="matrix(0.28867513,0,0,3.4641016,4.6210937,5.6126126)"
-       gradientUnits="userSpaceOnUse" />
     <pattern
        id="bronzeTexture"
        patternUnits="userSpaceOnUse"
@@ -208,75 +235,84 @@
        fill="url(#hatTopGrad)"
        id="polygon8116"
        style="fill:url(#hatTopGrad);stroke-width:0.969559"
-       transform="matrix(1,0,0,1.0637797,0,-20.281941)" />
+       transform="matrix(1,0,0,1.0637797,0,-20.281941)"
+       inkscape:label="MortarBoard" />
+    <path
+       d="m 189.94429,337.1652 c 57.1463,-37.84867 192.14176,-33.44927 235.9168,14.15355 -26.01918,18.22176 -57.39994,16.85431 -116.22592,16.85431 -53.16963,0 -94.80296,-14.08765 -119.69088,-31.00786 z"
+       fill="#0b0f15"
+       id="hatInnerRound"
+       style="opacity:0.9;stroke-width:1"
+       sodipodi:nodetypes="ccsc"
+       inkscape:label="hatInnerRound" />
     <path
        d="m 190,226 c 40,-28 128,-30 225,-4 19,8 11.76351,22.39414 11.76351,46.39414 0,34 -0.90242,72.92461 -0.90242,82.92461 C 407.86109,335.31875 365,315 307,315 c -51,0 -97.05571,10.1652 -117.05571,22.1652 2,-15 -1.34605,-37.72119 -1.07821,-61.57163 C 188.85044,256.74313 187,239 190,226 Z"
        fill="url(#hatBandGrad)"
        id="path8116"
        style="fill:url(#hatBandGrad)"
-       sodipodi:nodetypes="ccscsccc" />
+       sodipodi:nodetypes="ccscsccc"
+       inkscape:label="HatBody" />
     <path
-       d="m 416,202 6,148"
+       d="m 462,202 6,148"
        stroke="#181b22"
        stroke-width="5"
-       id="path8117" />
+       id="path8117"
+       inkscape:label="TasselRope" />
     <circle
-       cx="423"
+       cx="469"
        cy="364"
        r="13"
        fill="url(#tasselGrad)"
        id="circle8117"
-       style="fill:url(#linearGradient8120)" />
+       style="fill-opacity:1"
+       inkscape:label="TasselBall" />
     <rect
-       x="416"
+       x="462"
        y="374"
        width="14"
        height="168"
        rx="7"
        fill="url(#tasselGrad)"
        id="rect8117"
-       style="fill:url(#linearGradient8121)"
-       ry="7" />
+       style="fill-opacity:1"
+       ry="7"
+       inkscape:label="Tassel" />
     <path
-       d="m 420,534 -4,24 m 7,-25 -1,26 m 4,-27 3,25 m 1,-26 6,24 m -19,-25 -7,24"
+       d="m 466,534 -4,24 m 7,-25 -1,26 m 4,-27 3,25 m 1,-26 6,24 m -19,-25 -7,24"
        stroke="#0b0d11"
        stroke-width="2"
-       id="path8118" />
+       id="path8118"
+       inkscape:label="TasselEnds" />
   </g>
-  <text
-     x="44"
-     y="430"
-     font-family="'Trebuchet MS', 'Arial Rounded MT Bold', 'Segoe UI', Arial, sans-serif"
-     font-size="223px"
-     font-weight="700"
-     fill="url(#bronzeTexture)"
-     fill-opacity="1"
-     stroke="#282725"
-     stroke-width="1"
-     id="text8118"
-      style="filter:url(#instkTextShadow)">In</text>
-  <text
-     x="238"
-     y="430"
-     font-family="'Trebuchet MS', 'Arial Rounded MT Bold', 'Segoe UI', Arial, sans-serif"
-     font-size="223px"
-     font-weight="700"
-     fill="url(#bronzeTexture)"
-     fill-opacity="1"
-     stroke="#282725"
-     stroke-width="1"
-     id="text8119"
-      style="filter:url(#instkTextShadow)">s</text>
-  <text
-     x="275.44681"
-     y="535.39868"
-     font-family="'Trebuchet MS', 'Arial Rounded MT Bold', 'Segoe UI', Arial, sans-serif"
-     font-size="227px"
-     font-weight="700"
-     fill="url(#bronzeTexture)"
-     fill-opacity="1"
-     stroke="#282725"
-     stroke-width="1"
-     id="text8120"
-      style="filter:url(#instkTextShadow)">TK</text>
+  <g
+     id="g1">
+    <text
+       x="54"
+       y="430"
+       font-family="'Trebuchet MS', 'Arial Rounded MT Bold', 'Segoe UI', Arial, sans-serif"
+       font-size="223px"
+       font-weight="700"
+       fill="url(#bronzeTexture)"
+       fill-opacity="1"
+       stroke="#282725"
+       stroke-width="1"
+       id="text8118"
+       style="display:inline;filter:url(#instkTextShadow)"
+       inkscape:label="text8118"
+       xml:space="preserve">Ins</text>
+  </g>
+  <g
+     id="g2">
+    <text
+       x="285.44681"
+       y="535.39868"
+       font-family="'Trebuchet MS', 'Arial Rounded MT Bold', 'Segoe UI', Arial, sans-serif"
+       font-size="194px"
+       font-weight="700"
+       fill="url(#bronzeTexture)"
+       fill-opacity="1"
+       stroke="#282725"
+       stroke-width="1"
+       id="text8120"
+       style="display:inline;filter:url(#instkTextShadow)">TK</text>
+  </g>
 </svg>

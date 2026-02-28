@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="628" height="623" viewBox="0 0 628 623">
+  <g id="hat" transform="translate(-4.621,-5.613)">
+    <polygon points="270,318 40,245 256,142 590,255" fill="#0d1117" />
+    <path d="M190,226 C230,198 318,196 415,222 C434,230 427,247 427,271 C427,305 426,341 426,351 C408,335 365,315 307,315 C256,315 210,325 190,337 C192,322 189,299 189,276 C189,257 187,239 190,226 Z" fill="#171d26" />
+    <path d="M198,341 C259,307 380,311 424,351 C402,369 351,378 298,378 C253,378 214,366 198,341 Z" fill="#0a0d12" opacity="0.92" />
+    <path d="M459,202 L465,350" stroke="#141922" stroke-width="5" />
+    <circle cx="466" cy="364" r="13" fill="#11161f" />
+    <rect x="459" y="374" width="14" height="168" rx="7" fill="#11161f" />
+  </g>
+
+  <g id="wordmark" fill="#b08a4a" stroke="#282725" stroke-width="1">
+    <text x="57" y="430" font-family="'Trebuchet MS', 'Arial Rounded MT Bold', 'Segoe UI', Arial, sans-serif" font-size="223" font-weight="700">Ins</text>
+    <text x="288" y="530" font-family="'Trebuchet MS', 'Arial Rounded MT Bold', 'Segoe UI', Arial, sans-serif" font-size="194" font-weight="700">TK</text>
+  </g>
+</svg>
