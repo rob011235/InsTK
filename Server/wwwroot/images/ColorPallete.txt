@@ -1,0 +1,19 @@
+Dark Goldenrod
+#A17E0D
+161 126 13
+
+Khaki
+#F5D198 
+245 209 152
+
+Dark Khaki
+#CAA369 
+202 163 105 
+
+Black
+#282725 
+40 39 37
+
+Dark Olive Green
+#63573F  
+99 87 63

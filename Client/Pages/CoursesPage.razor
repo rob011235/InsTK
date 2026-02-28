@@ -8,7 +8,8 @@
 @inject PersistentComponentState ApplicationState
 
 @attribute [Authorize(Roles = "Admin")]
-
+<section class="page-section bg-secondary" id="about">
+    <div class="container px-4 px-lg-5">
 <h3>Courses Page</h3>
 
 @if (model?.Courses == null)
@@ -69,6 +70,8 @@ else
     }
 </ModalDialogue>
 
+            </div>
+        </Section>
 @code {
     private ModalDialogue dialogue = default!;
     protected CoursesPageVM model = default!;
