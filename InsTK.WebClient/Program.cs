@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 
-namespace InsTK.Client
+namespace InsTK.WebClient
 {
     internal class Program
     {

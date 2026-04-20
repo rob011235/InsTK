@@ -1,4 +1,4 @@
 <Solution>
-    <Project Path="InsTK/InsTK.Client/InsTK.Client.csproj" />
-    <Project Path="InsTK/InsTK.Server/InsTK.Server.csproj" />
+    <Project Path="InsTK.WebClient/InsTK.WebClient.csproj" />
+    <Project Path="InsTK.Server/InsTK.Server.csproj" />
 </Solution>
