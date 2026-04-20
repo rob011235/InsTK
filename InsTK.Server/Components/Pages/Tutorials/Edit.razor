@@ -1,0 +1,111 @@
+@page "/tutorials/edit"
+@page "/tutorials/edit/{Id:int}"
+@rendermode InteractiveServer
+
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+@inject NavigationManager Nav
+
+<h3>@(IsNew ? "Create Tutorial" : "Edit Tutorial")</h3>
+
+@if (model == null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <EditForm Model="model" OnValidSubmit="Save" FormName="tutorialForm">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <div class="mb-3">
+            <label class="form-label">Title</label>
+            <InputText class="form-control" @bind-Value="model.Title" />
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Summary</label>
+            <InputTextArea class="form-control" @bind-Value="model.Summary" />
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Technology</label>
+            <InputText class="form-control" @bind-Value="model.Technology" />
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Tags (comma separated)</label>
+            <InputText class="form-control" @bind-Value="model.Tags" />
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Slug</label>
+            <InputText class="form-control" @bind-Value="model.Slug" />
+        </div>
+
+        <div class="mt-3">
+            <button type="submit" class="btn btn-primary me-2">Save</button>
+
+            <button type="button" class="btn btn-secondary" @onclick="Cancel">
+                Cancel
+            </button>
+        </div>
+    </EditForm>
+}
+
+@code {
+    [Parameter]
+    public int? Id { get; set; }
+
+    private TutorialDefinition? model;
+
+    private bool IsNew => !Id.HasValue;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await using var db = await DbFactory.CreateDbContextAsync();
+
+        if (IsNew)
+        {
+            model = new TutorialDefinition
+            {
+                CreatedUtc = DateTime.UtcNow
+            };
+        }
+        else
+        {
+            model = await db.Tutorials.FindAsync(Id.Value);
+
+            if (model == null)
+            {
+                // If not found, go back to list
+                Nav.NavigateTo("/tutorials");
+                return;
+            }
+        }
+    }
+
+    private async Task Save()
+    {
+        await using var db = await DbFactory.CreateDbContextAsync();
+
+        if (IsNew)
+        {
+            model!.CreatedUtc = DateTime.UtcNow;
+            db.Tutorials.Add(model);
+        }
+        else
+        {
+            model!.UpdatedUtc = DateTime.UtcNow;
+            db.Tutorials.Update(model);
+        }
+
+        await db.SaveChangesAsync();
+
+        Nav.NavigateTo("/tutorials");
+    }
+
+    private void Cancel()
+    {
+        Nav.NavigateTo("/tutorials");
+    }
+}
