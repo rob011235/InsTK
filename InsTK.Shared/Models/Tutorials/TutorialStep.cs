@@ -12,7 +12,11 @@ namespace InsTK.Shared.Models.Tutorials
 
         public int DisplayOrder { get; set; }
 
+        [Required]
+        [StringLength(200)]
         public string Title { get; set; } = string.Empty;
+
+        [Required]
         public string Instruction { get; set; } = string.Empty;
 
         public string CodeSnippet { get; set; } = string.Empty;
