@@ -25,7 +25,7 @@ else
         <thead>
             <tr>
                 <th>Title</th>
-                <th>Technology</th>
+                <th>Steps</th>
                 <th>Updated</th>
                 <th></th>
             </tr>
@@ -35,7 +35,7 @@ else
             {
                 <tr>
                     <td>@t.Title</td>
-                    <td>@t.Technology</td>
+                    <td>@t.Steps.Count</td>
                     <td>@FormatDate(t.UpdatedUtc ?? t.CreatedUtc)</td>
                     <td>
                         <button class="btn btn-sm btn-secondary me-2" @onclick="() => Edit(t.Id)">

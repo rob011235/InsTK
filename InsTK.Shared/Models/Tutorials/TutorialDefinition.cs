@@ -11,16 +11,21 @@ namespace InsTK.Shared.Models.Tutorials
         public string Title { get; set; } = string.Empty;
 
         [StringLength(500)]
-        public string Summary { get; set; } = string.Empty;
+        public string? Summary { get; set; }
 
-        [StringLength(100)]
-        public string Technology { get; set; } = string.Empty;
+        public string? IntroMarkdown { get; set; }
+
+        public string? ConclusionMarkdown { get; set; }
+
+        [Url]
+        [StringLength(500)]
+        public string? RepoUrl { get; set; }
 
         [StringLength(200)]
-        public string Tags { get; set; } = string.Empty;
+        public string? BranchName { get; set; }
 
-        [StringLength(200)]
-        public string Slug { get; set; } = string.Empty;
+        [StringLength(300)]
+        public string? ReferenceSubPath { get; set; }
 
         public DateTime CreatedUtc { get; set; } = DateTime.UtcNow;
         public DateTime? UpdatedUtc { get; set; }

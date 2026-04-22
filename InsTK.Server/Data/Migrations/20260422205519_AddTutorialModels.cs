@@ -64,13 +64,14 @@ namespace InsTK.Server.Data.Migrations
                 name: "Tutorials",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     Title = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    Summary = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
-                    Technology = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    Tags = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    Slug = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
+                    Summary = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
+                    IntroMarkdown = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    ConclusionMarkdown = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    RepoUrl = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
+                    BranchName = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
+                    ReferenceSubPath = table.Column<string>(type: "nvarchar(300)", maxLength: 300, nullable: true),
                     CreatedUtc = table.Column<DateTime>(type: "datetime2", nullable: false),
                     UpdatedUtc = table.Column<DateTime>(type: "datetime2", nullable: true)
                 },
@@ -83,17 +84,11 @@ namespace InsTK.Server.Data.Migrations
                 name: "TutorialSteps",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    TutorialDefinitionId = table.Column<int>(type: "int", nullable: false),
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    TutorialDefinitionId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     DisplayOrder = table.Column<int>(type: "int", nullable: false),
-                    Title = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    Instruction = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    CodeSnippet = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    CodeLanguage = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    ImageUrl = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    ImageAltText = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Note = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                    Heading = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
+                    MarkdownContent = table.Column<string>(type: "nvarchar(max)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -110,9 +105,8 @@ namespace InsTK.Server.Data.Migrations
                 name: "EvidenceHints",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    TutorialStepId = table.Column<int>(type: "int", nullable: false),
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    TutorialStepId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     Type = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     Value = table.Column<string>(type: "nvarchar(300)", maxLength: 300, nullable: false),
                     Notes = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false)
