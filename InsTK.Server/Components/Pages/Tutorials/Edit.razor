@@ -1,5 +1,5 @@
 @page "/tutorials/edit"
-@page "/tutorials/edit/{Id:int}"
+@page "/tutorials/edit/{Id:guid}"
 @rendermode InteractiveServer
 
 @using InsTK.Server.Data
@@ -135,7 +135,7 @@ else
 
 @code {
     [Parameter]
-    public int? Id { get; set; }
+    public Guid? Id { get; set; }
 
     private TutorialDefinition? model;
 
@@ -154,9 +154,10 @@ else
         }
         else
         {
+            var tutorialId = Id.GetValueOrDefault();
             model = await db.Tutorials
                 .Include(t => t.Steps)
-                .FirstOrDefaultAsync(t => t.Id == Id.Value);
+                .FirstOrDefaultAsync(t => t.Id == tutorialId);
 
             if (model == null)
             {
@@ -241,19 +242,23 @@ else
     private async Task Save()
     {
         await using var db = await DbFactory.CreateDbContextAsync();
+        if (model == null)
+        {
+            return;
+        }
 
         NormalizeStepOrder();
 
         if (IsNew)
         {
-            model!.CreatedUtc = DateTime.UtcNow;
+            model.CreatedUtc = DateTime.UtcNow;
             db.Tutorials.Add(model);
         }
         else
         {
             var existing = await db.Tutorials
                 .Include(t => t.Steps)
-                .FirstOrDefaultAsync(t => t.Id == model!.Id);
+                .FirstOrDefaultAsync(t => t.Id == model.Id);
 
             if (existing == null)
             {

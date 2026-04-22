@@ -5,9 +5,9 @@ namespace InsTK.Shared.Models.Tutorials
 {
     public class TutorialStep
     {
-        public int Id { get; set; }
+        public Guid Id { get; set; } = Guid.NewGuid();
 
-        public int TutorialDefinitionId { get; set; }
+        public Guid TutorialDefinitionId { get; set; }
         public TutorialDefinition? TutorialDefinition { get; set; }
 
         public int DisplayOrder { get; set; }

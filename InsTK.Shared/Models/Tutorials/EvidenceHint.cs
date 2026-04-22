@@ -5,9 +5,9 @@ namespace InsTK.Shared.Models.Tutorials
 {
     public class EvidenceHint
     {
-        public int Id { get; set; }
+        public Guid Id { get; set; } = Guid.NewGuid();
 
-        public int TutorialStepId { get; set; }
+        public Guid TutorialStepId { get; set; }
         public TutorialStep? TutorialStep { get; set; }
 
         [Required]

@@ -75,12 +75,12 @@ else
         Nav.NavigateTo("/tutorials/edit");
     }
 
-    private void Edit(int id)
+    private void Edit(Guid id)
     {
         Nav.NavigateTo($"/tutorials/edit/{id}");
     }
 
-    private async Task Delete(int id)
+    private async Task Delete(Guid id)
     {
         await using var db = await DbFactory.CreateDbContextAsync();
 

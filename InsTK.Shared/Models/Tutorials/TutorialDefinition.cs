@@ -4,7 +4,7 @@ namespace InsTK.Shared.Models.Tutorials
 {
     public class TutorialDefinition
     {
-        public int Id { get; set; }
+        public Guid Id { get; set; } = Guid.NewGuid();
 
         [Required]
         [StringLength(200)]
