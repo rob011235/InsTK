@@ -2,6 +2,10 @@
 @page "/tutorials/edit/{Id:int}"
 @rendermode InteractiveServer
 
+@using InsTK.Server.Data
+@using InsTK.Shared.Models.Tutorials
+@using Microsoft.EntityFrameworkCore
+
 @inject IDbContextFactory<ApplicationDbContext> DbFactory
 @inject NavigationManager Nav
 
@@ -42,6 +46,83 @@ else
             <InputText class="form-control" @bind-Value="model.Slug" />
         </div>
 
+        <hr />
+
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 class="mb-0">Steps</h4>
+            <button type="button" class="btn btn-outline-primary" @onclick="AddStep">
+                Add Step
+            </button>
+        </div>
+
+        @if (!model.Steps.Any())
+        {
+            <p>No steps added yet.</p>
+        }
+        else
+        {
+            @foreach (var step in model.Steps.OrderBy(s => s.DisplayOrder).ToList())
+            {
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="mb-0">Step @step.DisplayOrder</h5>
+                            <div>
+                                <button type="button" class="btn btn-sm btn-outline-secondary me-2"
+                                        @onclick="() => MoveStepUp(step)">
+                                    Up
+                                </button>
+
+                                <button type="button" class="btn btn-sm btn-outline-secondary me-2"
+                                        @onclick="() => MoveStepDown(step)">
+                                    Down
+                                </button>
+
+                                <button type="button" class="btn btn-sm btn-outline-danger" @onclick="() => RemoveStep(step)">
+                                    Remove
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Step Title</label>
+                            <InputText class="form-control" @bind-Value="step.Title" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Instruction</label>
+                            <InputTextArea class="form-control" @bind-Value="step.Instruction" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Code Snippet</label>
+                            <InputTextArea class="form-control font-monospace" @bind-Value="step.CodeSnippet" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Code Language</label>
+                            <InputText class="form-control" @bind-Value="step.CodeLanguage" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Image Url</label>
+                            <InputText class="form-control" @bind-Value="step.ImageUrl" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Image Alt Text</label>
+                            <InputText class="form-control" @bind-Value="step.ImageAltText" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Note</label>
+                            <InputTextArea class="form-control" @bind-Value="step.Note" />
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+
         <div class="mt-3">
             <button type="submit" class="btn btn-primary me-2">Save</button>
 
@@ -73,20 +154,95 @@ else
         }
         else
         {
-            model = await db.Tutorials.FindAsync(Id.Value);
+            model = await db.Tutorials
+                .Include(t => t.Steps)
+                .FirstOrDefaultAsync(t => t.Id == Id.Value);
 
             if (model == null)
             {
-                // If not found, go back to list
                 Nav.NavigateTo("/tutorials");
                 return;
             }
+        }
+
+        NormalizeStepOrder();
+    }
+
+    private void AddStep()
+    {
+        if (model == null)
+            return;
+
+        model.Steps.Add(new TutorialStep
+        {
+            DisplayOrder = model.Steps.Count + 1,
+            Title = "",
+            Instruction = ""
+        });
+
+        NormalizeStepOrder();
+    }
+
+    private void RemoveStep(TutorialStep step)
+    {
+        if (model == null)
+            return;
+
+        model.Steps.Remove(step);
+        NormalizeStepOrder();
+    }
+
+    private void MoveStepUp(TutorialStep step)
+    {
+        if (model == null)
+            return;
+
+        var ordered = model.Steps.OrderBy(s => s.DisplayOrder).ToList();
+        var index = ordered.IndexOf(step);
+
+        if (index <= 0)
+            return;
+
+        (ordered[index - 1], ordered[index]) = (ordered[index], ordered[index - 1]);
+
+        model.Steps = ordered;
+        NormalizeStepOrder();
+    }
+
+    private void MoveStepDown(TutorialStep step)
+    {
+        if (model == null)
+            return;
+
+        var ordered = model.Steps.OrderBy(s => s.DisplayOrder).ToList();
+        var index = ordered.IndexOf(step);
+
+        if (index < 0 || index >= ordered.Count - 1)
+            return;
+
+        (ordered[index], ordered[index + 1]) = (ordered[index + 1], ordered[index]);
+
+        model.Steps = ordered;
+        NormalizeStepOrder();
+    }
+
+    private void NormalizeStepOrder()
+    {
+        if (model == null)
+            return;
+
+        var order = 1;
+        foreach (var step in model.Steps.OrderBy(s => s.DisplayOrder))
+        {
+            step.DisplayOrder = order++;
         }
     }
 
     private async Task Save()
     {
         await using var db = await DbFactory.CreateDbContextAsync();
+
+        NormalizeStepOrder();
 
         if (IsNew)
         {
@@ -95,8 +251,40 @@ else
         }
         else
         {
-            model!.UpdatedUtc = DateTime.UtcNow;
-            db.Tutorials.Update(model);
+            var existing = await db.Tutorials
+                .Include(t => t.Steps)
+                .FirstOrDefaultAsync(t => t.Id == model!.Id);
+
+            if (existing == null)
+            {
+                Nav.NavigateTo("/tutorials");
+                return;
+            }
+
+            existing.Title = model.Title;
+            existing.Summary = model.Summary;
+            existing.Technology = model.Technology;
+            existing.Tags = model.Tags;
+            existing.Slug = model.Slug;
+            existing.UpdatedUtc = DateTime.UtcNow;
+
+            db.TutorialSteps.RemoveRange(existing.Steps);
+            existing.Steps.Clear();
+
+            foreach (var step in model.Steps.OrderBy(s => s.DisplayOrder))
+            {
+                existing.Steps.Add(new TutorialStep
+                {
+                    DisplayOrder = step.DisplayOrder,
+                    Title = step.Title,
+                    Instruction = step.Instruction,
+                    CodeSnippet = step.CodeSnippet,
+                    CodeLanguage = step.CodeLanguage,
+                    ImageUrl = step.ImageUrl,
+                    ImageAltText = step.ImageAltText,
+                    Note = step.Note
+                });
+            }
         }
 
         await db.SaveChangesAsync();
