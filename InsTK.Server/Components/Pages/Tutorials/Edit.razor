@@ -37,34 +37,12 @@ else
                            @bind-Value="model.IntroMarkdown" />
         </div>
 
-        <div class="mb-3">
-            <label class="form-label">Conclusion Markdown</label>
-            <InputTextArea class="form-control font-monospace" style="min-height: 180px;"
-                           @bind-Value="model.ConclusionMarkdown" />
-        </div>
 
-        <div class="mb-3">
-            <label class="form-label">Repo Url</label>
-            <InputText class="form-control" @bind-Value="model.RepoUrl" />
-        </div>
-
-        <div class="mb-3">
-            <label class="form-label">Branch Name</label>
-            <InputText class="form-control" @bind-Value="model.BranchName" />
-        </div>
-
-        <div class="mb-3">
-            <label class="form-label">Reference SubPath</label>
-            <InputText class="form-control" @bind-Value="model.ReferenceSubPath" />
-        </div>
 
         <hr />
 
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h4 class="mb-0">Steps</h4>
-            <button type="button" class="btn btn-outline-primary" @onclick="AddStep">
-                Add Step
-            </button>
         </div>
 
         @if (!model.Steps.Any())
@@ -111,6 +89,31 @@ else
                 </div>
             }
         }
+
+        <button type="button" class="btn btn-outline-primary" @onclick="AddStep">
+            Add Step
+        </button>
+
+        <div class="mb-3">
+            <label class="form-label">Conclusion Markdown</label>
+            <InputTextArea class="form-control font-monospace" style="min-height: 180px;"
+                           @bind-Value="model.ConclusionMarkdown" />
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Repo Url</label>
+            <InputText class="form-control" @bind-Value="model.RepoUrl" />
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Branch Name</label>
+            <InputText class="form-control" @bind-Value="model.BranchName" />
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Reference SubPath</label>
+            <InputText class="form-control" @bind-Value="model.ReferenceSubPath" />
+        </div>
 
         <div class="mt-3">
             <button type="submit" class="btn btn-primary me-2">Save</button>
@@ -265,37 +268,42 @@ else
         }
         else
         {
-            var existing = await db.Tutorials
-                .Include(t => t.Steps)
-                .FirstOrDefaultAsync(t => t.Id == model.Id);
-
-            if (existing == null)
+            if (!await db.Tutorials.AnyAsync(t => t.Id == model.Id))
             {
                 Nav.NavigateTo("/tutorials");
                 return;
             }
 
-            existing.Title = model.Title;
-            existing.Summary = model.Summary;
-            existing.IntroMarkdown = model.IntroMarkdown;
-            existing.ConclusionMarkdown = model.ConclusionMarkdown;
-            existing.RepoUrl = model.RepoUrl;
-            existing.BranchName = model.BranchName;
-            existing.ReferenceSubPath = model.ReferenceSubPath;
-            existing.UpdatedUtc = DateTime.UtcNow;
+            var updatedUtc = DateTime.UtcNow;
 
-            db.TutorialSteps.RemoveRange(existing.Steps);
-            existing.Steps.Clear();
+            await db.Tutorials
+                .Where(t => t.Id == model.Id)
+                .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(t => t.Title, model.Title)
+                    .SetProperty(t => t.Summary, model.Summary)
+                    .SetProperty(t => t.IntroMarkdown, model.IntroMarkdown)
+                    .SetProperty(t => t.ConclusionMarkdown, model.ConclusionMarkdown)
+                    .SetProperty(t => t.RepoUrl, model.RepoUrl)
+                    .SetProperty(t => t.BranchName, model.BranchName)
+                    .SetProperty(t => t.ReferenceSubPath, model.ReferenceSubPath)
+                    .SetProperty(t => t.UpdatedUtc, updatedUtc));
 
-            foreach (var step in model.Steps.OrderBy(s => s.DisplayOrder))
-            {
-                existing.Steps.Add(new TutorialStep
+            await db.TutorialSteps
+                .Where(s => s.TutorialDefinitionId == model.Id)
+                .ExecuteDeleteAsync();
+
+            var replacementSteps = model.Steps
+                .OrderBy(s => s.DisplayOrder)
+                .Select(step => new TutorialStep
                 {
+                    TutorialDefinitionId = model.Id,
                     DisplayOrder = step.DisplayOrder,
                     Heading = step.Heading,
                     MarkdownContent = step.MarkdownContent
-                });
-            }
+                })
+                .ToList();
+
+            db.TutorialSteps.AddRange(replacementSteps);
         }
 
         await db.SaveChangesAsync();
