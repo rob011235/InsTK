@@ -1,3 +1,6 @@
+using Blazorise;
+using Blazorise.Bootstrap5;
+using Blazorise.Icons.FontAwesome;
 using InsTK.WebClient.Pages;
 using InsTK.Server.Components;
 using InsTK.Server.Components.Account;
@@ -19,6 +22,11 @@ namespace InsTK.Server
                 .AddInteractiveServerComponents()
                 .AddInteractiveWebAssemblyComponents()
                 .AddAuthenticationStateSerialization();
+
+            builder.Services
+                .AddBlazorise(options => options.Immediate = true)
+                .AddBootstrap5Providers()
+                .AddFontAwesomeIcons();
 
             builder.Services.AddCascadingAuthenticationState();
             builder.Services.AddScoped<IdentityRedirectManager>();

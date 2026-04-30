@@ -58,3 +58,18 @@ h1:focus {
 .form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
     text-align: start;
 }
+
+.tutorial-markdown-editor .b-markdown {
+    display: block;
+}
+
+.tutorial-markdown-editor .EasyMDEContainer {
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius);
+}
+
+.tutorial-markdown-editor .CodeMirror,
+.tutorial-markdown-editor .editor-preview,
+.tutorial-markdown-editor .editor-preview-side {
+    min-height: inherit;
+}

@@ -36,6 +36,15 @@ else
             <InputText class="form-control" @bind-Value="model.Technology" />
         </div>
 
+        <div class="mb-4">
+            <label class="form-label">Introduction Markdown</label>
+            <div class="tutorial-markdown-editor">
+                <Markdown @bind-Value="model.IntroMarkdown"
+                          MinHeight="220px"
+                          Placeholder="Add an introduction, setup notes, or learning goals." />
+            </div>
+        </div>
+
         <hr />
 
         <div class="d-flex justify-content-between align-items-center mb-3">
@@ -79,8 +88,11 @@ else
 
                         <div class="mb-3">
                             <label class="form-label">Instruction Markdown</label>
-                            <InputTextArea class="form-control font-monospace" style="min-height: 250px;"
-                                           @bind-Value="step.InstructionMarkdown" />
+                            <div class="tutorial-markdown-editor">
+                                <Markdown @bind-Value="step.InstructionMarkdown"
+                                          MinHeight="250px"
+                                          Placeholder="Write the student-facing markdown for this step." />
+                            </div>
                         </div>
 
                         <div class="row g-3">
@@ -119,6 +131,15 @@ else
         <button type="button" class="btn btn-outline-primary" @onclick="AddStep">
             Add Step
         </button>
+
+        <div class="mt-4 mb-3">
+            <label class="form-label">Conclusion Markdown</label>
+            <div class="tutorial-markdown-editor">
+                <Markdown @bind-Value="model.ConclusionMarkdown"
+                          MinHeight="220px"
+                          Placeholder="Add wrap-up notes, next steps, or recap content." />
+            </div>
+        </div>
 
         <div class="mt-3">
             <button type="submit" class="btn btn-primary me-2">Save</button>

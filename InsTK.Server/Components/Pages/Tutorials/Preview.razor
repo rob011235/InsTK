@@ -39,6 +39,16 @@ else
         </div>
     }
 
+    @if (!string.IsNullOrWhiteSpace(tutorial.IntroMarkdown))
+    {
+        <section class="card mb-4">
+            <div class="card-body">
+                <h4>Introduction</h4>
+                <div>@((MarkupString)TutorialContentFormatter.RenderMarkdown(tutorial.IntroMarkdown))</div>
+            </div>
+        </section>
+    }
+
     @if (!tutorial.Steps.Any())
     {
         <p>No steps have been added yet.</p>
@@ -57,6 +67,16 @@ else
                 </section>
             }
         </div>
+    }
+
+    @if (!string.IsNullOrWhiteSpace(tutorial.ConclusionMarkdown))
+    {
+        <section class="card mt-4">
+            <div class="card-body">
+                <h4>Conclusion</h4>
+                <div>@((MarkupString)TutorialContentFormatter.RenderMarkdown(tutorial.ConclusionMarkdown))</div>
+            </div>
+        </section>
     }
 }
 

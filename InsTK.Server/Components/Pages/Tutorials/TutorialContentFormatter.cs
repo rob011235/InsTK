@@ -32,10 +32,20 @@ namespace InsTK.Server.Components.Pages.Tutorials
                 html.AppendLine($"<p><strong>Technology:</strong> {Encode(tutorial.Technology)}</p>");
             }
 
+            if (!string.IsNullOrWhiteSpace(tutorial.IntroMarkdown))
+            {
+                html.AppendLine(RenderMarkdown(tutorial.IntroMarkdown));
+            }
+
             foreach (var step in tutorial.Steps.OrderBy(s => s.DisplayOrder))
             {
                 html.AppendLine($"<h2>Step {step.DisplayOrder}: {Encode(step.Title)}</h2>");
                 html.AppendLine(RenderMarkdown(step.InstructionMarkdown));
+            }
+
+            if (!string.IsNullOrWhiteSpace(tutorial.ConclusionMarkdown))
+            {
+                html.AppendLine(RenderMarkdown(tutorial.ConclusionMarkdown));
             }
 
             return html.ToString().Trim();
@@ -60,6 +70,12 @@ namespace InsTK.Server.Components.Pages.Tutorials
                 markdown.AppendLine();
             }
 
+            if (!string.IsNullOrWhiteSpace(tutorial.IntroMarkdown))
+            {
+                markdown.AppendLine(tutorial.IntroMarkdown.Trim());
+                markdown.AppendLine();
+            }
+
             foreach (var step in tutorial.Steps.OrderBy(s => s.DisplayOrder))
             {
                 markdown.AppendLine($"## Step {step.DisplayOrder}: {step.Title}");
@@ -68,8 +84,17 @@ namespace InsTK.Server.Components.Pages.Tutorials
                 markdown.AppendLine();
             }
 
+            if (!string.IsNullOrWhiteSpace(tutorial.ConclusionMarkdown))
+            {
+                markdown.AppendLine("## Conclusion");
+                markdown.AppendLine();
+                markdown.AppendLine(tutorial.ConclusionMarkdown.Trim());
+                markdown.AppendLine();
+            }
+
             return markdown.ToString().Trim();
         }
+
         private static string Encode(string? value)
         {
             return WebUtility.HtmlEncode(value ?? string.Empty);
