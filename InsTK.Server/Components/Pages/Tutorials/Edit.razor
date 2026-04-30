@@ -86,14 +86,7 @@ else
                             <InputText class="form-control" @bind-Value="step.Title" />
                         </div>
 
-                        <div class="mb-3">
-                            <label class="form-label">Instruction Markdown</label>
-                            <div class="tutorial-markdown-editor">
-                                <Markdown @bind-Value="step.InstructionMarkdown"
-                                          MinHeight="250px"
-                                          Placeholder="Write the student-facing markdown for this step." />
-                            </div>
-                        </div>
+                        <TutorialStepMarkdownEditor Step="step" />
 
                         <div class="row g-3">
                             <div class="col-md-6">

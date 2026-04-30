@@ -68,6 +68,38 @@ h1:focus {
     border-radius: var(--bs-border-radius);
 }
 
+.tutorial-markdown-workbench {
+    border: 1px solid var(--bs-border-color-translucent);
+    border-radius: 0.75rem;
+    padding: 1rem;
+    background: linear-gradient(180deg, rgba(248, 249, 250, 0.7), rgba(255, 255, 255, 0.95));
+}
+
+.tutorial-markdown-preview {
+    border: 1px solid var(--bs-border-color);
+    border-radius: 0.75rem;
+    background: #fff;
+    min-height: 250px;
+    overflow: hidden;
+}
+
+.tutorial-markdown-preview__body {
+    padding: 1rem;
+}
+
+.tutorial-markdown-preview__body > :last-child {
+    margin-bottom: 0;
+}
+
+.tutorial-markdown-hidden-input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
 .tutorial-markdown-editor .CodeMirror,
 .tutorial-markdown-editor .editor-preview,
 .tutorial-markdown-editor .editor-preview-side {
