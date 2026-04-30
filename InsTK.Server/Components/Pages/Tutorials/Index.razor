@@ -25,7 +25,9 @@ else
         <thead>
             <tr>
                 <th>Title</th>
+                <th>Technology</th>
                 <th>Steps</th>
+                <th>Gradable</th>
                 <th>Updated</th>
                 <th></th>
             </tr>
@@ -35,11 +37,21 @@ else
             {
                 <tr>
                     <td>@t.Title</td>
+                    <td>@(t.Technology ?? "-")</td>
                     <td>@t.Steps.Count</td>
+                    <td>@t.Steps.Count(IsGradableStep)</td>
                     <td>@FormatDate(t.UpdatedUtc ?? t.CreatedUtc)</td>
                     <td>
                         <button class="btn btn-sm btn-secondary me-2" @onclick="() => Edit(t.Id)">
                             Edit
+                        </button>
+
+                        <button class="btn btn-sm btn-outline-primary me-2" @onclick="() => Preview(t.Id)">
+                            Preview
+                        </button>
+
+                        <button class="btn btn-sm btn-outline-dark me-2" @onclick="() => Export(t.Id)">
+                            Export
                         </button>
 
                         <button class="btn btn-sm btn-danger" @onclick="() => Delete(t.Id)">
@@ -66,6 +78,7 @@ else
 
         tutorials = await db.Tutorials
             .AsNoTracking()
+            .Include(t => t.Steps)
             .OrderByDescending(t => t.UpdatedUtc ?? t.CreatedUtc)
             .ToListAsync();
     }
@@ -78,6 +91,16 @@ else
     private void Edit(Guid id)
     {
         Nav.NavigateTo($"/tutorials/edit/{id}");
+    }
+
+    private void Preview(Guid id)
+    {
+        Nav.NavigateTo($"/tutorials/{id}/preview");
+    }
+
+    private void Export(Guid id)
+    {
+        Nav.NavigateTo($"/tutorials/{id}/export");
     }
 
     private async Task Delete(Guid id)
@@ -97,5 +120,10 @@ else
     private static string FormatDate(DateTime date)
     {
         return date.ToLocalTime().ToString("yyyy-MM-dd HH:mm");
+    }
+
+    private static bool IsGradableStep(TutorialStep step)
+    {
+        return !string.IsNullOrWhiteSpace(step.ReferenceCode);
     }
 }

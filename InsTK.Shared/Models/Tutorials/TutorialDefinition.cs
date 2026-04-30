@@ -13,6 +13,9 @@ namespace InsTK.Shared.Models.Tutorials
         [StringLength(500)]
         public string? Summary { get; set; }
 
+        [StringLength(100)]
+        public string? Technology { get; set; }
+
         public string? IntroMarkdown { get; set; }
 
         public string? ConclusionMarkdown { get; set; }

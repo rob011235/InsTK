@@ -13,11 +13,16 @@ namespace InsTK.Shared.Models.Tutorials
 
         [Required]
         [StringLength(200)]
-        public string Heading { get; set; } = string.Empty;
+        public string Title { get; set; } = string.Empty;
 
         [Required]
-        public string MarkdownContent { get; set; } = string.Empty;
+        public string InstructionMarkdown { get; set; } = string.Empty;
 
-        public List<EvidenceHint> EvidenceHints { get; set; } = new();
+        [StringLength(260)]
+        public string? ReferenceFileName { get; set; }
+
+        public string? ReferenceCode { get; set; }
+
+        public string? GradingHints { get; set; }
     }
 }

@@ -32,12 +32,9 @@ else
         </div>
 
         <div class="mb-3">
-            <label class="form-label">Intro Markdown</label>
-            <InputTextArea class="form-control font-monospace" style="min-height: 180px;"
-                           @bind-Value="model.IntroMarkdown" />
+            <label class="form-label">Technology</label>
+            <InputText class="form-control" @bind-Value="model.Technology" />
         </div>
-
-
 
         <hr />
 
@@ -76,14 +73,43 @@ else
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label">Heading</label>
-                            <InputText class="form-control" @bind-Value="step.Heading" />
+                            <label class="form-label">Title</label>
+                            <InputText class="form-control" @bind-Value="step.Title" />
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label">Markdown Content</label>
+                            <label class="form-label">Instruction Markdown</label>
                             <InputTextArea class="form-control font-monospace" style="min-height: 250px;"
-                                           @bind-Value="step.MarkdownContent" />
+                                           @bind-Value="step.InstructionMarkdown" />
+                        </div>
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Reference File Name</label>
+                                <InputText class="form-control font-monospace" @bind-Value="step.ReferenceFileName" />
+                                <div class="form-text">
+                                    Leave blank for instruction-only steps.
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label">Grading Hints</label>
+                                <InputTextArea class="form-control" style="min-height: 100px;"
+                                               @bind-Value="step.GradingHints" />
+                            </div>
+                        </div>
+
+                        <div class="mb-3 mt-3">
+                            <label class="form-label">Reference Code</label>
+                            <InputTextArea class="form-control font-monospace" style="min-height: 220px;"
+                                           @bind-Value="step.ReferenceCode" />
+                            <div class="form-text">
+                                A step is considered gradable only when reference code has content.
+                            </div>
+                        </div>
+
+                        <div class="alert alert-light border small mb-0">
+                            Status: @(IsGradableStep(step) ? "Gradable step" : "Instruction-only step")
                         </div>
                     </div>
                 </div>
@@ -94,29 +120,19 @@ else
             Add Step
         </button>
 
-        <div class="mb-3">
-            <label class="form-label">Conclusion Markdown</label>
-            <InputTextArea class="form-control font-monospace" style="min-height: 180px;"
-                           @bind-Value="model.ConclusionMarkdown" />
-        </div>
-
-        <div class="mb-3">
-            <label class="form-label">Repo Url</label>
-            <InputText class="form-control" @bind-Value="model.RepoUrl" />
-        </div>
-
-        <div class="mb-3">
-            <label class="form-label">Branch Name</label>
-            <InputText class="form-control" @bind-Value="model.BranchName" />
-        </div>
-
-        <div class="mb-3">
-            <label class="form-label">Reference SubPath</label>
-            <InputText class="form-control" @bind-Value="model.ReferenceSubPath" />
-        </div>
-
         <div class="mt-3">
             <button type="submit" class="btn btn-primary me-2">Save</button>
+
+            @if (!IsNew)
+            {
+                <button type="button" class="btn btn-outline-primary me-2" @onclick="Preview">
+                    Preview
+                </button>
+
+                <button type="button" class="btn btn-outline-dark me-2" @onclick="Export">
+                    Export
+                </button>
+            }
 
             <button type="button" class="btn btn-secondary" @onclick="Cancel">
                 Cancel
@@ -170,8 +186,8 @@ else
         model.Steps.Add(new TutorialStep
         {
             DisplayOrder = model.Steps.Count + 1,
-            Heading = string.Empty,
-            MarkdownContent = string.Empty
+            Title = string.Empty,
+            InstructionMarkdown = string.Empty
         });
 
         NormalizeStepOrder();
@@ -249,6 +265,7 @@ else
 
         model.Title = model.Title?.Trim() ?? string.Empty;
         model.Summary = NormalizeOptional(model.Summary);
+        model.Technology = NormalizeOptional(model.Technology);
         model.IntroMarkdown = NormalizeOptional(model.IntroMarkdown);
         model.ConclusionMarkdown = NormalizeOptional(model.ConclusionMarkdown);
         model.RepoUrl = NormalizeOptional(model.RepoUrl);
@@ -257,8 +274,11 @@ else
 
         foreach (var step in model.Steps)
         {
-            step.Heading = step.Heading?.Trim() ?? string.Empty;
-            step.MarkdownContent = step.MarkdownContent?.Trim() ?? string.Empty;
+            step.Title = step.Title?.Trim() ?? string.Empty;
+            step.InstructionMarkdown = step.InstructionMarkdown?.Trim() ?? string.Empty;
+            step.ReferenceFileName = NormalizeOptional(step.ReferenceFileName);
+            step.ReferenceCode = NormalizeOptional(step.ReferenceCode);
+            step.GradingHints = NormalizeOptional(step.GradingHints);
         }
 
         if (IsNew)
@@ -281,6 +301,7 @@ else
                 .ExecuteUpdateAsync(setters => setters
                     .SetProperty(t => t.Title, model.Title)
                     .SetProperty(t => t.Summary, model.Summary)
+                    .SetProperty(t => t.Technology, model.Technology)
                     .SetProperty(t => t.IntroMarkdown, model.IntroMarkdown)
                     .SetProperty(t => t.ConclusionMarkdown, model.ConclusionMarkdown)
                     .SetProperty(t => t.RepoUrl, model.RepoUrl)
@@ -298,8 +319,11 @@ else
                 {
                     TutorialDefinitionId = model.Id,
                     DisplayOrder = step.DisplayOrder,
-                    Heading = step.Heading,
-                    MarkdownContent = step.MarkdownContent
+                    Title = step.Title,
+                    InstructionMarkdown = step.InstructionMarkdown,
+                    ReferenceFileName = step.ReferenceFileName,
+                    ReferenceCode = step.ReferenceCode,
+                    GradingHints = step.GradingHints
                 })
                 .ToList();
 
@@ -314,5 +338,26 @@ else
     private void Cancel()
     {
         Nav.NavigateTo("/tutorials");
+    }
+
+    private void Preview()
+    {
+        if (model == null)
+            return;
+
+        Nav.NavigateTo($"/tutorials/{model.Id}/preview");
+    }
+
+    private void Export()
+    {
+        if (model == null)
+            return;
+
+        Nav.NavigateTo($"/tutorials/{model.Id}/export");
+    }
+
+    private static bool IsGradableStep(TutorialStep step)
+    {
+        return !string.IsNullOrWhiteSpace(step.ReferenceCode);
     }
 }
