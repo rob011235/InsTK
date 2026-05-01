@@ -1,5 +1,10 @@
 # InsTK v1 Architecture and Design Spec (Revised)
 
+## Contributor Note
+
+Repository workflow notes for agents and contributors live in [AGENT.md](../AGENT.md).
+In particular, Entity Framework migration files should be treated as append-only history: do not edit old migrations directly; create a new migration for corrections.
+
 ## Overview
 
 InsTK v1 is designed to standardize how tutorials and programming assignments are authored and graded. The goal is to reduce ambiguity for AI-assisted grading by aligning authored content, grading expectations, and evaluation workflows.
