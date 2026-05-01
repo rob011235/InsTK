@@ -1,0 +1,252 @@
+@* Copyright (c) Robert Garner. All rights reserved. *@
+@page "/"
+@inject IClientSettingsService ClientSettingsService
+@inject IWorkspaceService WorkspaceService
+@inject IOllamaService OllamaService
+@inject IBackendSessionService BackendSessionService
+
+<PageTitle>InsTK Instructor Workstation</PageTitle>
+
+<h1>InsTK Instructor Workstation</h1>
+
+<p class="lead">Windows-first MAUI Blazor client for local grading workflows.</p>
+
+@if (isLoading)
+{
+    <p>Loading workstation configuration...</p>
+}
+else
+{
+    <div class="row g-4 mt-1">
+        <div class="col-12 col-xl-6">
+            <section class="card shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h2 class="h4 mb-0">Workstation Settings</h2>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="ResetToDefaultsAsync">Defaults</button>
+                    </div>
+
+                    <EditForm Model="settings" OnSubmit="SaveSettingsAsync">
+                        <div class="mb-3">
+                            <label class="form-label">Backend Base URL</label>
+                            <InputText class="form-control font-monospace" @bind-Value="settings.BackendBaseUrl" />
+                            <div class="form-text">Example: https://localhost:5001 or your hosted InsTK server URL.</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Ollama Base URL</label>
+                            <InputText class="form-control font-monospace" @bind-Value="settings.OllamaBaseUrl" />
+                            <div class="form-text">Default local endpoint: http://127.0.0.1:11434.</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Workspace Root</label>
+                            <InputText class="form-control font-monospace" @bind-Value="settings.WorkspaceRoot" />
+                            <div class="form-text">Local root folder for cloned repositories, runs, and grading reports.</div>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary" disabled="@isSaving">Save Settings</button>
+                            <button type="button" class="btn btn-outline-primary" @onclick="RefreshStatusAsync" disabled="@isRefreshing">Refresh Status</button>
+                        </div>
+                    </EditForm>
+
+                    @if (!string.IsNullOrWhiteSpace(saveMessage))
+                    {
+                        <div class="alert alert-success mt-3 mb-0" role="status">@saveMessage</div>
+                    }
+
+                    @if (!string.IsNullOrWhiteSpace(errorMessage))
+                    {
+                        <div class="alert alert-danger mt-3 mb-0" role="alert">@errorMessage</div>
+                    }
+                </div>
+            </section>
+        </div>
+
+        <div class="col-12 col-xl-6">
+            <section class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h2 class="h4">Current Status</h2>
+
+                    @if (workspace is not null)
+                    {
+                        <div class="status-panel mb-4">
+                            <div class="status-panel__header">
+                                <h3 class="h6 mb-0">Workspace</h3>
+                                <span class="badge @(workspace.Exists ? "text-bg-success" : "text-bg-secondary")">
+                                    @(workspace.Exists ? "Ready" : "Not Created")
+                                </span>
+                            </div>
+
+                            <dl class="status-list">
+                                <dt>Root</dt>
+                                <dd>@workspace.RootPath</dd>
+                                <dt>Repositories</dt>
+                                <dd>@workspace.RepositoriesPath</dd>
+                                <dt>Runs</dt>
+                                <dd>@workspace.GradingRunsPath</dd>
+                                <dt>Reports</dt>
+                                <dd>@workspace.ReportsPath</dd>
+                            </dl>
+                        </div>
+                    }
+
+                    @if (backendStatus is not null)
+                    {
+                        <div class="status-panel mb-4">
+                            <div class="status-panel__header">
+                                <h3 class="h6 mb-0">Backend Bootstrap</h3>
+                                <span class="badge @(backendStatus.IsReachable ? "text-bg-success" : "text-bg-warning")">
+                                    @(backendStatus.IsReachable ? "Reachable" : "Attention")
+                                </span>
+                            </div>
+
+                            <dl class="status-list">
+                                <dt>Base URL</dt>
+                                <dd>@DisplayOrPlaceholder(backendStatus.BaseUrl)</dd>
+                                <dt>Auth State</dt>
+                                <dd>@backendStatus.AuthenticationState</dd>
+                                <dt>Summary</dt>
+                                <dd>@backendStatus.Summary</dd>
+                                @if (!string.IsNullOrWhiteSpace(backendStatus.ErrorMessage))
+                                {
+                                    <dt>Error</dt>
+                                    <dd>@backendStatus.ErrorMessage</dd>
+                                }
+                            </dl>
+                        </div>
+                    }
+
+                    @if (ollamaStatus is not null)
+                    {
+                        <div class="status-panel">
+                            <div class="status-panel__header">
+                                <h3 class="h6 mb-0">Ollama</h3>
+                                <span class="badge @(ollamaStatus.IsReachable ? "text-bg-success" : "text-bg-warning")">
+                                    @(ollamaStatus.IsReachable ? "Reachable" : "Attention")
+                                </span>
+                            </div>
+
+                            <dl class="status-list">
+                                <dt>Base URL</dt>
+                                <dd>@DisplayOrPlaceholder(ollamaStatus.BaseUrl)</dd>
+                                <dt>Models</dt>
+                                <dd>@ollamaStatus.ModelCount</dd>
+                                <dt>Summary</dt>
+                                <dd>@ollamaStatus.Summary</dd>
+                                @if (!string.IsNullOrWhiteSpace(ollamaStatus.ErrorMessage))
+                                {
+                                    <dt>Error</dt>
+                                    <dd>@ollamaStatus.ErrorMessage</dd>
+                                }
+                            </dl>
+                        </div>
+                    }
+                </div>
+            </section>
+        </div>
+    </div>
+}
+
+@code {
+    private DesktopClientSettings settings = new();
+    private WorkspaceSnapshot? workspace;
+    private OllamaConnectionStatus? ollamaStatus;
+    private BackendConnectionStatus? backendStatus;
+    private bool isLoading = true;
+    private bool isSaving;
+    private bool isRefreshing;
+    private string? saveMessage;
+    private string? errorMessage;
+
+    /// <summary>
+    /// Loads persisted workstation settings and probes the local service state.
+    /// </summary>
+    /// <returns>A task that completes when the page state has been initialized.</returns>
+    protected override async Task OnInitializedAsync()
+    {
+        settings = await ClientSettingsService.GetAsync();
+        await RefreshStatusAsync();
+        isLoading = false;
+    }
+
+    /// <summary>
+    /// Saves the current workstation settings and refreshes dependent status checks.
+    /// </summary>
+    /// <returns>A task that completes when the settings have been saved.</returns>
+    private async Task SaveSettingsAsync()
+    {
+        isSaving = true;
+        saveMessage = null;
+        errorMessage = null;
+
+        try
+        {
+            await ClientSettingsService.SaveAsync(settings);
+            settings = await ClientSettingsService.GetAsync();
+            await RefreshStatusAsync();
+            saveMessage = "Settings saved and workstation status refreshed.";
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    /// <summary>
+    /// Resets the workstation settings to the default local values and saves them.
+    /// </summary>
+    /// <returns>A task that completes when the reset is finished.</returns>
+    private async Task ResetToDefaultsAsync()
+    {
+        settings = new DesktopClientSettings
+        {
+            WorkspaceRoot = Path.Combine(FileSystem.Current.AppDataDirectory, "Workspace")
+        };
+
+        saveMessage = null;
+        errorMessage = null;
+        await SaveSettingsAsync();
+    }
+
+    /// <summary>
+    /// Refreshes workspace, backend, and Ollama status information for the workstation.
+    /// </summary>
+    /// <returns>A task that completes when the refresh has finished.</returns>
+    private async Task RefreshStatusAsync()
+    {
+        isRefreshing = true;
+        saveMessage = null;
+        errorMessage = null;
+
+        try
+        {
+            workspace = await WorkspaceService.EnsureCreatedAsync();
+            backendStatus = await BackendSessionService.GetStatusAsync();
+            ollamaStatus = await OllamaService.GetStatusAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+        finally
+        {
+            isRefreshing = false;
+        }
+    }
+
+    /// <summary>
+    /// Returns a fallback label when a configuration value has not been supplied.
+    /// </summary>
+    /// <param name="value">The value to render.</param>
+    /// <returns>The supplied value or a placeholder string.</returns>
+    private static string DisplayOrPlaceholder(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value) ? "Not configured" : value;
+    }
+}
