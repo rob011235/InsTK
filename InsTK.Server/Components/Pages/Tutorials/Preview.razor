@@ -20,10 +20,7 @@ else
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h3 class="mb-1">@tutorial.Title</h3>
-            @if (!string.IsNullOrWhiteSpace(tutorial.Technology))
-            {
-                <p class="text-muted mb-0">@tutorial.Technology</p>
-            }
+            <p class="text-muted mb-0">Rendered from the same HTML that the WordPress export generates.</p>
         </div>
 
         <div>
@@ -32,52 +29,13 @@ else
         </div>
     </div>
 
-    @if (!string.IsNullOrWhiteSpace(tutorial.Summary))
-    {
-        <div class="mb-4">
-            <p class="lead mb-0">@tutorial.Summary</p>
+    <section class="wordpress-preview-shell">
+        <div class="wordpress-preview-surface">
+            <article class="wordpress-preview-content">
+                @((MarkupString)wordpressHtml)
+            </article>
         </div>
-    }
-
-    @if (!string.IsNullOrWhiteSpace(tutorial.IntroMarkdown))
-    {
-        <section class="card mb-4">
-            <div class="card-body">
-                <h4>Introduction</h4>
-                <div>@((MarkupString)TutorialContentFormatter.RenderMarkdown(tutorial.IntroMarkdown))</div>
-            </div>
-        </section>
-    }
-
-    @if (!tutorial.Steps.Any())
-    {
-        <p>No steps have been added yet.</p>
-    }
-    else
-    {
-        <div class="vstack gap-4">
-            @foreach (var step in tutorial.Steps.OrderBy(s => s.DisplayOrder))
-            {
-                <section class="card">
-                    <div class="card-body">
-                        <p class="text-muted text-uppercase small mb-2">Step @step.DisplayOrder</p>
-                        <h4>@step.Title</h4>
-                        <div>@((MarkupString)TutorialContentFormatter.RenderMarkdown(step.InstructionMarkdown))</div>
-                    </div>
-                </section>
-            }
-        </div>
-    }
-
-    @if (!string.IsNullOrWhiteSpace(tutorial.ConclusionMarkdown))
-    {
-        <section class="card mt-4">
-            <div class="card-body">
-                <h4>Conclusion</h4>
-                <div>@((MarkupString)TutorialContentFormatter.RenderMarkdown(tutorial.ConclusionMarkdown))</div>
-            </div>
-        </section>
-    }
+    </section>
 }
 
 @code {
@@ -85,6 +43,7 @@ else
     public Guid Id { get; set; }
 
     private TutorialDefinition? tutorial;
+    private string wordpressHtml = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
@@ -98,7 +57,10 @@ else
         if (tutorial == null)
         {
             Nav.NavigateTo("/tutorials");
+            return;
         }
+
+        wordpressHtml = TutorialContentFormatter.BuildWordPressHtml(tutorial);
     }
 
     private void BackToEdit()

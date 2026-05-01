@@ -8,11 +8,22 @@ using InsTK.Server.Data;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using System.IO;
 
 namespace InsTK.Server
 {
     public class Program
     {
+        private const long MaxMarkdownImageBytes = 2 * 1024 * 1024;
+
+        private static readonly HashSet<string> AllowedMarkdownImageExtensions = new(StringComparer.OrdinalIgnoreCase)
+        {
+            ".png",
+            ".jpg",
+            ".jpeg",
+            ".gif"
+        };
+
         public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
@@ -78,6 +89,41 @@ namespace InsTK.Server
 
             app.UseAntiforgery();
             app.UseStaticFiles();
+
+            app.MapPost("/tutorials/markdown-images", async (HttpRequest request, IWebHostEnvironment environment) =>
+                {
+                    var form = await request.ReadFormAsync();
+                    var image = form.Files["image"];
+
+                    if (image is null)
+                    {
+                        return Results.BadRequest(new { error = "Select an image to upload." });
+                    }
+
+                    var extension = Path.GetExtension(image.FileName ?? string.Empty);
+                    if (!AllowedMarkdownImageExtensions.Contains(extension))
+                    {
+                        return Results.BadRequest(new { error = "Only PNG, JPG, JPEG, and GIF images are allowed." });
+                    }
+
+                    if (image.Length > MaxMarkdownImageBytes)
+                    {
+                        return Results.BadRequest(new { error = "Image must be 2 MB or smaller." });
+                    }
+
+                    var uploadsRoot = Path.Combine(environment.WebRootPath, "uploads");
+                    Directory.CreateDirectory(uploadsRoot);
+
+                    var fileName = $"{Guid.NewGuid():N}{extension.ToLowerInvariant()}";
+                    var physicalPath = Path.Combine(uploadsRoot, fileName);
+
+                    await using var targetStream = File.Create(physicalPath);
+                    await using var sourceStream = image.OpenReadStream();
+                    await sourceStream.CopyToAsync(targetStream);
+
+                    return Results.Json(new { data = new { filePath = $"/uploads/{fileName}" } });
+                })
+                .DisableAntiforgery();
 
             app.MapStaticAssets();
             app.MapRazorComponents<App>()

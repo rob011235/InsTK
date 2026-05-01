@@ -36,14 +36,12 @@ else
             <InputText class="form-control" @bind-Value="model.Technology" />
         </div>
 
-        <div class="mb-4">
-            <label class="form-label">Introduction Markdown</label>
-            <div class="tutorial-markdown-editor">
-                <Markdown @bind-Value="model.IntroMarkdown"
-                          MinHeight="220px"
-                          Placeholder="Add an introduction, setup notes, or learning goals." />
-            </div>
-        </div>
+        <TutorialMarkdownEditor Label="Introduction Markdown"
+                                Value="@model.IntroMarkdown"
+                                ValueChanged="OnIntroMarkdownChanged"
+                                MinHeight="220px"
+                                Placeholder="Add an introduction, setup notes, or learning goals."
+                                EmptyPreviewMessage="Introduction preview will appear as you write markdown." />
 
         <hr />
 
@@ -86,7 +84,12 @@ else
                             <InputText class="form-control" @bind-Value="step.Title" />
                         </div>
 
-                        <TutorialStepMarkdownEditor Step="step" />
+                        <TutorialMarkdownEditor Label="Instruction Markdown"
+                                                Value="@step.InstructionMarkdown"
+                                                ValueChanged="value => OnStepMarkdownChanged(step, value)"
+                                                MinHeight="250px"
+                                                Placeholder="Write the student-facing markdown for this step."
+                                                EmptyPreviewMessage="Step preview will appear as you write markdown." />
 
                     </div>
                 </div>
@@ -97,13 +100,13 @@ else
             Add Step
         </button>
 
-        <div class="mt-4 mb-3">
-            <label class="form-label">Conclusion Markdown</label>
-            <div class="tutorial-markdown-editor">
-                <Markdown @bind-Value="model.ConclusionMarkdown"
-                          MinHeight="220px"
-                          Placeholder="Add wrap-up notes, next steps, or recap content." />
-            </div>
+        <div class="mt-4">
+            <TutorialMarkdownEditor Label="Conclusion Markdown"
+                                    Value="@model.ConclusionMarkdown"
+                                    ValueChanged="OnConclusionMarkdownChanged"
+                                    MinHeight="220px"
+                                    Placeholder="Add wrap-up notes, next steps, or recap content."
+                                    EmptyPreviewMessage="Conclusion preview will appear as you write markdown." />
         </div>
 
         <hr />
@@ -295,6 +298,32 @@ else
     private static string? NormalizeOptional(string? value)
     {
         return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+    }
+
+    private Task OnIntroMarkdownChanged(string value)
+    {
+        if (model != null)
+        {
+            model.IntroMarkdown = value;
+        }
+
+        return Task.CompletedTask;
+    }
+
+    private Task OnConclusionMarkdownChanged(string value)
+    {
+        if (model != null)
+        {
+            model.ConclusionMarkdown = value;
+        }
+
+        return Task.CompletedTask;
+    }
+
+    private Task OnStepMarkdownChanged(TutorialStep step, string value)
+    {
+        step.InstructionMarkdown = value;
+        return Task.CompletedTask;
     }
 
     private async Task Save()
