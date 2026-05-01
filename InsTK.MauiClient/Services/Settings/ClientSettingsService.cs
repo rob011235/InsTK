@@ -95,6 +95,8 @@ public sealed class ClientSettingsService : IClientSettingsService
         return new DesktopClientSettings
         {
             WorkspaceRoot = GetDefaultWorkspaceRoot(),
+            BrightspaceStatePath = GetDefaultBrightspaceStatePath(),
+            BrightspaceSubmissionMapOutPath = GetDefaultBrightspaceSubmissionMapOutPath(),
             ManagedOllamaRoot = GetDefaultManagedOllamaRoot(),
             OllamaModelsRoot = GetDefaultOllamaModelsRoot()
         };
@@ -111,6 +113,10 @@ public sealed class ClientSettingsService : IClientSettingsService
         {
             BackendBaseUrl = settings.BackendBaseUrl,
             OllamaBaseUrl = settings.OllamaBaseUrl,
+            BrightspaceBrowserChannel = settings.BrightspaceBrowserChannel,
+            BrightspaceQuickEvalUrl = settings.BrightspaceQuickEvalUrl,
+            BrightspaceStatePath = settings.BrightspaceStatePath,
+            BrightspaceSubmissionMapOutPath = settings.BrightspaceSubmissionMapOutPath,
             WorkspaceRoot = settings.WorkspaceRoot,
             RequiredOllamaVersion = settings.RequiredOllamaVersion,
             RequiredOllamaWindowsZipSha256 = settings.RequiredOllamaWindowsZipSha256,
@@ -130,6 +136,10 @@ public sealed class ClientSettingsService : IClientSettingsService
         settings.BackendBaseUrl = NormalizeOptionalUrl(settings.BackendBaseUrl);
         settings.BackendBaseUrl = NormalizeLegacyBackendBaseUrl(settings.BackendBaseUrl);
         settings.OllamaBaseUrl = NormalizeRequiredUrl(settings.OllamaBaseUrl, "http://127.0.0.1:11434");
+        settings.BrightspaceBrowserChannel = NormalizeRequiredValue(settings.BrightspaceBrowserChannel, "msedge");
+        settings.BrightspaceQuickEvalUrl = NormalizeOptionalUrl(settings.BrightspaceQuickEvalUrl);
+        settings.BrightspaceStatePath = NormalizeRequiredPath(settings.BrightspaceStatePath, GetDefaultBrightspaceStatePath());
+        settings.BrightspaceSubmissionMapOutPath = NormalizeRequiredPath(settings.BrightspaceSubmissionMapOutPath, GetDefaultBrightspaceSubmissionMapOutPath());
         settings.WorkspaceRoot = string.IsNullOrWhiteSpace(settings.WorkspaceRoot)
             ? GetDefaultWorkspaceRoot()
             : Path.GetFullPath(Environment.ExpandEnvironmentVariables(settings.WorkspaceRoot.Trim()));
@@ -233,6 +243,24 @@ public sealed class ClientSettingsService : IClientSettingsService
     private static string GetDefaultManagedOllamaRoot()
     {
         return Path.Combine(FileSystem.Current.AppDataDirectory, "Dependencies", "Ollama");
+    }
+
+    /// <summary>
+    /// Gets the default local path for saved Brightspace browser session state.
+    /// </summary>
+    /// <returns>The default session-state file path.</returns>
+    private static string GetDefaultBrightspaceStatePath()
+    {
+        return Path.Combine(FileSystem.Current.AppDataDirectory, "Brightspace", "session.json");
+    }
+
+    /// <summary>
+    /// Gets the default local path for Brightspace submission-map output.
+    /// </summary>
+    /// <returns>The default submission-map file path.</returns>
+    private static string GetDefaultBrightspaceSubmissionMapOutPath()
+    {
+        return Path.Combine(GetDefaultWorkspaceRoot(), "Brightspace", "submission-map.json");
     }
 
     /// <summary>

@@ -1,0 +1,388 @@
+@* Copyright (c) Robert Garner. All rights reserved. *@
+@page "/brightspace"
+@inject IClientSettingsService ClientSettingsService
+@inject IBrightspaceAutomationService BrightspaceAutomationService
+@implements IDisposable
+
+<PageTitle>Brightspace</PageTitle>
+
+<div class="brightspace-page">
+    <section class="brightspace-hero">
+        <p class="brightspace-eyebrow">Local LMS automation</p>
+        <h1>Brightspace</h1>
+        <p class="brightspace-description">Use the local workstation to log into Brightspace, save a browser session, and scrape the Quick Eval queue without routing student submission data through the server.</p>
+    </section>
+
+    <section class="brightspace-panel">
+        <div class="brightspace-meta">
+            <span class="brightspace-chip">Browser: @settings.BrightspaceBrowserChannel</span>
+            <span class="brightspace-chip">Quick Eval: @DisplayOrPlaceholder(settings.BrightspaceQuickEvalUrl)</span>
+        </div>
+
+        <div class="brightspace-status @GetStatusClass()">
+            <div class="brightspace-status__header">
+                <strong>@GetStatusTitle()</strong>
+                <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="RefreshSettingsAsync" disabled="@isBusy">
+                    Refresh Settings
+                </button>
+            </div>
+            <div>@GetStatusSummary()</div>
+            @if (!string.IsNullOrWhiteSpace(errorMessage))
+            {
+                <div class="brightspace-status__detail">@errorMessage</div>
+            }
+        </div>
+
+        <dl class="status-list">
+            <dt>Session State</dt>
+            <dd>@settings.BrightspaceStatePath</dd>
+            <dt>Submission Map</dt>
+            <dd>@settings.BrightspaceSubmissionMapOutPath</dd>
+        </dl>
+
+        <div class="row g-3 mt-1">
+            <div class="col-12 col-lg-8">
+                <label class="form-label" for="brightspace-quickeval-url">Quick Eval URL</label>
+                <input id="brightspace-quickeval-url" class="form-control font-monospace" @bind="settings.BrightspaceQuickEvalUrl" @bind:event="oninput" />
+                <div class="form-text">Paste the Brightspace Quick Eval URL here, then save before opening the login flow.</div>
+                <div class="form-text">Current value: @DisplayOrPlaceholder(settings.BrightspaceQuickEvalUrl)</div>
+            </div>
+
+            <div class="col-12 col-md-4">
+                <label class="form-label" for="brightspace-browser-channel">Browser Channel</label>
+                <input id="brightspace-browser-channel" class="form-control font-monospace" @bind="settings.BrightspaceBrowserChannel" @bind:event="oninput" />
+                <div class="form-text">Usually `msedge` on Windows.</div>
+            </div>
+
+            <div class="col-12 col-md-4">
+                <label class="form-label" for="brightspace-limit">Submission Limit</label>
+                <InputNumber id="brightspace-limit" class="form-control" @bind-Value="submissionLimit" />
+                <div class="form-text">Leave blank to scrape every visible Quick Eval submission.</div>
+            </div>
+        </div>
+
+        <div class="d-flex gap-2 mt-3 flex-wrap">
+            <button type="button" class="btn btn-primary" @onclick="@(async () => await SaveBrightspaceSettingsAsync())" disabled="@isBusy">
+                @(isBusy && currentOperation == "save-settings" ? "Saving..." : "Save Brightspace Settings")
+            </button>
+            <button type="button" class="btn btn-outline-primary" @onclick="@(async () => await OpenLoginAsync())" disabled="@isBusy">
+                @(isBusy && currentOperation == "login" ? "Opening..." : "Open Brightspace Login")
+            </button>
+            <button type="button" class="btn btn-outline-primary" @onclick="@(async () => await SaveSessionAsync())" disabled="@isBusy">
+                @(isBusy && currentOperation == "save-session" ? "Saving..." : "Save Session")
+            </button>
+            <button type="button" class="btn btn-outline-secondary" @onclick="@(async () => await LoadSubmissionMapAsync())" disabled="@isBusy">
+                @(isBusy && currentOperation == "scrape" ? "Loading..." : "Load Submission List")
+            </button>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(successMessage))
+        {
+            <div class="alert alert-success mt-3 mb-0" role="status">
+                <div>@successMessage</div>
+                @if (!string.IsNullOrWhiteSpace(lastSavedQuickEvalUrl))
+                {
+                    <div class="mt-1"><strong>Saved Quick Eval URL:</strong> @lastSavedQuickEvalUrl</div>
+                }
+            </div>
+        }
+    </section>
+
+    <section class="brightspace-panel">
+        <div class="d-flex justify-content-between align-items-center gap-3">
+            <h2 class="h4 mb-0">Submission List</h2>
+            @if (submissionMapResult is not null)
+            {
+                <span class="brightspace-chip">@submissionMapResult.ProcessedSubmissionCount item(s)</span>
+            }
+        </div>
+
+        @if (submissionMapResult is null)
+        {
+            <div class="brightspace-empty-state">No Brightspace submission list loaded yet.</div>
+        }
+        else if (submissionMapResult.Submissions.Count == 0)
+        {
+            <div class="brightspace-empty-state">The scrape completed, but no submissions were returned from Quick Eval.</div>
+        }
+        else
+        {
+            <div class="brightspace-results">
+                @foreach (var submission in submissionMapResult.Submissions)
+                {
+                    <article class="brightspace-entry">
+                        <header class="brightspace-entry__header">
+                            <div>
+                                <h3 class="h6 mb-1">@submission.Student</h3>
+                                <div class="text-body-secondary">@submission.ActivityName</div>
+                            </div>
+                            <span class="brightspace-entry__type">@submission.ActivityType</span>
+                        </header>
+                        <dl class="status-list">
+                            <dt>Submitted</dt>
+                            <dd>@DisplayOrPlaceholder(submission.SubmittedAt)</dd>
+                            <dt>Repo</dt>
+                            <dd>@DisplayOrPlaceholder(submission.RepoUrl)</dd>
+                            <dt>Branch</dt>
+                            <dd>@DisplayOrPlaceholder(submission.BranchHint)</dd>
+                            <dt>Status</dt>
+                            <dd>@(string.IsNullOrWhiteSpace(submission.Error) ? "Ready" : submission.Error)</dd>
+                        </dl>
+                    </article>
+                }
+            </div>
+        }
+    </section>
+
+    <section class="brightspace-panel">
+        <div class="d-flex justify-content-between align-items-center gap-3">
+            <h2 class="h4 mb-0">Activity Log</h2>
+            @if (activityLog.Count > 0)
+            {
+                <button type="button" class="btn btn-sm btn-outline-danger" @onclick="ClearLog" disabled="@isBusy">Clear Log</button>
+            }
+        </div>
+
+        @if (activityLog.Count == 0)
+        {
+            <div class="brightspace-empty-state">No Brightspace activity yet.</div>
+        }
+        else
+        {
+            <ul class="runtime-log__list mt-3">
+                @foreach (var entry in activityLog)
+                {
+                    <li class="runtime-log__entry @(entry.IsError ? "runtime-log__entry--error" : string.Empty)">@entry.Message</li>
+                }
+            </ul>
+        }
+    </section>
+</div>
+
+@code {
+    private readonly List<BrightspaceActivityEventArgs> activityLog = [];
+    private DesktopClientSettings settings = new();
+    private BrightspaceSubmissionMapResult? submissionMapResult;
+    private bool isBusy;
+    private int? submissionLimit;
+    private string? errorMessage;
+    private string? successMessage;
+    private string? lastSavedQuickEvalUrl;
+    private string? currentOperation;
+
+    private bool isConfigured => !string.IsNullOrWhiteSpace(settings.BrightspaceQuickEvalUrl);
+    private bool canScrape => isConfigured && File.Exists(settings.BrightspaceStatePath);
+
+    protected override async Task OnInitializedAsync()
+    {
+        BrightspaceAutomationService.ActivityReported += HandleActivityReported;
+        await RefreshSettingsAsync();
+    }
+
+    private async Task RefreshSettingsAsync()
+    {
+        settings = await ClientSettingsService.GetAsync();
+        errorMessage = null;
+        successMessage = null;
+        lastSavedQuickEvalUrl = settings.BrightspaceQuickEvalUrl;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task SaveBrightspaceSettingsAsync()
+    {
+        isBusy = true;
+        currentOperation = "save-settings";
+        errorMessage = null;
+        successMessage = null;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            await ClientSettingsService.SaveAsync(settings);
+            settings = await ClientSettingsService.GetAsync();
+            successMessage = "Brightspace settings saved. Next step: click 'Open Brightspace Login'.";
+            lastSavedQuickEvalUrl = settings.BrightspaceQuickEvalUrl;
+            activityLog.Insert(0, new BrightspaceActivityEventArgs("Saved Brightspace settings."));
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+        finally
+        {
+            isBusy = false;
+            currentOperation = null;
+        }
+    }
+
+    private async Task OpenLoginAsync()
+    {
+        if (!isConfigured)
+        {
+            errorMessage = "Set and save the Brightspace Quick Eval URL first.";
+            return;
+        }
+
+        activityLog.Insert(0, new BrightspaceActivityEventArgs("Starting Brightspace login flow..."));
+        await RunBusyOperationAsync("login", BrightspaceAutomationService.StartLoginAsync);
+    }
+
+    private async Task SaveSessionAsync()
+    {
+        if (!BrightspaceAutomationService.IsLoginInProgress)
+        {
+            errorMessage = "No Brightspace login browser is currently open. Click 'Open Brightspace Login' first.";
+            return;
+        }
+
+        await RunBusyOperationAsync("save-session", BrightspaceAutomationService.SaveLoginSessionAsync);
+        await RefreshSettingsAsync();
+    }
+
+    private async Task LoadSubmissionMapAsync()
+    {
+        if (!isConfigured)
+        {
+            errorMessage = "Set and save the Brightspace Quick Eval URL first.";
+            return;
+        }
+
+        if (!canScrape)
+        {
+            errorMessage = "No saved Brightspace session was found yet. Open the login flow and save the session first.";
+            return;
+        }
+
+        isBusy = true;
+        currentOperation = "scrape";
+        errorMessage = null;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            submissionMapResult = await BrightspaceAutomationService.ScrapeSubmissionMapAsync(submissionLimit);
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+        finally
+        {
+            isBusy = false;
+            currentOperation = null;
+        }
+    }
+
+    private async Task RunBusyOperationAsync(string operation, Func<CancellationToken, Task> action)
+    {
+        isBusy = true;
+        currentOperation = operation;
+        errorMessage = null;
+        successMessage = null;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            await action(CancellationToken.None);
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+        finally
+        {
+            isBusy = false;
+            currentOperation = null;
+        }
+    }
+
+    private void HandleActivityReported(object? sender, BrightspaceActivityEventArgs eventArgs)
+    {
+        _ = InvokeAsync(() =>
+        {
+            activityLog.Insert(0, eventArgs);
+
+            if (activityLog.Count > 40)
+            {
+                activityLog.RemoveAt(activityLog.Count - 1);
+            }
+
+            StateHasChanged();
+        });
+    }
+
+    private void ClearLog()
+    {
+        activityLog.Clear();
+        errorMessage = null;
+        successMessage = null;
+    }
+
+    private string GetStatusClass()
+    {
+        if (!isConfigured)
+        {
+            return "brightspace-status--warning";
+        }
+
+        if (BrightspaceAutomationService.IsLoginInProgress)
+        {
+            return "brightspace-status--info";
+        }
+
+        if (!canScrape)
+        {
+            return "brightspace-status--warning";
+        }
+
+        return "brightspace-status--success";
+    }
+
+    private string GetStatusTitle()
+    {
+        if (!isConfigured)
+        {
+            return "Brightspace is not configured";
+        }
+
+        if (BrightspaceAutomationService.IsLoginInProgress)
+        {
+            return "Brightspace login is in progress";
+        }
+
+        if (!canScrape)
+        {
+            return "Brightspace session is missing";
+        }
+
+        return "Brightspace is ready";
+    }
+
+    private string GetStatusSummary()
+    {
+        if (!isConfigured)
+        {
+            return "Set the Brightspace Quick Eval URL in Settings before using this page.";
+        }
+
+        if (BrightspaceAutomationService.IsLoginInProgress)
+        {
+            return "Complete the manual sign-in flow in the opened browser, then save the session back to the workstation.";
+        }
+
+        if (!canScrape)
+        {
+            return "No saved Brightspace session was found yet. Open the login flow and save it once before scraping submissions.";
+        }
+
+        return "Quick Eval scraping can run locally with the saved workstation browser session.";
+    }
+
+    private static string DisplayOrPlaceholder(string? value)
+        => string.IsNullOrWhiteSpace(value) ? "Not available" : value;
+
+    public void Dispose()
+    {
+        BrightspaceAutomationService.ActivityReported -= HandleActivityReported;
+    }
+}

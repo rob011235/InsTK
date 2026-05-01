@@ -1,4 +1,5 @@
 using InsTK.MauiClient.Services.Backend;
+using InsTK.MauiClient.Services.Brightspace;
 using InsTK.MauiClient.Services.Ollama;
 using InsTK.MauiClient.Services.Settings;
 using InsTK.MauiClient.Services.Workstation;
@@ -35,6 +36,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<IOllamaPromptService, OllamaPromptService>();
         builder.Services.AddSingleton<IOllamaRuntimeService, OllamaRuntimeService>();
         builder.Services.AddSingleton<IBackendSessionService, BackendSessionService>();
+        builder.Services.AddSingleton<IBrightspaceAutomationService, BrightspaceAutomationService>();
 
 #if DEBUG
         builder.Services.AddBlazorWebViewDeveloperTools();

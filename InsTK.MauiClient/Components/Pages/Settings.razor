@@ -13,7 +13,7 @@
 
 <h1>Settings</h1>
 
-<p class="lead">Configure backend connectivity, managed Ollama runtime behavior, and workstation model policy.</p>
+<p class="lead">Configure backend connectivity, local Brightspace automation, managed Ollama runtime behavior, and workstation model policy.</p>
 
 @if (isLoading)
 {
@@ -47,6 +47,37 @@ else
                             <label class="form-label">Workspace Root</label>
                             <InputText class="form-control font-monospace" @bind-Value="settings.WorkspaceRoot" />
                             <div class="form-text">Local root folder for cloned repositories, runs, and grading reports.</div>
+                        </div>
+
+                        <div class="settings-section">
+                            <div class="settings-section__header">
+                                <h3 class="h5 mb-1">Brightspace</h3>
+                                <p class="mb-0 text-body-secondary">Local browser automation settings used to log into Brightspace and scrape the Quick Eval queue on this workstation.</p>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Brightspace Browser Channel</label>
+                                <InputText class="form-control font-monospace" @bind-Value="settings.BrightspaceBrowserChannel" />
+                                <div class="form-text">Use `msedge` on Windows unless you specifically want `chrome`.</div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Brightspace Quick Eval URL</label>
+                                <InputText class="form-control font-monospace" @bind-Value="settings.BrightspaceQuickEvalUrl" />
+                                <div class="form-text">The Quick Eval page for the target Brightspace course.</div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Brightspace Session State Path</label>
+                                <InputText class="form-control font-monospace" @bind-Value="settings.BrightspaceStatePath" />
+                                <div class="form-text">Local file used to store the saved Playwright browser session after manual Brightspace login.</div>
+                            </div>
+
+                            <div class="mb-0">
+                                <label class="form-label">Brightspace Submission Map Path</label>
+                                <InputText class="form-control font-monospace" @bind-Value="settings.BrightspaceSubmissionMapOutPath" />
+                                <div class="form-text">Local JSON output path for merged Quick Eval and submission-detail scrape results.</div>
+                            </div>
                         </div>
 
                         <div class="mb-3">

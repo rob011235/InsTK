@@ -18,6 +18,26 @@ public sealed class DesktopClientSettings
     public string OllamaBaseUrl { get; set; } = "http://127.0.0.1:11434";
 
     /// <summary>
+    /// Gets or sets the browser channel to use for local Brightspace automation.
+    /// </summary>
+    public string BrightspaceBrowserChannel { get; set; } = "msedge";
+
+    /// <summary>
+    /// Gets or sets the Brightspace Quick Eval URL used to enumerate submissions.
+    /// </summary>
+    public string? BrightspaceQuickEvalUrl { get; set; }
+
+    /// <summary>
+    /// Gets or sets the local session-state file used for saved Brightspace sign-in state.
+    /// </summary>
+    public string BrightspaceStatePath { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Gets or sets the local JSON output path for merged Brightspace submission-map results.
+    /// </summary>
+    public string BrightspaceSubmissionMapOutPath { get; set; } = string.Empty;
+
+    /// <summary>
     /// Gets or sets the local root path used for grading workspaces and reports.
     /// </summary>
     public string WorkspaceRoot { get; set; } = string.Empty;
