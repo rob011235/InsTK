@@ -240,7 +240,7 @@ else
 
                                     <div class="mb-3">
                                         <label class="form-label">Primary Ollama Model</label>
-                                        <InputSelect class="form-select font-monospace" @bind-Value="settings.PrimaryOllamaModel">
+                                        <InputSelect class="form-select font-monospace" @bind-Value="settings.PrimaryOllamaModel" @bind-Value:after="PersistSelectedModelsAsync">
                                             @foreach (var model in selectableModels)
                                             {
                                                 <option value="@model.Name">@GetModelOptionLabel(model, checkPrimaryRecommendation: true, checkFallbackRecommendation: false)</option>
@@ -251,7 +251,7 @@ else
 
                                     <div class="mb-3">
                                         <label class="form-label">Secondary Ollama Model</label>
-                                        <InputSelect class="form-select font-monospace" @bind-Value="settings.FallbackOllamaModel">
+                                        <InputSelect class="form-select font-monospace" @bind-Value="settings.FallbackOllamaModel" @bind-Value:after="PersistSelectedModelsAsync">
                                             @foreach (var model in selectableModels)
                                             {
                                                 <option value="@model.Name">@GetModelOptionLabel(model, checkPrimaryRecommendation: false, checkFallbackRecommendation: true)</option>
@@ -499,6 +499,33 @@ else
             settings = await ClientSettingsService.GetAsync();
             await RefreshStatusAsync();
             await DownloadRequiredModelsAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private async Task PersistSelectedModelsAsync()
+    {
+        if (isSaving || isRuntimeBusy)
+        {
+            return;
+        }
+
+        isSaving = true;
+        saveMessage = null;
+        errorMessage = null;
+
+        try
+        {
+            await ClientSettingsService.SaveAsync(settings);
+            settings = await ClientSettingsService.GetAsync();
+            await RefreshStatusAsync();
         }
         catch (Exception ex)
         {

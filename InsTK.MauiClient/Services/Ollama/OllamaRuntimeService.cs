@@ -138,8 +138,8 @@ public sealed partial class OllamaRuntimeService(
                 null);
         }
 
-        var hasPrimaryModel = connectionStatus.ModelNames.Contains(settings.PrimaryOllamaModel, StringComparer.OrdinalIgnoreCase);
-        var hasFallbackModel = connectionStatus.ModelNames.Contains(settings.FallbackOllamaModel, StringComparer.OrdinalIgnoreCase);
+        var hasPrimaryModel = ContainsModel(connectionStatus.ModelNames, settings.PrimaryOllamaModel);
+        var hasFallbackModel = ContainsModel(connectionStatus.ModelNames, settings.FallbackOllamaModel);
 
         if (!hasPrimaryModel || !hasFallbackModel)
         {
@@ -674,6 +674,49 @@ public sealed partial class OllamaRuntimeService(
     private static string BuildModelPullCollapseKey(string model)
     {
         return $"pull:{model.Trim()}";
+    }
+
+    /// <summary>
+    /// Determines whether the installed model list contains the requested model after normalizing Ollama tag conventions.
+    /// </summary>
+    /// <param name="installedModels">The installed model names reported by Ollama.</param>
+    /// <param name="requestedModel">The configured model name to check.</param>
+    /// <returns><see langword="true"/> when a matching installed model exists.</returns>
+    private static bool ContainsModel(IEnumerable<string> installedModels, string requestedModel)
+    {
+        var normalizedRequestedModel = NormalizeModelName(requestedModel);
+
+        if (string.IsNullOrWhiteSpace(normalizedRequestedModel))
+        {
+            return false;
+        }
+
+        return installedModels.Any(installedModel =>
+            string.Equals(NormalizeModelName(installedModel), normalizedRequestedModel, StringComparison.OrdinalIgnoreCase));
+    }
+
+    /// <summary>
+    /// Normalizes an Ollama model name so equivalent identifiers compare consistently.
+    /// </summary>
+    /// <param name="model">The raw model identifier.</param>
+    /// <returns>The normalized identifier.</returns>
+    private static string NormalizeModelName(string? model)
+    {
+        if (string.IsNullOrWhiteSpace(model))
+        {
+            return string.Empty;
+        }
+
+        var normalized = model.Trim().ToLowerInvariant();
+        var slashIndex = normalized.LastIndexOf('/');
+        var colonIndex = normalized.LastIndexOf(':');
+
+        if (colonIndex <= slashIndex)
+        {
+            normalized = $"{normalized}:latest";
+        }
+
+        return normalized;
     }
 
     private async Task<OllamaRuntimeOperationResult> EnsureModelCoreAsync(
