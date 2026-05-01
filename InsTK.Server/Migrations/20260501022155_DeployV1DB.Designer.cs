@@ -9,11 +9,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
 
-namespace InsTK.Server.Data.Migrations
+namespace InsTK.Server.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260422205519_AddTutorialModels")]
-    partial class AddTutorialModels
+    [Migration("20260501022155_DeployV1DB")]
+    partial class DeployV1DB
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -90,37 +90,6 @@ namespace InsTK.Server.Data.Migrations
                     b.ToTable("AspNetUsers", (string)null);
                 });
 
-            modelBuilder.Entity("InsTK.Shared.Models.Tutorials.EvidenceHint", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Notes")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<Guid>("TutorialStepId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Type")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<string>("Value")
-                        .IsRequired()
-                        .HasMaxLength(300)
-                        .HasColumnType("nvarchar(300)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("TutorialStepId");
-
-                    b.ToTable("EvidenceHints");
-                });
-
             modelBuilder.Entity("InsTK.Shared.Models.Tutorials.TutorialDefinition", b =>
                 {
                     b.Property<Guid>("Id")
@@ -137,7 +106,16 @@ namespace InsTK.Server.Data.Migrations
                     b.Property<DateTime>("CreatedUtc")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("GradingHints")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("IntroMarkdown")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ReferenceCode")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ReferenceFileNames")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("ReferenceSubPath")
@@ -151,6 +129,10 @@ namespace InsTK.Server.Data.Migrations
                     b.Property<string>("Summary")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Technology")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -174,14 +156,14 @@ namespace InsTK.Server.Data.Migrations
                     b.Property<int>("DisplayOrder")
                         .HasColumnType("int");
 
-                    b.Property<string>("Heading")
+                    b.Property<string>("InstructionMarkdown")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
-
-                    b.Property<string>("MarkdownContent")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<Guid>("TutorialDefinitionId")
                         .HasColumnType("uniqueidentifier");
@@ -326,17 +308,6 @@ namespace InsTK.Server.Data.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
-            modelBuilder.Entity("InsTK.Shared.Models.Tutorials.EvidenceHint", b =>
-                {
-                    b.HasOne("InsTK.Shared.Models.Tutorials.TutorialStep", "TutorialStep")
-                        .WithMany("EvidenceHints")
-                        .HasForeignKey("TutorialStepId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("TutorialStep");
-                });
-
             modelBuilder.Entity("InsTK.Shared.Models.Tutorials.TutorialStep", b =>
                 {
                     b.HasOne("InsTK.Shared.Models.Tutorials.TutorialDefinition", "TutorialDefinition")
@@ -402,11 +373,6 @@ namespace InsTK.Server.Data.Migrations
             modelBuilder.Entity("InsTK.Shared.Models.Tutorials.TutorialDefinition", b =>
                 {
                     b.Navigation("Steps");
-                });
-
-            modelBuilder.Entity("InsTK.Shared.Models.Tutorials.TutorialStep", b =>
-                {
-                    b.Navigation("EvidenceHints");
                 });
 #pragma warning restore 612, 618
         }

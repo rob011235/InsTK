@@ -39,7 +39,7 @@ else
                     <td>@t.Title</td>
                     <td>@(t.Technology ?? "-")</td>
                     <td>@t.Steps.Count</td>
-                    <td>@t.Steps.Count(IsGradableStep)</td>
+                    <td>@(IsGradableTutorial(t) ? "Yes" : "No")</td>
                     <td>@FormatDate(t.UpdatedUtc ?? t.CreatedUtc)</td>
                     <td>
                         <button class="btn btn-sm btn-secondary me-2" @onclick="() => Edit(t.Id)">
@@ -122,8 +122,8 @@ else
         return date.ToLocalTime().ToString("yyyy-MM-dd HH:mm");
     }
 
-    private static bool IsGradableStep(TutorialStep step)
+    private static bool IsGradableTutorial(TutorialDefinition tutorial)
     {
-        return !string.IsNullOrWhiteSpace(step.ReferenceCode);
+        return !string.IsNullOrWhiteSpace(tutorial.ReferenceCode);
     }
 }

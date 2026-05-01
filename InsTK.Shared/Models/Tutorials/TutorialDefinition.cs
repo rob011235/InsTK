@@ -30,6 +30,12 @@ namespace InsTK.Shared.Models.Tutorials
         [StringLength(300)]
         public string? ReferenceSubPath { get; set; }
 
+        public string? ReferenceFileNames { get; set; }
+
+        public string? ReferenceCode { get; set; }
+
+        public string? GradingHints { get; set; }
+
         public DateTime CreatedUtc { get; set; } = DateTime.UtcNow;
         public DateTime? UpdatedUtc { get; set; }
 

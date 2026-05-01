@@ -88,34 +88,6 @@ else
 
                         <TutorialStepMarkdownEditor Step="step" />
 
-                        <div class="row g-3">
-                            <div class="col-md-6">
-                                <label class="form-label">Reference File Name</label>
-                                <InputText class="form-control font-monospace" @bind-Value="step.ReferenceFileName" />
-                                <div class="form-text">
-                                    Leave blank for instruction-only steps.
-                                </div>
-                            </div>
-
-                            <div class="col-md-6">
-                                <label class="form-label">Grading Hints</label>
-                                <InputTextArea class="form-control" style="min-height: 100px;"
-                                               @bind-Value="step.GradingHints" />
-                            </div>
-                        </div>
-
-                        <div class="mb-3 mt-3">
-                            <label class="form-label">Reference Code</label>
-                            <InputTextArea class="form-control font-monospace" style="min-height: 220px;"
-                                           @bind-Value="step.ReferenceCode" />
-                            <div class="form-text">
-                                A step is considered gradable only when reference code has content.
-                            </div>
-                        </div>
-
-                        <div class="alert alert-light border small mb-0">
-                            Status: @(IsGradableStep(step) ? "Gradable step" : "Instruction-only step")
-                        </div>
                     </div>
                 </div>
             }
@@ -132,6 +104,63 @@ else
                           MinHeight="220px"
                           Placeholder="Add wrap-up notes, next steps, or recap content." />
             </div>
+        </div>
+
+        <hr />
+
+        <div class="mb-3">
+            <h4>Instructor Reference</h4>
+            <p class="text-muted mb-0">
+                Identify the final repository evidence for the tutorial as a whole. This can represent the combined outcome of multiple steps.
+            </p>
+        </div>
+
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label class="form-label">Repository URL</label>
+                <InputText class="form-control font-monospace" @bind-Value="model.RepoUrl" />
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Branch Name</label>
+                <InputText class="form-control font-monospace" @bind-Value="model.BranchName" />
+            </div>
+
+            <div class="col-12">
+                <label class="form-label">Reference Subpath</label>
+                <InputText class="form-control font-monospace" @bind-Value="model.ReferenceSubPath" />
+                <div class="form-text">
+                    Optional repo subdirectory that contains the final tutorial result.
+                </div>
+            </div>
+
+            <div class="col-12">
+                <label class="form-label">Reference File Names</label>
+                <InputTextArea class="form-control font-monospace" style="min-height: 120px;"
+                               @bind-Value="model.ReferenceFileNames" />
+                <div class="form-text">
+                    List the repo files that demonstrate the final tutorial result. One file per line works well.
+                </div>
+            </div>
+
+            <div class="col-12">
+                <label class="form-label">Grading Hints</label>
+                <InputTextArea class="form-control" style="min-height: 120px;"
+                               @bind-Value="model.GradingHints" />
+            </div>
+
+            <div class="col-12">
+                <label class="form-label">Reference Code</label>
+                <InputTextArea class="form-control font-monospace" style="min-height: 260px;"
+                               @bind-Value="model.ReferenceCode" />
+                <div class="form-text">
+                    Use this for the final reference implementation or combined expected result.
+                </div>
+            </div>
+        </div>
+
+        <div class="alert alert-light border small mt-3 mb-0">
+            Status: @(IsGradableTutorial() ? "Gradable tutorial" : "Instruction-only tutorial")
         </div>
 
         <div class="mt-3">
@@ -285,14 +314,14 @@ else
         model.RepoUrl = NormalizeOptional(model.RepoUrl);
         model.BranchName = NormalizeOptional(model.BranchName);
         model.ReferenceSubPath = NormalizeOptional(model.ReferenceSubPath);
+        model.ReferenceFileNames = NormalizeOptional(model.ReferenceFileNames);
+        model.ReferenceCode = NormalizeOptional(model.ReferenceCode);
+        model.GradingHints = NormalizeOptional(model.GradingHints);
 
         foreach (var step in model.Steps)
         {
             step.Title = step.Title?.Trim() ?? string.Empty;
             step.InstructionMarkdown = step.InstructionMarkdown?.Trim() ?? string.Empty;
-            step.ReferenceFileName = NormalizeOptional(step.ReferenceFileName);
-            step.ReferenceCode = NormalizeOptional(step.ReferenceCode);
-            step.GradingHints = NormalizeOptional(step.GradingHints);
         }
 
         if (IsNew)
@@ -321,6 +350,9 @@ else
                     .SetProperty(t => t.RepoUrl, model.RepoUrl)
                     .SetProperty(t => t.BranchName, model.BranchName)
                     .SetProperty(t => t.ReferenceSubPath, model.ReferenceSubPath)
+                    .SetProperty(t => t.ReferenceFileNames, model.ReferenceFileNames)
+                    .SetProperty(t => t.ReferenceCode, model.ReferenceCode)
+                    .SetProperty(t => t.GradingHints, model.GradingHints)
                     .SetProperty(t => t.UpdatedUtc, updatedUtc));
 
             await db.TutorialSteps
@@ -334,10 +366,7 @@ else
                     TutorialDefinitionId = model.Id,
                     DisplayOrder = step.DisplayOrder,
                     Title = step.Title,
-                    InstructionMarkdown = step.InstructionMarkdown,
-                    ReferenceFileName = step.ReferenceFileName,
-                    ReferenceCode = step.ReferenceCode,
-                    GradingHints = step.GradingHints
+                    InstructionMarkdown = step.InstructionMarkdown
                 })
                 .ToList();
 
@@ -370,8 +399,8 @@ else
         Nav.NavigateTo($"/tutorials/{model.Id}/export");
     }
 
-    private static bool IsGradableStep(TutorialStep step)
+    private bool IsGradableTutorial()
     {
-        return !string.IsNullOrWhiteSpace(step.ReferenceCode);
+        return model != null && !string.IsNullOrWhiteSpace(model.ReferenceCode);
     }
 }

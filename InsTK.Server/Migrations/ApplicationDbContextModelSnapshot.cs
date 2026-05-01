@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
 
-namespace InsTK.Server.Data.Migrations
+namespace InsTK.Server.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
     partial class ApplicationDbContextModelSnapshot : ModelSnapshot
@@ -103,7 +103,16 @@ namespace InsTK.Server.Data.Migrations
                     b.Property<DateTime>("CreatedUtc")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("GradingHints")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("IntroMarkdown")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ReferenceCode")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ReferenceFileNames")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("ReferenceSubPath")
@@ -144,19 +153,9 @@ namespace InsTK.Server.Data.Migrations
                     b.Property<int>("DisplayOrder")
                         .HasColumnType("int");
 
-                    b.Property<string>("GradingHints")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("InstructionMarkdown")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("ReferenceCode")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("ReferenceFileName")
-                        .HasMaxLength(260)
-                        .HasColumnType("nvarchar(260)");
 
                     b.Property<string>("Title")
                         .IsRequired()

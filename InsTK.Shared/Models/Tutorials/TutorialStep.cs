@@ -17,12 +17,5 @@ namespace InsTK.Shared.Models.Tutorials
 
         [Required]
         public string InstructionMarkdown { get; set; } = string.Empty;
-
-        [StringLength(260)]
-        public string? ReferenceFileName { get; set; }
-
-        public string? ReferenceCode { get; set; }
-
-        public string? GradingHints { get; set; }
     }
 }
