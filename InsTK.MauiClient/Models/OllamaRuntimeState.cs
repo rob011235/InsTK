@@ -23,6 +23,11 @@ public enum OllamaRuntimeState
     EndpointUnavailable,
 
     /// <summary>
+    /// An Ollama endpoint is reachable, but it does not match the managed runtime policy.
+    /// </summary>
+    ConflictingInstance,
+
+    /// <summary>
     /// The managed runtime is available, but the required models are not all installed.
     /// </summary>
     ModelMissing,

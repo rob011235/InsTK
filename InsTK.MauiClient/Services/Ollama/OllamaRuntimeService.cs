@@ -2,6 +2,8 @@
 
 using System.Diagnostics;
 using System.IO.Compression;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.RegularExpressions;
 using InsTK.MauiClient.Models;
 using InsTK.MauiClient.Services.Settings;
@@ -19,6 +21,9 @@ public sealed partial class OllamaRuntimeService(
 {
     private const string OllamaWindowsAssetName = "ollama-windows-amd64.zip";
 
+    /// <inheritdoc />
+    public event EventHandler<OllamaRuntimeActivityEventArgs>? ActivityReported;
+
     /// <summary>
     /// Evaluates the current workstation readiness for the configured managed Ollama runtime.
     /// </summary>
@@ -28,16 +33,39 @@ public sealed partial class OllamaRuntimeService(
     {
         var settings = await clientSettingsService.GetAsync(cancellationToken);
         var executablePath = GetManagedExecutablePath(settings);
+        var connectionStatus = await ollamaService.GetStatusAsync(cancellationToken);
 
         if (!File.Exists(executablePath))
         {
+            if (connectionStatus.IsReachable)
+            {
+                return new OllamaRuntimeStatus(
+                    OllamaRuntimeState.ConflictingInstance,
+                    executablePath,
+                    settings.RequiredOllamaVersion,
+                    settings.RequiredOllamaWindowsZipSha256,
+                    null,
+                    connectionStatus.ServerVersion,
+                    settings.PrimaryOllamaModel,
+                    settings.FallbackOllamaModel,
+                    false,
+                    false,
+                    true,
+                    settings.OllamaModelsRoot,
+                    "An Ollama endpoint is already reachable, but the managed runtime is not installed.",
+                    null);
+            }
+
             return new OllamaRuntimeStatus(
                 OllamaRuntimeState.Missing,
                 executablePath,
                 settings.RequiredOllamaVersion,
+                settings.RequiredOllamaWindowsZipSha256,
+                null,
                 null,
                 settings.PrimaryOllamaModel,
                 settings.FallbackOllamaModel,
+                false,
                 false,
                 false,
                 settings.OllamaModelsRoot,
@@ -49,21 +77,27 @@ public sealed partial class OllamaRuntimeService(
 
         if (!string.Equals(detectedVersion, settings.RequiredOllamaVersion, StringComparison.OrdinalIgnoreCase))
         {
+            var state = connectionStatus.IsReachable ? OllamaRuntimeState.ConflictingInstance : OllamaRuntimeState.WrongVersion;
+            var summary = connectionStatus.IsReachable
+                ? $"An Ollama endpoint is reachable, but the managed runtime version {DisplayVersion(detectedVersion)} does not match required version {settings.RequiredOllamaVersion}."
+                : $"Managed Ollama version {DisplayVersion(detectedVersion)} does not match required version {settings.RequiredOllamaVersion}.";
+
             return new OllamaRuntimeStatus(
-                OllamaRuntimeState.WrongVersion,
+                state,
                 executablePath,
                 settings.RequiredOllamaVersion,
+                settings.RequiredOllamaWindowsZipSha256,
                 detectedVersion,
+                connectionStatus.ServerVersion,
                 settings.PrimaryOllamaModel,
                 settings.FallbackOllamaModel,
                 false,
                 false,
+                connectionStatus.IsReachable,
                 settings.OllamaModelsRoot,
-                $"Managed Ollama version {DisplayVersion(detectedVersion)} does not match required version {settings.RequiredOllamaVersion}.",
+                summary,
                 null);
         }
-
-        var connectionStatus = await ollamaService.GetStatusAsync(cancellationToken);
 
         if (!connectionStatus.IsReachable)
         {
@@ -71,14 +105,37 @@ public sealed partial class OllamaRuntimeService(
                 OllamaRuntimeState.EndpointUnavailable,
                 executablePath,
                 settings.RequiredOllamaVersion,
+                settings.RequiredOllamaWindowsZipSha256,
                 detectedVersion,
+                null,
                 settings.PrimaryOllamaModel,
                 settings.FallbackOllamaModel,
+                false,
                 false,
                 false,
                 settings.OllamaModelsRoot,
                 "Managed Ollama runtime is installed, but the local endpoint is not reachable.",
                 connectionStatus.ErrorMessage);
+        }
+
+        if (!string.IsNullOrWhiteSpace(connectionStatus.ServerVersion)
+            && !string.Equals(connectionStatus.ServerVersion, settings.RequiredOllamaVersion, StringComparison.OrdinalIgnoreCase))
+        {
+            return new OllamaRuntimeStatus(
+                OllamaRuntimeState.ConflictingInstance,
+                executablePath,
+                settings.RequiredOllamaVersion,
+                settings.RequiredOllamaWindowsZipSha256,
+                detectedVersion,
+                connectionStatus.ServerVersion,
+                settings.PrimaryOllamaModel,
+                settings.FallbackOllamaModel,
+                false,
+                false,
+                true,
+                settings.OllamaModelsRoot,
+                $"A running Ollama endpoint reports version {connectionStatus.ServerVersion}, which does not match required version {settings.RequiredOllamaVersion}.",
+                null);
         }
 
         var hasPrimaryModel = connectionStatus.ModelNames.Contains(settings.PrimaryOllamaModel, StringComparer.OrdinalIgnoreCase);
@@ -90,11 +147,14 @@ public sealed partial class OllamaRuntimeService(
                 OllamaRuntimeState.ModelMissing,
                 executablePath,
                 settings.RequiredOllamaVersion,
+                settings.RequiredOllamaWindowsZipSha256,
                 detectedVersion,
+                connectionStatus.ServerVersion,
                 settings.PrimaryOllamaModel,
                 settings.FallbackOllamaModel,
                 hasPrimaryModel,
                 hasFallbackModel,
+                false,
                 settings.OllamaModelsRoot,
                 BuildMissingModelSummary(hasPrimaryModel, hasFallbackModel, settings.PrimaryOllamaModel, settings.FallbackOllamaModel),
                 null);
@@ -104,11 +164,14 @@ public sealed partial class OllamaRuntimeService(
             OllamaRuntimeState.Ready,
             executablePath,
             settings.RequiredOllamaVersion,
+            settings.RequiredOllamaWindowsZipSha256,
             detectedVersion,
+            connectionStatus.ServerVersion,
             settings.PrimaryOllamaModel,
             settings.FallbackOllamaModel,
             true,
             true,
+            false,
             settings.OllamaModelsRoot,
             "Managed Ollama runtime and required grading models are ready.",
             null);
@@ -129,30 +192,46 @@ public sealed partial class OllamaRuntimeService(
 
         try
         {
+            ReportActivity($"Preparing managed Ollama runtime install for version {settings.RequiredOllamaVersion}.");
             Directory.CreateDirectory(downloadDirectory);
             Directory.CreateDirectory(settings.OllamaModelsRoot);
 
             var downloadUrl = BuildWindowsRuntimeDownloadUrl(settings.RequiredOllamaVersion);
+            ReportActivity($"Downloading {OllamaWindowsAssetName} from the official Ollama release.");
 
             using (var httpClient = CreateDownloadHttpClient())
-            await using (var responseStream = await httpClient.GetStreamAsync(downloadUrl, cancellationToken))
+            using (var response = await httpClient.GetAsync(downloadUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken))
+            await using (var responseStream = await response.Content.ReadAsStreamAsync(cancellationToken))
             await using (var outputStream = File.Create(zipPath))
             {
-                await responseStream.CopyToAsync(outputStream, cancellationToken);
+                response.EnsureSuccessStatusCode();
+                await CopyWithProgressAsync(responseStream, outputStream, response.Content.Headers.ContentLength, cancellationToken);
             }
 
+            ReportActivity("Verifying downloaded runtime checksum.");
+            var calculatedSha256 = await ComputeSha256Async(zipPath, cancellationToken);
+
+            if (!string.Equals(calculatedSha256, settings.RequiredOllamaWindowsZipSha256, StringComparison.OrdinalIgnoreCase))
+            {
+                return Fail("Managed Ollama runtime checksum validation failed.");
+            }
+
+            ReportActivity("Checksum validation succeeded.");
             TryDeleteDirectory(tempExtractDirectory);
+            ReportActivity("Extracting managed runtime archive.");
             ZipFile.ExtractToDirectory(zipPath, tempExtractDirectory);
 
             TryDeleteDirectory(targetVersionDirectory);
             Directory.CreateDirectory(targetVersionDirectory);
+            ReportActivity("Activating managed runtime files.");
             CopyExtractedRuntime(tempExtractDirectory, targetVersionDirectory);
+            ReportActivity($"Managed Ollama runtime {settings.RequiredOllamaVersion} is installed.");
 
             return new OllamaRuntimeOperationResult(true, $"Managed Ollama runtime {settings.RequiredOllamaVersion} is installed.", null);
         }
         catch (Exception ex)
         {
-            return new OllamaRuntimeOperationResult(false, "Managed Ollama runtime installation failed.", ex.Message);
+            return Fail("Managed Ollama runtime installation failed.", ex.Message);
         }
         finally
         {
@@ -170,10 +249,16 @@ public sealed partial class OllamaRuntimeService(
     {
         var settings = await clientSettingsService.GetAsync(cancellationToken);
         var executablePath = GetManagedExecutablePath(settings);
+        var runtimeStatus = await GetRuntimeStatusAsync(cancellationToken);
 
         if (!File.Exists(executablePath))
         {
-            return new OllamaRuntimeOperationResult(false, "Managed Ollama runtime is not installed.", null);
+            return Fail("Managed Ollama runtime is not installed.");
+        }
+
+        if (runtimeStatus.ConflictDetected)
+        {
+            return Fail("Cannot start managed Ollama while a conflicting Ollama instance is already reachable.");
         }
 
         var existingStatus = await ollamaService.GetStatusAsync(cancellationToken);
@@ -186,6 +271,7 @@ public sealed partial class OllamaRuntimeService(
         try
         {
             Directory.CreateDirectory(settings.OllamaModelsRoot);
+            ReportActivity("Starting managed Ollama runtime.");
 
             var process = new Process
             {
@@ -207,18 +293,20 @@ public sealed partial class OllamaRuntimeService(
             {
                 await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken);
                 var status = await ollamaService.GetStatusAsync(cancellationToken);
+                ReportActivity($"Waiting for managed Ollama endpoint to become reachable ({attempt + 1}/10).");
 
                 if (status.IsReachable)
                 {
+                    ReportActivity("Managed Ollama runtime started successfully.");
                     return new OllamaRuntimeOperationResult(true, "Managed Ollama runtime started successfully.", null);
                 }
             }
 
-            return new OllamaRuntimeOperationResult(false, "Managed Ollama runtime did not become reachable after startup.", null);
+            return Fail("Managed Ollama runtime did not become reachable after startup.");
         }
         catch (Exception ex)
         {
-            return new OllamaRuntimeOperationResult(false, "Managed Ollama runtime startup failed.", ex.Message);
+            return Fail("Managed Ollama runtime startup failed.", ex.Message);
         }
     }
 
@@ -251,14 +339,25 @@ public sealed partial class OllamaRuntimeService(
 
         foreach (var model in modelsToEnsure)
         {
-            var pullResult = await RunManagedCommandAsync(executablePath, $"pull {model}", settings, cancellationToken);
+            ReportActivity($"Ensuring required model {model} is available locally.");
+            var pullProgressKey = BuildModelPullCollapseKey(model);
+            ReportActivity($"Downloading model {model}.", collapseKey: pullProgressKey);
+            var pullResult = await RunManagedCommandAsync(
+                executablePath,
+                $"pull {model}",
+                settings,
+                cancellationToken,
+                pullProgressCollapseKey: pullProgressKey);
 
             if (!pullResult.IsSuccess)
             {
-                return new OllamaRuntimeOperationResult(false, $"Failed while downloading required model {model}.", pullResult.ErrorMessage);
+                return Fail($"Failed while downloading required model {model}.", pullResult.ErrorMessage);
             }
+
+            ReportActivity($"Model {model} is available locally.", collapseKey: pullProgressKey);
         }
 
+        ReportActivity("Required Ollama grading models are installed.");
         return new OllamaRuntimeOperationResult(true, "Required Ollama grading models are installed.", null);
     }
 
@@ -318,29 +417,96 @@ public sealed partial class OllamaRuntimeService(
     /// <param name="settings">The persisted workstation settings.</param>
     /// <param name="cancellationToken">A token used to cancel the operation.</param>
     /// <returns>The operation result.</returns>
-    private static async Task<OllamaRuntimeOperationResult> RunManagedCommandAsync(
+    private async Task<OllamaRuntimeOperationResult> RunManagedCommandAsync(
         string executablePath,
         string arguments,
         DesktopClientSettings settings,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        string? pullProgressCollapseKey = null)
     {
         using var process = CreateManagedProcess(executablePath, arguments);
         process.StartInfo.EnvironmentVariables["OLLAMA_MODELS"] = settings.OllamaModelsRoot;
         process.StartInfo.EnvironmentVariables["OLLAMA_HOST"] = BuildOllamaHostValue(settings.OllamaBaseUrl);
         process.Start();
 
-        var standardOutput = await process.StandardOutput.ReadToEndAsync(cancellationToken);
-        var standardError = await process.StandardError.ReadToEndAsync(cancellationToken);
-        await process.WaitForExitAsync(cancellationToken);
+        var standardOutput = new List<string>();
+        var standardError = new List<string>();
+        var standardOutputTask = ReadProcessOutputAsync(
+            process.StandardOutput,
+            standardOutput,
+            cancellationToken,
+            collapseKey: pullProgressCollapseKey);
+        var standardErrorTask = ReadProcessOutputAsync(
+            process.StandardError,
+            standardError,
+            cancellationToken,
+            isError: true,
+            collapseKey: pullProgressCollapseKey);
+
+        await Task.WhenAll(standardOutputTask, standardErrorTask, process.WaitForExitAsync(cancellationToken));
 
         if (process.ExitCode == 0)
         {
-            var summary = string.IsNullOrWhiteSpace(standardOutput) ? "Managed Ollama command completed successfully." : standardOutput.Trim();
+            var summary = standardOutput.LastOrDefault(static line => !string.IsNullOrWhiteSpace(line))
+                ?? "Managed Ollama command completed successfully.";
             return new OllamaRuntimeOperationResult(true, summary, null);
         }
 
-        var error = string.IsNullOrWhiteSpace(standardError) ? standardOutput : standardError;
-        return new OllamaRuntimeOperationResult(false, "Managed Ollama command failed.", string.IsNullOrWhiteSpace(error) ? null : error.Trim());
+        var error = standardError.LastOrDefault(static line => !string.IsNullOrWhiteSpace(line))
+            ?? standardOutput.LastOrDefault(static line => !string.IsNullOrWhiteSpace(line));
+        return new OllamaRuntimeOperationResult(false, "Managed Ollama command failed.", error);
+    }
+
+    /// <summary>
+    /// Copies a stream to a target file while reporting download progress.
+    /// </summary>
+    /// <param name="source">The source stream.</param>
+    /// <param name="destination">The destination stream.</param>
+    /// <param name="contentLength">The expected content length, if known.</param>
+    /// <param name="cancellationToken">A token used to cancel the operation.</param>
+    private async Task CopyWithProgressAsync(Stream source, Stream destination, long? contentLength, CancellationToken cancellationToken)
+    {
+        var buffer = new byte[1024 * 128];
+        long totalBytesRead = 0;
+        var lastReportedPercent = -1;
+
+        while (true)
+        {
+            var bytesRead = await source.ReadAsync(buffer.AsMemory(0, buffer.Length), cancellationToken);
+
+            if (bytesRead == 0)
+            {
+                break;
+            }
+
+            await destination.WriteAsync(buffer.AsMemory(0, bytesRead), cancellationToken);
+            totalBytesRead += bytesRead;
+
+            if (contentLength is > 0)
+            {
+                var percent = (int)((totalBytesRead * 100L) / contentLength.Value);
+
+                if (percent >= lastReportedPercent + 5 || percent == 100)
+                {
+                    lastReportedPercent = percent;
+                    ReportActivity($"Download progress: {percent}%.");
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Computes the SHA-256 digest for a downloaded runtime archive.
+    /// </summary>
+    /// <param name="filePath">The file to hash.</param>
+    /// <param name="cancellationToken">A token used to cancel the operation.</param>
+    /// <returns>The lowercase SHA-256 digest.</returns>
+    private static async Task<string> ComputeSha256Async(string filePath, CancellationToken cancellationToken)
+    {
+        await using var stream = File.OpenRead(filePath);
+        using var sha256 = SHA256.Create();
+        var hash = await sha256.ComputeHashAsync(stream, cancellationToken);
+        return Convert.ToHexStringLower(hash);
     }
 
     /// <summary>
@@ -364,6 +530,111 @@ public sealed partial class OllamaRuntimeService(
                 CreateNoWindow = true
             }
         };
+    }
+
+    /// <summary>
+    /// Reads managed Ollama process output, reports each meaningful update, and captures the emitted lines.
+    /// </summary>
+    /// <param name="reader">The process output reader.</param>
+    /// <param name="capturedLines">The list that receives emitted lines.</param>
+    /// <param name="cancellationToken">A token used to cancel the operation.</param>
+    /// <param name="isError">A value indicating whether the stream represents error output.</param>
+    private async Task ReadProcessOutputAsync(
+        StreamReader reader,
+        List<string> capturedLines,
+        CancellationToken cancellationToken,
+        bool isError = false,
+        string? collapseKey = null)
+    {
+        var buffer = new char[256];
+        var currentLine = new StringBuilder();
+        string? lastReportedLine = null;
+
+        while (true)
+        {
+            var charsRead = await reader.ReadAsync(buffer.AsMemory(0, buffer.Length), cancellationToken);
+
+            if (charsRead == 0)
+            {
+                break;
+            }
+
+            for (var index = 0; index < charsRead; index++)
+            {
+                var currentCharacter = buffer[index];
+
+                if (currentCharacter == '\r' || currentCharacter == '\n')
+                {
+                    FlushOutputLine(currentLine, capturedLines, ref lastReportedLine, isError, collapseKey);
+                    continue;
+                }
+
+                currentLine.Append(currentCharacter);
+            }
+        }
+
+        FlushOutputLine(currentLine, capturedLines, ref lastReportedLine, isError, collapseKey);
+    }
+
+    /// <summary>
+    /// Normalizes and reports a single managed Ollama CLI output line when it contains meaningful content.
+    /// </summary>
+    /// <param name="currentLine">The mutable line buffer.</param>
+    /// <param name="capturedLines">The list that receives emitted lines.</param>
+    /// <param name="lastReportedLine">The most recent line reported for this stream.</param>
+    /// <param name="isError">A value indicating whether the line is from the error stream.</param>
+    private void FlushOutputLine(
+        StringBuilder currentLine,
+        List<string> capturedLines,
+        ref string? lastReportedLine,
+        bool isError,
+        string? collapseKey)
+    {
+        if (currentLine.Length == 0)
+        {
+            return;
+        }
+
+        var normalizedLine = NormalizeProcessOutput(currentLine.ToString());
+        currentLine.Clear();
+
+        if (string.IsNullOrWhiteSpace(normalizedLine))
+        {
+            return;
+        }
+
+        capturedLines.Add(normalizedLine);
+
+        if (string.Equals(lastReportedLine, normalizedLine, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        lastReportedLine = normalizedLine;
+        ReportActivity(normalizedLine, isError, collapseKey);
+    }
+
+    /// <summary>
+    /// Builds a stable UI key for collapsing progress updates for a single model pull.
+    /// </summary>
+    /// <param name="model">The model being downloaded.</param>
+    /// <returns>The collapse key.</returns>
+    private static string BuildModelPullCollapseKey(string model)
+    {
+        return $"pull:{model.Trim()}";
+    }
+
+    /// <summary>
+    /// Reduces raw CLI output to a compact single-line activity message.
+    /// </summary>
+    /// <param name="value">The raw line to normalize.</param>
+    /// <returns>The normalized output line.</returns>
+    private static string NormalizeProcessOutput(string value)
+    {
+        return string.Join(
+            " ",
+            value
+                .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
     }
 
     /// <summary>
@@ -533,6 +804,28 @@ public sealed partial class OllamaRuntimeService(
         catch
         {
         }
+    }
+
+    /// <summary>
+    /// Emits a runtime activity update to subscribers.
+    /// </summary>
+    /// <param name="message">The activity message.</param>
+    /// <param name="isError">A value indicating whether the message represents an error.</param>
+    private void ReportActivity(string message, bool isError = false, string? collapseKey = null)
+    {
+        ActivityReported?.Invoke(this, new OllamaRuntimeActivityEventArgs(message, isError, collapseKey));
+    }
+
+    /// <summary>
+    /// Builds a failed operation result while also reporting the error as activity.
+    /// </summary>
+    /// <param name="summary">The summary to expose.</param>
+    /// <param name="errorMessage">The detailed error message, if any.</param>
+    /// <returns>A failed operation result.</returns>
+    private OllamaRuntimeOperationResult Fail(string summary, string? errorMessage = null)
+    {
+        ReportActivity(string.IsNullOrWhiteSpace(errorMessage) ? summary : $"{summary} {errorMessage}", true);
+        return new OllamaRuntimeOperationResult(false, summary, errorMessage);
     }
 
     [GeneratedRegex(@"(?<version>\d+\.\d+\.\d+)")]

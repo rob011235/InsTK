@@ -28,6 +28,11 @@ public sealed class DesktopClientSettings
     public string RequiredOllamaVersion { get; set; } = "0.22.1";
 
     /// <summary>
+    /// Gets or sets the expected SHA-256 digest for the pinned Windows Ollama runtime zip.
+    /// </summary>
+    public string RequiredOllamaWindowsZipSha256 { get; set; } = "93c38a2ae97e4ab55c6d324e9cf62bc79408de85861045c34f4294c774d00c34";
+
+    /// <summary>
     /// Gets or sets the preferred primary Ollama model used for grading.
     /// </summary>
     public string PrimaryOllamaModel { get; set; } = "qwen3-coder:30b";

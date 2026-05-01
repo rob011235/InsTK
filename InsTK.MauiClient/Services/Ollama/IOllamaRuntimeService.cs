@@ -10,6 +10,11 @@ namespace InsTK.MauiClient.Services.Ollama;
 public interface IOllamaRuntimeService
 {
     /// <summary>
+    /// Occurs when a managed Ollama runtime operation reports activity or progress.
+    /// </summary>
+    event EventHandler<OllamaRuntimeActivityEventArgs>? ActivityReported;
+
+    /// <summary>
     /// Evaluates the current workstation readiness for the configured managed Ollama runtime.
     /// </summary>
     /// <param name="cancellationToken">A token used to cancel the operation.</param>

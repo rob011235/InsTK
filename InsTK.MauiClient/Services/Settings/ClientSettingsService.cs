@@ -113,6 +113,7 @@ public sealed class ClientSettingsService : IClientSettingsService
             OllamaBaseUrl = settings.OllamaBaseUrl,
             WorkspaceRoot = settings.WorkspaceRoot,
             RequiredOllamaVersion = settings.RequiredOllamaVersion,
+            RequiredOllamaWindowsZipSha256 = settings.RequiredOllamaWindowsZipSha256,
             PrimaryOllamaModel = settings.PrimaryOllamaModel,
             FallbackOllamaModel = settings.FallbackOllamaModel,
             ManagedOllamaRoot = settings.ManagedOllamaRoot,
@@ -132,6 +133,7 @@ public sealed class ClientSettingsService : IClientSettingsService
             ? GetDefaultWorkspaceRoot()
             : Path.GetFullPath(Environment.ExpandEnvironmentVariables(settings.WorkspaceRoot.Trim()));
         settings.RequiredOllamaVersion = NormalizeRequiredValue(settings.RequiredOllamaVersion, "0.22.1");
+        settings.RequiredOllamaWindowsZipSha256 = NormalizeRequiredValue(settings.RequiredOllamaWindowsZipSha256, "93c38a2ae97e4ab55c6d324e9cf62bc79408de85861045c34f4294c774d00c34").ToLowerInvariant();
         settings.PrimaryOllamaModel = NormalizeRequiredValue(settings.PrimaryOllamaModel, "qwen3-coder:30b");
         settings.FallbackOllamaModel = NormalizeRequiredValue(settings.FallbackOllamaModel, "deepseek-coder:6.7b");
         settings.ManagedOllamaRoot = NormalizeRequiredPath(settings.ManagedOllamaRoot, GetDefaultManagedOllamaRoot());

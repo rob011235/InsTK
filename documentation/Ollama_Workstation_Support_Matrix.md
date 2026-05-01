@@ -6,6 +6,10 @@ This document defines the initial workstation policy for local Ollama usage in `
 
 As of May 1, 2026, the pinned managed Ollama runtime version in the client is `0.22.1`.
 
+The pinned official digest for `ollama-windows-amd64.zip` is:
+
+* `93c38a2ae97e4ab55c6d324e9cf62bc79408de85861045c34f4294c774d00c34`
+
 The goal is to standardize:
 
 * which Ollama runtime model we support
@@ -25,6 +29,8 @@ The MAUI client now:
 * detect whether the required grading model is present
 * offer managed model download if needed
 * offer managed runtime startup against the configured local models path
+* report runtime activity and download progress in the workstation UI
+* detect and surface conflicting unmanaged Ollama instances
 
 For v1, InsTK should treat Ollama as a managed local dependency.
 
@@ -128,7 +134,9 @@ Implemented behavior:
 * install Ollama into an InsTK-managed dependency folder
 * keep models in a configurable shared models folder
 * pin an InsTK-supported Ollama version
+* pin the expected runtime archive SHA-256 digest
 * verify the runtime version during client startup
+* verify the runtime archive checksum during managed install
 * verify model availability separately from runtime installation
 
 ## Install and Update Policy
@@ -170,6 +178,7 @@ Example states:
 * `Ollama ready, model missing`
 * `Ollama ready, primary model installed`
 * `Ollama ready, fallback model installed`
+* `Ollama conflict detected`
 
 ## V1 Recommendation
 

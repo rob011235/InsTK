@@ -5,6 +5,7 @@
 @inject IOllamaService OllamaService
 @inject IOllamaRuntimeService OllamaRuntimeService
 @inject IBackendSessionService BackendSessionService
+@implements IDisposable
 
 <PageTitle>InsTK Instructor Workstation</PageTitle>
 
@@ -50,6 +51,12 @@ else
                             <label class="form-label">Required Ollama Version</label>
                             <InputText class="form-control font-monospace" @bind-Value="settings.RequiredOllamaVersion" />
                             <div class="form-text">Pinned managed runtime version required for grading on this workstation.</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Required Windows Zip SHA-256</label>
+                            <InputText class="form-control font-monospace" @bind-Value="settings.RequiredOllamaWindowsZipSha256" />
+                            <div class="form-text">Expected SHA-256 for the pinned official `ollama-windows-amd64.zip` asset.</div>
                         </div>
 
                         <div class="mb-3">
@@ -168,6 +175,10 @@ else
                                     <dd>@ollamaRuntimeStatus.RequiredVersion</dd>
                                     <dt>Detected Version</dt>
                                     <dd>@DisplayOrPlaceholder(ollamaRuntimeStatus.DetectedVersion)</dd>
+                                    <dt>Server Version</dt>
+                                    <dd>@DisplayOrPlaceholder(ollamaRuntimeStatus.ServerVersion)</dd>
+                                    <dt>Zip SHA-256</dt>
+                                    <dd>@ollamaRuntimeStatus.RequiredWindowsZipSha256</dd>
                                     <dt>Models Root</dt>
                                     <dd>@ollamaRuntimeStatus.ModelsRoot</dd>
                                     <dt>Primary Model</dt>
@@ -199,6 +210,17 @@ else
                                     <button type="button" class="btn btn-outline-secondary" @onclick="DownloadRequiredModelsAsync" disabled="@isRuntimeBusy">Download Required Models</button>
                                 </div>
 
+                                @if (isRuntimeBusy)
+                                {
+                                    <div class="runtime-busy mt-3" role="status" aria-live="polite">
+                                        <span class="spinner-border spinner-border-sm runtime-busy__spinner" aria-hidden="true"></span>
+                                        <div>
+                                            <div class="runtime-busy__title">@currentRuntimeOperation</div>
+                                            <div class="runtime-busy__detail">This can take several minutes for large models. New activity will appear below.</div>
+                                        </div>
+                                    </div>
+                                }
+
                                 @if (!string.IsNullOrWhiteSpace(runtimeMessage))
                                 {
                                     <div class="alert alert-success mt-3 mb-0" role="status">@runtimeMessage</div>
@@ -207,6 +229,19 @@ else
                                 @if (!string.IsNullOrWhiteSpace(runtimeErrorMessage))
                                 {
                                     <div class="alert alert-danger mt-3 mb-0" role="alert">@runtimeErrorMessage</div>
+                                }
+
+                                @if (runtimeActivityLog.Count > 0)
+                                {
+                                    <div class="runtime-log mt-3">
+                                        <h4 class="h6 mb-2">Runtime Activity</h4>
+                                        <ul class="runtime-log__list">
+                                            @foreach (var entry in runtimeActivityLog)
+                                            {
+                                                <li class="runtime-log__entry @(entry.IsError ? "runtime-log__entry--error" : string.Empty)">@entry.Message</li>
+                                            }
+                                        </ul>
+                                    </div>
                                 }
                             }
                         </div>
@@ -243,6 +278,7 @@ else
 }
 
 @code {
+    private const int MaxRuntimeLogEntries = 12;
     private DesktopClientSettings settings = new();
     private WorkspaceSnapshot? workspace;
     private OllamaConnectionStatus? ollamaStatus;
@@ -254,8 +290,10 @@ else
     private bool isRuntimeBusy;
     private string? saveMessage;
     private string? errorMessage;
+    private string? currentRuntimeOperation;
     private string? runtimeMessage;
     private string? runtimeErrorMessage;
+    private readonly List<OllamaRuntimeActivityEventArgs> runtimeActivityLog = new();
 
     /// <summary>
     /// Loads persisted workstation settings and probes the local service state.
@@ -263,6 +301,7 @@ else
     /// <returns>A task that completes when the page state has been initialized.</returns>
     protected override async Task OnInitializedAsync()
     {
+        OllamaRuntimeService.ActivityReported += HandleRuntimeActivityReported;
         settings = await ClientSettingsService.GetAsync();
         await RefreshStatusAsync();
         isLoading = false;
@@ -344,7 +383,9 @@ else
     /// <returns>A task that completes when the operation has finished.</returns>
     private async Task InstallOrUpdateRuntimeAsync()
     {
-        await RunRuntimeOperationAsync(() => OllamaRuntimeService.InstallOrUpdateManagedRuntimeAsync());
+        await RunRuntimeOperationAsync(
+            "Installing or updating managed Ollama runtime",
+            () => OllamaRuntimeService.InstallOrUpdateManagedRuntimeAsync());
     }
 
     /// <summary>
@@ -353,7 +394,9 @@ else
     /// <returns>A task that completes when the operation has finished.</returns>
     private async Task StartRuntimeAsync()
     {
-        await RunRuntimeOperationAsync(() => OllamaRuntimeService.StartManagedRuntimeAsync());
+        await RunRuntimeOperationAsync(
+            "Starting managed Ollama runtime",
+            () => OllamaRuntimeService.StartManagedRuntimeAsync());
     }
 
     /// <summary>
@@ -362,7 +405,9 @@ else
     /// <returns>A task that completes when the operation has finished.</returns>
     private async Task DownloadRequiredModelsAsync()
     {
-        await RunRuntimeOperationAsync(() => OllamaRuntimeService.EnsureRequiredModelsAsync());
+        await RunRuntimeOperationAsync(
+            "Downloading required Ollama models",
+            () => OllamaRuntimeService.EnsureRequiredModelsAsync());
     }
 
     /// <summary>
@@ -370,11 +415,14 @@ else
     /// </summary>
     /// <param name="operation">The operation to execute.</param>
     /// <returns>A task that completes when the operation and refresh have finished.</returns>
-    private async Task RunRuntimeOperationAsync(Func<Task<OllamaRuntimeOperationResult>> operation)
+    private async Task RunRuntimeOperationAsync(string operationLabel, Func<Task<OllamaRuntimeOperationResult>> operation)
     {
         isRuntimeBusy = true;
+        currentRuntimeOperation = operationLabel;
         runtimeMessage = null;
         runtimeErrorMessage = null;
+        runtimeActivityLog.Clear();
+        runtimeActivityLog.Add(new OllamaRuntimeActivityEventArgs($"{operationLabel} started.", false));
         saveMessage = null;
         errorMessage = null;
 
@@ -402,7 +450,45 @@ else
         finally
         {
             isRuntimeBusy = false;
+            currentRuntimeOperation = null;
         }
+    }
+
+    /// <summary>
+    /// Handles runtime activity updates reported by the managed Ollama service.
+    /// </summary>
+    /// <param name="sender">The event sender.</param>
+    /// <param name="eventArgs">The reported activity details.</param>
+    private void HandleRuntimeActivityReported(object? sender, OllamaRuntimeActivityEventArgs eventArgs)
+    {
+        _ = InvokeAsync(() =>
+        {
+            if (!string.IsNullOrWhiteSpace(eventArgs.CollapseKey))
+            {
+                var existingIndex = runtimeActivityLog.FindIndex(
+                    entry => string.Equals(entry.CollapseKey, eventArgs.CollapseKey, StringComparison.Ordinal));
+
+                if (existingIndex >= 0)
+                {
+                    runtimeActivityLog[existingIndex] = eventArgs;
+                }
+                else
+                {
+                    runtimeActivityLog.Insert(0, eventArgs);
+                }
+            }
+            else
+            {
+                runtimeActivityLog.Insert(0, eventArgs);
+            }
+
+            if (runtimeActivityLog.Count > MaxRuntimeLogEntries)
+            {
+                runtimeActivityLog.RemoveAt(runtimeActivityLog.Count - 1);
+            }
+
+            StateHasChanged();
+        });
     }
 
     /// <summary>
@@ -437,9 +523,18 @@ else
             OllamaRuntimeState.Missing => "Missing",
             OllamaRuntimeState.WrongVersion => "Wrong Version",
             OllamaRuntimeState.EndpointUnavailable => "Not Running",
+            OllamaRuntimeState.ConflictingInstance => "Conflict",
             OllamaRuntimeState.ModelMissing => "Model Missing",
             OllamaRuntimeState.Ready => "Ready",
             _ => "Attention"
         };
+    }
+
+    /// <summary>
+    /// Detaches runtime event subscriptions when the component is disposed.
+    /// </summary>
+    public void Dispose()
+    {
+        OllamaRuntimeService.ActivityReported -= HandleRuntimeActivityReported;
     }
 }

@@ -80,6 +80,57 @@ a, .btn-link {
     gap: 0.75rem;
 }
 
+.runtime-log {
+    border-top: 1px solid #d9e2ec;
+    padding-top: 1rem;
+}
+
+.runtime-busy {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.85rem 1rem;
+    border-radius: 0.75rem;
+    border: 1px solid #bfd7ed;
+    background: #eef5fb;
+    color: #102a43;
+}
+
+.runtime-busy__spinner {
+    margin-top: 0.15rem;
+    color: #1b6ec2;
+}
+
+.runtime-busy__title {
+    font-weight: 700;
+}
+
+.runtime-busy__detail {
+    font-size: 0.9rem;
+    color: #486581;
+}
+
+.runtime-log__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.5rem;
+}
+
+.runtime-log__entry {
+    padding: 0.65rem 0.75rem;
+    border-radius: 0.5rem;
+    background: #eef5fb;
+    color: #102a43;
+    font-size: 0.95rem;
+}
+
+.runtime-log__entry--error {
+    background: #fce8e6;
+    color: #8a1c1c;
+}
+
 h1:focus {
     outline: none;
 }
