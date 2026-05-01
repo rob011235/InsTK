@@ -1,0 +1,43 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    
+    {
+      "name": "InsTK Server",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build-server",
+      "program": "${workspaceFolder}/InsTK.Server/bin/Debug/net10.0/InsTK.Server.dll",
+      "cwd": "${workspaceFolder}/InsTK.Server",
+      "env": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "serverReadyAction": {
+        "action": "openExternally",
+        "pattern": "\\bNow listening on:\\s+(https?://\\S+)"
+      },
+      "console": "internalConsole",
+      "stopAtEntry": false
+    },
+    {
+      "name": "InsTK MAUI Client",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build-maui",
+      "program": "${workspaceFolder}/InsTK.MauiClient/bin/Debug/net10.0-windows10.0.19041.0/win-x64/InsTK.MauiClient.exe",
+      "cwd": "${workspaceFolder}/InsTK.MauiClient",
+      "console": "internalConsole",
+      "stopAtEntry": false
+    }
+  ],
+  "compounds": [
+    {
+      "name": "InsTK Server + MAUI",
+      "configurations": [
+        "InsTK Server",
+        "InsTK MAUI Client"
+      ],
+      "stopAll": true
+    }
+  ]
+}

@@ -24,7 +24,7 @@ public sealed class WorkstationProfileService : IWorkstationProfileService
         var memoryStatus = GetMemoryStatus();
         var totalMemoryBytes = memoryStatus.ullTotalPhys;
         var availableMemoryBytes = memoryStatus.ullAvailPhys;
-        var recommendedModel = RecommendPrimaryModel(availableMemoryBytes);
+        var recommendedModel = RecommendPrimaryModel(totalMemoryBytes);
         var recommendationSummary = BuildRecommendationSummary(totalMemoryBytes, availableMemoryBytes, recommendedModel);
 
         return Task.FromResult(new WorkstationProfile(
@@ -36,19 +36,19 @@ public sealed class WorkstationProfileService : IWorkstationProfileService
             RecommendationSummary: recommendationSummary));
     }
 
-    private static string RecommendPrimaryModel(ulong availableMemoryBytes)
+    private static string RecommendPrimaryModel(ulong totalMemoryBytes)
     {
-        if (availableMemoryBytes >= 12UL * OneGiB)
+        if (totalMemoryBytes >= 24UL * OneGiB)
         {
             return LargestModel;
         }
 
-        if (availableMemoryBytes >= 8UL * OneGiB)
+        if (totalMemoryBytes >= 12UL * OneGiB)
         {
             return LargerModel;
         }
 
-        if (availableMemoryBytes >= 6UL * OneGiB)
+        if (totalMemoryBytes >= 8UL * OneGiB)
         {
             return MediumModel;
         }

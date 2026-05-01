@@ -24,23 +24,38 @@ public sealed class OllamaModelCatalogService : IOllamaModelCatalogService
     /// <inheritdoc />
     public IReadOnlyList<OllamaModelOption> GetSupportedModels(WorkstationProfile profile)
     {
-        var supported = CuratedModels
-            .Where(model => profile.AvailableMemoryBytes >= model.MinimumRecommendedAvailableMemoryBytes)
-            .ToArray();
-
-        return supported.Length > 0 ? supported : [CuratedModels[0]];
+        return CuratedModels;
     }
 
     /// <inheritdoc />
     public OllamaModelOption GetRecommendedPrimaryModel(WorkstationProfile profile)
     {
-        return GetSupportedModels(profile).Last();
+        return profile.TotalMemoryBytes switch
+        {
+            >= 24UL * OneGiB => FindByName("qwen3-coder:30b"),
+            >= 16UL * OneGiB => FindByName("qwen2.5-coder:14b"),
+            >= 12UL * OneGiB => FindByName("qwen2.5-coder:7b"),
+            >= 8UL * OneGiB => FindByName("deepseek-coder:6.7b"),
+            >= 4UL * OneGiB => FindByName("qwen2.5-coder:3b"),
+            _ => FindByName("deepseek-coder:1.3b")
+        };
     }
 
     /// <inheritdoc />
     public OllamaModelOption GetRecommendedFallbackModel(WorkstationProfile profile)
     {
-        var supported = GetSupportedModels(profile);
-        return supported.Count > 1 ? supported[^2] : supported[0];
+        return profile.TotalMemoryBytes switch
+        {
+            >= 24UL * OneGiB => FindByName("qwen2.5-coder:14b"),
+            >= 16UL * OneGiB => FindByName("qwen2.5-coder:7b"),
+            >= 12UL * OneGiB => FindByName("deepseek-coder:6.7b"),
+            >= 8UL * OneGiB => FindByName("qwen2.5-coder:3b"),
+            _ => FindByName("deepseek-coder:1.3b")
+        };
+    }
+
+    private static OllamaModelOption FindByName(string modelName)
+    {
+        return CuratedModels.First(model => string.Equals(model.Name, modelName, StringComparison.OrdinalIgnoreCase));
     }
 }

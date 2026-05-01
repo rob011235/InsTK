@@ -10,7 +10,7 @@ public sealed class DesktopClientSettings
     /// <summary>
     /// Gets or sets the base URL for the InsTK web backend.
     /// </summary>
-    public string? BackendBaseUrl { get; set; }
+    public string? BackendBaseUrl { get; set; } = "https://localhost:7016";
 
     /// <summary>
     /// Gets or sets the base URL for the local Ollama endpoint.

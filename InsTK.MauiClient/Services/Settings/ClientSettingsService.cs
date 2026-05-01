@@ -128,6 +128,7 @@ public sealed class ClientSettingsService : IClientSettingsService
     private static void Normalize(DesktopClientSettings settings)
     {
         settings.BackendBaseUrl = NormalizeOptionalUrl(settings.BackendBaseUrl);
+        settings.BackendBaseUrl = NormalizeLegacyBackendBaseUrl(settings.BackendBaseUrl);
         settings.OllamaBaseUrl = NormalizeRequiredUrl(settings.OllamaBaseUrl, "http://127.0.0.1:11434");
         settings.WorkspaceRoot = string.IsNullOrWhiteSpace(settings.WorkspaceRoot)
             ? GetDefaultWorkspaceRoot()
@@ -176,6 +177,21 @@ public sealed class ClientSettingsService : IClientSettingsService
     private static string NormalizeUrl(string value)
     {
         return value.Trim().TrimEnd('/');
+    }
+
+    /// <summary>
+    /// Rewrites legacy backend defaults that used a custom localhost subdomain not covered by the dev certificate.
+    /// </summary>
+    /// <param name="value">The backend URL to normalize.</param>
+    /// <returns>The normalized backend URL.</returns>
+    private static string? NormalizeLegacyBackendBaseUrl(string? value)
+    {
+        return value switch
+        {
+            "https://instk.dev.localhost:7016" => "https://localhost:7016",
+            "http://instk.dev.localhost:5107" => "http://localhost:5107",
+            _ => value
+        };
     }
 
     /// <summary>

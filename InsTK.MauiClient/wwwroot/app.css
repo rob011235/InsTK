@@ -20,6 +20,57 @@ a, .btn-link {
     padding-top: 1.1rem;
 }
 
+.home-page {
+    display: grid;
+    gap: 1.5rem;
+}
+
+.home-hero {
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    border-radius: 1rem;
+    padding: 1.5rem;
+    background: radial-gradient(circle at top right, rgba(37, 99, 235, 0.2), transparent 32%), linear-gradient(135deg, #0f172a, #1e293b 60%, #334155);
+    color: #e2e8f0;
+    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+}
+
+.home-eyebrow {
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #93c5fd;
+}
+
+.home-description {
+    margin-bottom: 0;
+    max-width: 48rem;
+    color: rgba(226, 232, 240, 0.9);
+}
+
+.home-grid {
+    display: grid;
+    gap: 1rem;
+}
+
+.home-card {
+    border: 1px solid #d9e2ec;
+    border-radius: 0.85rem;
+    padding: 1.25rem;
+    background: #f8fafc;
+}
+
+.home-card h2 {
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+}
+
+.home-card p {
+    margin-bottom: 0;
+    color: #334e68;
+}
+
 .status-panel {
     border: 1px solid #d9e2ec;
     border-radius: 0.75rem;
@@ -52,6 +103,16 @@ a, .btn-link {
     margin: 0;
     color: #102a43;
     word-break: break-word;
+}
+
+.settings-section {
+    margin-top: 1.25rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid #d9e2ec;
+}
+
+.settings-section__header {
+    margin-bottom: 0.85rem;
 }
 
 .runtime-chip {
@@ -129,6 +190,22 @@ a, .btn-link {
 .runtime-log__entry--error {
     background: #fce8e6;
     color: #8a1c1c;
+}
+
+.downloaded-models {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.downloaded-models__row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 0.85rem 1rem;
+    border: 1px solid #d9e2ec;
+    border-radius: 0.75rem;
+    background: #f8fafc;
 }
 
 .ollama-page {
@@ -399,14 +476,25 @@ h1:focus {
 }
 
 @media (max-width: 767.98px) {
+    .home-hero {
+        padding: 1rem;
+    }
+
     .ollama-hero,
     .ollama-panel {
         padding: 1rem;
     }
 
     .ollama-status__header,
-    .ollama-entry__header {
+    .ollama-entry__header,
+    .downloaded-models__row {
         flex-direction: column;
         align-items: stretch;
+    }
+}
+
+@media (min-width: 992px) {
+    .home-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 }
