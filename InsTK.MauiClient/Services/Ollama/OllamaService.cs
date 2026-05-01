@@ -24,7 +24,7 @@ public sealed class OllamaService(IClientSettingsService clientSettingsService) 
 
         if (string.IsNullOrWhiteSpace(baseUrl))
         {
-            return new OllamaConnectionStatus(string.Empty, false, false, 0, "Ollama endpoint is not configured.", null);
+            return new OllamaConnectionStatus(string.Empty, false, false, null, 0, Array.Empty<string>(), "Ollama endpoint is not configured.", null);
         }
 
         try
@@ -38,26 +38,88 @@ public sealed class OllamaService(IClientSettingsService clientSettingsService) 
                     baseUrl,
                     true,
                     false,
+                    null,
                     0,
+                    Array.Empty<string>(),
                     $"Ollama responded with HTTP {(int)response.StatusCode}.",
                     response.ReasonPhrase);
             }
 
             await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
             using var document = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);
-            var modelCount = document.RootElement.TryGetProperty("models", out var models) && models.ValueKind == JsonValueKind.Array
-                ? models.GetArrayLength()
-                : 0;
+            var modelNames = GetModelNames(document.RootElement);
+            var modelCount = modelNames.Count;
+            var serverVersion = await TryGetServerVersionAsync(httpClient, cancellationToken);
 
             var summary = modelCount == 0
                 ? "Ollama is reachable, but no local models were reported."
                 : $"Ollama is reachable with {modelCount} local model(s).";
 
-            return new OllamaConnectionStatus(baseUrl, true, true, modelCount, summary, null);
+            return new OllamaConnectionStatus(baseUrl, true, true, serverVersion, modelCount, modelNames, summary, null);
         }
         catch (Exception ex)
         {
-            return new OllamaConnectionStatus(baseUrl, true, false, 0, "Unable to reach Ollama.", ex.Message);
+            return new OllamaConnectionStatus(baseUrl, true, false, null, 0, Array.Empty<string>(), "Unable to reach Ollama.", ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Reads the set of local model names reported by Ollama.
+    /// </summary>
+    /// <param name="root">The parsed API root element.</param>
+    /// <returns>The reported model names.</returns>
+    private static IReadOnlyList<string> GetModelNames(JsonElement root)
+    {
+        if (!root.TryGetProperty("models", out var models) || models.ValueKind != JsonValueKind.Array)
+        {
+            return Array.Empty<string>();
+        }
+
+        var modelNames = new List<string>();
+
+        foreach (var model in models.EnumerateArray())
+        {
+            if (model.TryGetProperty("name", out var name) && name.ValueKind == JsonValueKind.String)
+            {
+                var value = name.GetString();
+
+                if (!string.IsNullOrWhiteSpace(value))
+                {
+                    modelNames.Add(value);
+                }
+            }
+        }
+
+        return modelNames;
+    }
+
+    /// <summary>
+    /// Attempts to read the Ollama server version from the local endpoint.
+    /// </summary>
+    /// <param name="httpClient">The configured HTTP client.</param>
+    /// <param name="cancellationToken">A token used to cancel the operation.</param>
+    /// <returns>The reported server version, if available.</returns>
+    private static async Task<string?> TryGetServerVersionAsync(HttpClient httpClient, CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var response = await httpClient.GetAsync("api/version", cancellationToken);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                return null;
+            }
+
+            await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+            using var document = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);
+
+            return document.RootElement.TryGetProperty("version", out var version) && version.ValueKind == JsonValueKind.String
+                ? version.GetString()
+                : null;
+        }
+        catch
+        {
+            return null;
         }
     }
 

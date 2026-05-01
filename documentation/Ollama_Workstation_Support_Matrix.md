@@ -4,6 +4,8 @@
 
 This document defines the initial workstation policy for local Ollama usage in `InsTK.MauiClient`.
 
+As of May 1, 2026, the pinned managed Ollama runtime version in the client is `0.22.1`.
+
 The goal is to standardize:
 
 * which Ollama runtime model we support
@@ -15,13 +17,14 @@ The goal is to standardize:
 
 InsTK v1 should use a local Ollama instance on the instructor workstation.
 
-The MAUI client should eventually:
+The MAUI client now:
 
 * detect whether Ollama is installed
 * detect whether the required InsTK-supported version is present
-* offer guided install or update if needed
+* offer managed runtime install or update if needed
 * detect whether the required grading model is present
-* offer guided model download if needed
+* offer managed model download if needed
+* offer managed runtime startup against the configured local models path
 
 For v1, InsTK should treat Ollama as a managed local dependency.
 
@@ -120,7 +123,7 @@ This recommended profile should default to:
 
 For InsTK v1, the MAUI client should prefer an app-managed Ollama runtime instead of relying on whatever happens to be installed globally.
 
-Recommended behavior:
+Implemented behavior:
 
 * install Ollama into an InsTK-managed dependency folder
 * keep models in a configurable shared models folder
@@ -132,7 +135,7 @@ Recommended behavior:
 
 ### Runtime
 
-The MAUI client should eventually support:
+The MAUI client supports:
 
 1. Detect runtime presence
 2. Detect runtime version
@@ -141,7 +144,7 @@ The MAUI client should eventually support:
 
 ### Models
 
-The MAUI client should eventually support:
+The MAUI client supports:
 
 1. Detect installed local model tags
 2. Check whether the selected InsTK grading model is available
@@ -150,7 +153,7 @@ The MAUI client should eventually support:
 
 ## Suggested MAUI Client UI States
 
-The workstation bootstrap screen should eventually show:
+The workstation bootstrap screen should show:
 
 * Ollama runtime status
 * Ollama runtime version

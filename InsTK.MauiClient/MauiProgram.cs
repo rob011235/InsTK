@@ -6,8 +6,15 @@ using Microsoft.Extensions.Logging;
 
 namespace InsTK.MauiClient;
 
+/// <summary>
+/// Configures the InsTK MAUI Blazor application and its dependency injection container.
+/// </summary>
 public static class MauiProgram
 {
+    /// <summary>
+    /// Creates the MAUI application instance.
+    /// </summary>
+    /// <returns>The configured MAUI application.</returns>
     public static MauiApp CreateMauiApp()
     {
         var builder = MauiApp.CreateBuilder();
@@ -22,6 +29,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<IClientSettingsService, ClientSettingsService>();
         builder.Services.AddSingleton<IWorkspaceService, WorkspaceService>();
         builder.Services.AddSingleton<IOllamaService, OllamaService>();
+        builder.Services.AddSingleton<IOllamaRuntimeService, OllamaRuntimeService>();
         builder.Services.AddSingleton<IBackendSessionService, BackendSessionService>();
 
 #if DEBUG

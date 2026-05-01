@@ -94,7 +94,9 @@ public sealed class ClientSettingsService : IClientSettingsService
     {
         return new DesktopClientSettings
         {
-            WorkspaceRoot = GetDefaultWorkspaceRoot()
+            WorkspaceRoot = GetDefaultWorkspaceRoot(),
+            ManagedOllamaRoot = GetDefaultManagedOllamaRoot(),
+            OllamaModelsRoot = GetDefaultOllamaModelsRoot()
         };
     }
 
@@ -109,7 +111,12 @@ public sealed class ClientSettingsService : IClientSettingsService
         {
             BackendBaseUrl = settings.BackendBaseUrl,
             OllamaBaseUrl = settings.OllamaBaseUrl,
-            WorkspaceRoot = settings.WorkspaceRoot
+            WorkspaceRoot = settings.WorkspaceRoot,
+            RequiredOllamaVersion = settings.RequiredOllamaVersion,
+            PrimaryOllamaModel = settings.PrimaryOllamaModel,
+            FallbackOllamaModel = settings.FallbackOllamaModel,
+            ManagedOllamaRoot = settings.ManagedOllamaRoot,
+            OllamaModelsRoot = settings.OllamaModelsRoot
         };
     }
 
@@ -124,6 +131,11 @@ public sealed class ClientSettingsService : IClientSettingsService
         settings.WorkspaceRoot = string.IsNullOrWhiteSpace(settings.WorkspaceRoot)
             ? GetDefaultWorkspaceRoot()
             : Path.GetFullPath(Environment.ExpandEnvironmentVariables(settings.WorkspaceRoot.Trim()));
+        settings.RequiredOllamaVersion = NormalizeRequiredValue(settings.RequiredOllamaVersion, "0.22.1");
+        settings.PrimaryOllamaModel = NormalizeRequiredValue(settings.PrimaryOllamaModel, "qwen3-coder:30b");
+        settings.FallbackOllamaModel = NormalizeRequiredValue(settings.FallbackOllamaModel, "deepseek-coder:6.7b");
+        settings.ManagedOllamaRoot = NormalizeRequiredPath(settings.ManagedOllamaRoot, GetDefaultManagedOllamaRoot());
+        settings.OllamaModelsRoot = NormalizeRequiredPath(settings.OllamaModelsRoot, GetDefaultOllamaModelsRoot());
     }
 
     /// <summary>
@@ -165,12 +177,53 @@ public sealed class ClientSettingsService : IClientSettingsService
     }
 
     /// <summary>
+    /// Trims a required non-path value and applies a fallback when it was not supplied.
+    /// </summary>
+    /// <param name="value">The value to normalize.</param>
+    /// <param name="fallback">The fallback value.</param>
+    /// <returns>The normalized value.</returns>
+    private static string NormalizeRequiredValue(string? value, string fallback)
+    {
+        return string.IsNullOrWhiteSpace(value) ? fallback : value.Trim();
+    }
+
+    /// <summary>
+    /// Normalizes a required local path, falling back when needed.
+    /// </summary>
+    /// <param name="path">The path to normalize.</param>
+    /// <param name="fallback">The fallback path.</param>
+    /// <returns>The normalized full path.</returns>
+    private static string NormalizeRequiredPath(string? path, string fallback)
+    {
+        var candidate = string.IsNullOrWhiteSpace(path) ? fallback : path.Trim();
+        return Path.GetFullPath(Environment.ExpandEnvironmentVariables(candidate));
+    }
+
+    /// <summary>
     /// Gets the default local workspace root for the MAUI client.
     /// </summary>
     /// <returns>The default workspace path.</returns>
     private static string GetDefaultWorkspaceRoot()
     {
         return Path.Combine(FileSystem.Current.AppDataDirectory, "Workspace");
+    }
+
+    /// <summary>
+    /// Gets the default local root for managed Ollama runtime files.
+    /// </summary>
+    /// <returns>The default managed runtime root path.</returns>
+    private static string GetDefaultManagedOllamaRoot()
+    {
+        return Path.Combine(FileSystem.Current.AppDataDirectory, "Dependencies", "Ollama");
+    }
+
+    /// <summary>
+    /// Gets the default local root for Ollama model storage.
+    /// </summary>
+    /// <returns>The default models root path.</returns>
+    private static string GetDefaultOllamaModelsRoot()
+    {
+        return Path.Combine(GetDefaultWorkspaceRoot(), "Models");
     }
 
     /// <summary>

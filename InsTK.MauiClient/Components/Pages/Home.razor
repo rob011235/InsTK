@@ -3,6 +3,7 @@
 @inject IClientSettingsService ClientSettingsService
 @inject IWorkspaceService WorkspaceService
 @inject IOllamaService OllamaService
+@inject IOllamaRuntimeService OllamaRuntimeService
 @inject IBackendSessionService BackendSessionService
 
 <PageTitle>InsTK Instructor Workstation</PageTitle>
@@ -43,6 +44,36 @@ else
                             <label class="form-label">Workspace Root</label>
                             <InputText class="form-control font-monospace" @bind-Value="settings.WorkspaceRoot" />
                             <div class="form-text">Local root folder for cloned repositories, runs, and grading reports.</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Required Ollama Version</label>
+                            <InputText class="form-control font-monospace" @bind-Value="settings.RequiredOllamaVersion" />
+                            <div class="form-text">Pinned managed runtime version required for grading on this workstation.</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Primary Ollama Model</label>
+                            <InputText class="form-control font-monospace" @bind-Value="settings.PrimaryOllamaModel" />
+                            <div class="form-text">Preferred model for standard grading runs.</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Fallback Ollama Model</label>
+                            <InputText class="form-control font-monospace" @bind-Value="settings.FallbackOllamaModel" />
+                            <div class="form-text">Fallback model for lower-resource grading workstations.</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Managed Ollama Root</label>
+                            <InputText class="form-control font-monospace" @bind-Value="settings.ManagedOllamaRoot" />
+                            <div class="form-text">Root folder where the MAUI client will manage the Ollama runtime.</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Ollama Models Root</label>
+                            <InputText class="form-control font-monospace" @bind-Value="settings.OllamaModelsRoot" />
+                            <div class="form-text">Root folder where Ollama should store downloaded models.</div>
                         </div>
 
                         <div class="d-flex gap-2">
@@ -120,6 +151,66 @@ else
 
                     @if (ollamaStatus is not null)
                     {
+                        <div class="status-panel mb-4">
+                            <div class="status-panel__header">
+                                <h3 class="h6 mb-0">Ollama Runtime Setup</h3>
+                                <span class="badge @GetRuntimeBadgeClass(ollamaRuntimeStatus?.State ?? OllamaRuntimeState.Missing)">
+                                    @GetRuntimeLabel(ollamaRuntimeStatus?.State ?? OllamaRuntimeState.Missing)
+                                </span>
+                            </div>
+
+                            @if (ollamaRuntimeStatus is not null)
+                            {
+                                <dl class="status-list">
+                                    <dt>Managed Runtime</dt>
+                                    <dd>@ollamaRuntimeStatus.ManagedExecutablePath</dd>
+                                    <dt>Required Version</dt>
+                                    <dd>@ollamaRuntimeStatus.RequiredVersion</dd>
+                                    <dt>Detected Version</dt>
+                                    <dd>@DisplayOrPlaceholder(ollamaRuntimeStatus.DetectedVersion)</dd>
+                                    <dt>Models Root</dt>
+                                    <dd>@ollamaRuntimeStatus.ModelsRoot</dd>
+                                    <dt>Primary Model</dt>
+                                    <dd>
+                                        @ollamaRuntimeStatus.PrimaryModel
+                                        <span class="runtime-chip @(ollamaRuntimeStatus.HasPrimaryModel ? "runtime-chip--ready" : "runtime-chip--missing")">
+                                            @(ollamaRuntimeStatus.HasPrimaryModel ? "Installed" : "Missing")
+                                        </span>
+                                    </dd>
+                                    <dt>Fallback Model</dt>
+                                    <dd>
+                                        @ollamaRuntimeStatus.FallbackModel
+                                        <span class="runtime-chip @(ollamaRuntimeStatus.HasFallbackModel ? "runtime-chip--ready" : "runtime-chip--missing")">
+                                            @(ollamaRuntimeStatus.HasFallbackModel ? "Installed" : "Missing")
+                                        </span>
+                                    </dd>
+                                    <dt>Summary</dt>
+                                    <dd>@ollamaRuntimeStatus.Summary</dd>
+                                    @if (!string.IsNullOrWhiteSpace(ollamaRuntimeStatus.ErrorMessage))
+                                    {
+                                        <dt>Error</dt>
+                                        <dd>@ollamaRuntimeStatus.ErrorMessage</dd>
+                                    }
+                                </dl>
+
+                                <div class="runtime-actions mt-3">
+                                    <button type="button" class="btn btn-primary" @onclick="InstallOrUpdateRuntimeAsync" disabled="@isRuntimeBusy">Install or Update Runtime</button>
+                                    <button type="button" class="btn btn-outline-primary" @onclick="StartRuntimeAsync" disabled="@isRuntimeBusy">Start Runtime</button>
+                                    <button type="button" class="btn btn-outline-secondary" @onclick="DownloadRequiredModelsAsync" disabled="@isRuntimeBusy">Download Required Models</button>
+                                </div>
+
+                                @if (!string.IsNullOrWhiteSpace(runtimeMessage))
+                                {
+                                    <div class="alert alert-success mt-3 mb-0" role="status">@runtimeMessage</div>
+                                }
+
+                                @if (!string.IsNullOrWhiteSpace(runtimeErrorMessage))
+                                {
+                                    <div class="alert alert-danger mt-3 mb-0" role="alert">@runtimeErrorMessage</div>
+                                }
+                            }
+                        </div>
+
                         <div class="status-panel">
                             <div class="status-panel__header">
                                 <h3 class="h6 mb-0">Ollama</h3>
@@ -131,6 +222,8 @@ else
                             <dl class="status-list">
                                 <dt>Base URL</dt>
                                 <dd>@DisplayOrPlaceholder(ollamaStatus.BaseUrl)</dd>
+                                <dt>Server Version</dt>
+                                <dd>@DisplayOrPlaceholder(ollamaStatus.ServerVersion)</dd>
                                 <dt>Models</dt>
                                 <dd>@ollamaStatus.ModelCount</dd>
                                 <dt>Summary</dt>
@@ -153,12 +246,16 @@ else
     private DesktopClientSettings settings = new();
     private WorkspaceSnapshot? workspace;
     private OllamaConnectionStatus? ollamaStatus;
+    private OllamaRuntimeStatus? ollamaRuntimeStatus;
     private BackendConnectionStatus? backendStatus;
     private bool isLoading = true;
     private bool isSaving;
     private bool isRefreshing;
+    private bool isRuntimeBusy;
     private string? saveMessage;
     private string? errorMessage;
+    private string? runtimeMessage;
+    private string? runtimeErrorMessage;
 
     /// <summary>
     /// Loads persisted workstation settings and probes the local service state.
@@ -229,6 +326,7 @@ else
             workspace = await WorkspaceService.EnsureCreatedAsync();
             backendStatus = await BackendSessionService.GetStatusAsync();
             ollamaStatus = await OllamaService.GetStatusAsync();
+            ollamaRuntimeStatus = await OllamaRuntimeService.GetRuntimeStatusAsync();
         }
         catch (Exception ex)
         {
@@ -241,6 +339,73 @@ else
     }
 
     /// <summary>
+    /// Downloads and installs or updates the managed Ollama runtime.
+    /// </summary>
+    /// <returns>A task that completes when the operation has finished.</returns>
+    private async Task InstallOrUpdateRuntimeAsync()
+    {
+        await RunRuntimeOperationAsync(() => OllamaRuntimeService.InstallOrUpdateManagedRuntimeAsync());
+    }
+
+    /// <summary>
+    /// Starts the managed Ollama runtime.
+    /// </summary>
+    /// <returns>A task that completes when the operation has finished.</returns>
+    private async Task StartRuntimeAsync()
+    {
+        await RunRuntimeOperationAsync(() => OllamaRuntimeService.StartManagedRuntimeAsync());
+    }
+
+    /// <summary>
+    /// Downloads the required grading models for the workstation policy.
+    /// </summary>
+    /// <returns>A task that completes when the operation has finished.</returns>
+    private async Task DownloadRequiredModelsAsync()
+    {
+        await RunRuntimeOperationAsync(() => OllamaRuntimeService.EnsureRequiredModelsAsync());
+    }
+
+    /// <summary>
+    /// Runs a managed Ollama runtime operation and refreshes workstation status afterward.
+    /// </summary>
+    /// <param name="operation">The operation to execute.</param>
+    /// <returns>A task that completes when the operation and refresh have finished.</returns>
+    private async Task RunRuntimeOperationAsync(Func<Task<OllamaRuntimeOperationResult>> operation)
+    {
+        isRuntimeBusy = true;
+        runtimeMessage = null;
+        runtimeErrorMessage = null;
+        saveMessage = null;
+        errorMessage = null;
+
+        try
+        {
+            var result = await operation();
+
+            if (result.IsSuccess)
+            {
+                runtimeMessage = result.Summary;
+            }
+            else
+            {
+                runtimeErrorMessage = string.IsNullOrWhiteSpace(result.ErrorMessage)
+                    ? result.Summary
+                    : $"{result.Summary} {result.ErrorMessage}";
+            }
+
+            await RefreshStatusAsync();
+        }
+        catch (Exception ex)
+        {
+            runtimeErrorMessage = ex.Message;
+        }
+        finally
+        {
+            isRuntimeBusy = false;
+        }
+    }
+
+    /// <summary>
     /// Returns a fallback label when a configuration value has not been supplied.
     /// </summary>
     /// <param name="value">The value to render.</param>
@@ -248,5 +413,33 @@ else
     private static string DisplayOrPlaceholder(string? value)
     {
         return string.IsNullOrWhiteSpace(value) ? "Not configured" : value;
+    }
+
+    /// <summary>
+    /// Maps the workstation runtime state to a badge style.
+    /// </summary>
+    /// <param name="state">The runtime state to classify.</param>
+    /// <returns>The CSS class to apply.</returns>
+    private static string GetRuntimeBadgeClass(OllamaRuntimeState state)
+    {
+        return state == OllamaRuntimeState.Ready ? "text-bg-success" : "text-bg-warning";
+    }
+
+    /// <summary>
+    /// Maps the workstation runtime state to a short label.
+    /// </summary>
+    /// <param name="state">The runtime state to classify.</param>
+    /// <returns>The display label.</returns>
+    private static string GetRuntimeLabel(OllamaRuntimeState state)
+    {
+        return state switch
+        {
+            OllamaRuntimeState.Missing => "Missing",
+            OllamaRuntimeState.WrongVersion => "Wrong Version",
+            OllamaRuntimeState.EndpointUnavailable => "Not Running",
+            OllamaRuntimeState.ModelMissing => "Model Missing",
+            OllamaRuntimeState.Ready => "Ready",
+            _ => "Attention"
+        };
     }
 }
