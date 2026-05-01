@@ -5,7 +5,7 @@ using InsTK.MauiClient.Models;
 namespace InsTK.MauiClient.Services.Brightspace;
 
 /// <summary>
-/// Provides local Brightspace browser automation for login and submission scraping.
+/// Provides local Brightspace browser automation for login, discovery, and submission scraping.
 /// </summary>
 public interface IBrightspaceAutomationService
 {
@@ -30,6 +30,13 @@ public interface IBrightspaceAutomationService
     /// </summary>
     /// <param name="cancellationToken">A token used to cancel the operation.</param>
     Task SaveLoginSessionAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Discovers the current instructor-visible Brightspace courses from the authenticated home experience.
+    /// </summary>
+    /// <param name="cancellationToken">A token used to cancel the operation.</param>
+    /// <returns>The discovered Brightspace course catalog.</returns>
+    Task<BrightspaceCourseCatalogResult> DiscoverCoursesAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Scrapes the Brightspace Quick Eval queue and submission detail pages into a merged submission map.

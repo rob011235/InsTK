@@ -23,9 +23,9 @@ public sealed class DesktopClientSettings
     public string BrightspaceBrowserChannel { get; set; } = "msedge";
 
     /// <summary>
-    /// Gets or sets the Brightspace Quick Eval URL used to enumerate submissions.
+    /// Gets or sets the Brightspace base URL used to open the LMS home experience.
     /// </summary>
-    public string? BrightspaceQuickEvalUrl { get; set; }
+    public string? BrightspaceBaseUrl { get; set; } = "https://mycourses.cnm.edu";
 
     /// <summary>
     /// Gets or sets the local session-state file used for saved Brightspace sign-in state.

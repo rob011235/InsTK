@@ -52,7 +52,7 @@ else
                         <div class="settings-section">
                             <div class="settings-section__header">
                                 <h3 class="h5 mb-1">Brightspace</h3>
-                                <p class="mb-0 text-body-secondary">Local browser automation settings used to log into Brightspace and scrape the Quick Eval queue on this workstation.</p>
+                                <p class="mb-0 text-body-secondary">Local browser automation settings used to log into Brightspace, save the workstation session, and discover available courses on this workstation.</p>
                             </div>
 
                             <div class="mb-3">
@@ -62,9 +62,9 @@ else
                             </div>
 
                             <div class="mb-3">
-                                <label class="form-label">Brightspace Quick Eval URL</label>
-                                <InputText class="form-control font-monospace" @bind-Value="settings.BrightspaceQuickEvalUrl" />
-                                <div class="form-text">The Quick Eval page for the target Brightspace course.</div>
+                                <label class="form-label">Brightspace Base URL</label>
+                                <InputText class="form-control font-monospace" @bind-Value="settings.BrightspaceBaseUrl" />
+                                <div class="form-text">Use the Brightspace root URL, such as https://mycourses.cnm.edu.</div>
                             </div>
 
                             <div class="mb-3">
@@ -76,7 +76,7 @@ else
                             <div class="mb-0">
                                 <label class="form-label">Brightspace Submission Map Path</label>
                                 <InputText class="form-control font-monospace" @bind-Value="settings.BrightspaceSubmissionMapOutPath" />
-                                <div class="form-text">Local JSON output path for merged Quick Eval and submission-detail scrape results.</div>
+                                <div class="form-text">Reserved local JSON output path for Brightspace-derived grading artifacts.</div>
                             </div>
                         </div>
 

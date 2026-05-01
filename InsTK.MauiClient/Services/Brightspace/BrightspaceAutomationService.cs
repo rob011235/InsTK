@@ -48,8 +48,8 @@ public sealed class BrightspaceAutomationService(IClientSettingsService clientSe
             }
 
             var settings = await clientSettingsService.GetAsync(cancellationToken);
-            var quickEvalUrl = settings.BrightspaceQuickEvalUrl
-                ?? throw new InvalidOperationException("Brightspace Quick Eval URL is not configured.");
+            var baseUrl = settings.BrightspaceBaseUrl
+                ?? throw new InvalidOperationException("Brightspace base URL is not configured.");
             var statePath = settings.BrightspaceStatePath;
 
             Directory.CreateDirectory(Path.GetDirectoryName(statePath)!);
@@ -62,8 +62,8 @@ public sealed class BrightspaceAutomationService(IClientSettingsService clientSe
             loginContext = await browser.NewContextAsync();
             var page = await loginContext.NewPageAsync();
 
-            ReportActivity($"Opening {quickEvalUrl}");
-            await page.GotoAsync(quickEvalUrl, new PageGotoOptions { WaitUntil = WaitUntilState.NetworkIdle });
+            ReportActivity($"Opening {baseUrl}");
+            await page.GotoAsync(baseUrl, new PageGotoOptions { WaitUntil = WaitUntilState.NetworkIdle });
             ReportActivity("Complete the Brightspace login in the browser, then use 'Save Session' in the app.");
         }
         catch (Exception ex)
@@ -105,6 +105,74 @@ public sealed class BrightspaceAutomationService(IClientSettingsService clientSe
     }
 
     /// <inheritdoc />
+    public async Task<BrightspaceCourseCatalogResult> DiscoverCoursesAsync(CancellationToken cancellationToken = default)
+    {
+        await gate.WaitAsync(cancellationToken);
+
+        try
+        {
+            if (loginContext is not null)
+            {
+                throw new InvalidOperationException("Save the open Brightspace login session before discovering courses.");
+            }
+
+            var settings = await clientSettingsService.GetAsync(cancellationToken);
+            var baseUrl = settings.BrightspaceBaseUrl
+                ?? throw new InvalidOperationException("Brightspace base URL is not configured.");
+            var statePath = settings.BrightspaceStatePath;
+
+            if (!File.Exists(statePath))
+            {
+                throw new InvalidOperationException("Brightspace session state was not found. Run Brightspace login first.");
+            }
+
+            var driverPath = PlaywrightDriverLocator.EnsureConfigured();
+            ReportActivity(PlaywrightDriverLocator.Describe(driverPath));
+
+            using var ephemeralPlaywright = await Playwright.CreateAsync();
+            await using var ephemeralBrowser = await LaunchBrowserAsync(ephemeralPlaywright, settings.BrightspaceBrowserChannel, headless: true);
+            var context = await ephemeralBrowser.NewContextAsync(new BrowserNewContextOptions
+            {
+                StorageStatePath = statePath,
+            });
+
+            var page = await context.NewPageAsync();
+            ReportActivity($"Discovering courses from {baseUrl}");
+            await page.GotoAsync(baseUrl, new PageGotoOptions { WaitUntil = WaitUntilState.NetworkIdle });
+            await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+
+            var courses = await ReadCourseCatalogAcrossTermsAsync(page, baseUrl);
+            if (courses.Count == 0)
+            {
+                throw await BuildCourseDiscoveryExceptionAsync(page, "No Brightspace course links were detected on the authenticated landing page.");
+            }
+
+            var termLabels = courses
+                .Select(static course => course.TermLabel)
+                .Where(static label => !string.IsNullOrWhiteSpace(label))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(static label => label, StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+
+            ReportActivity($"Discovered {courses.Count} course(s) across {termLabels.Length} term group(s).");
+            return new BrightspaceCourseCatalogResult(
+                baseUrl,
+                DateTimeOffset.UtcNow,
+                termLabels,
+                courses);
+        }
+        catch (Exception ex)
+        {
+            ReportActivity(ex.Message, true);
+            throw;
+        }
+        finally
+        {
+            gate.Release();
+        }
+    }
+
+    /// <inheritdoc />
     public async Task<BrightspaceSubmissionMapResult> ScrapeSubmissionMapAsync(int? limit = null, CancellationToken cancellationToken = default)
     {
         await gate.WaitAsync(cancellationToken);
@@ -117,8 +185,8 @@ public sealed class BrightspaceAutomationService(IClientSettingsService clientSe
             }
 
             var settings = await clientSettingsService.GetAsync(cancellationToken);
-            var quickEvalUrl = settings.BrightspaceQuickEvalUrl
-                ?? throw new InvalidOperationException("Brightspace Quick Eval URL is not configured.");
+            var quickEvalUrl = settings.BrightspaceBaseUrl
+                ?? throw new InvalidOperationException("Brightspace base URL is not configured.");
             var statePath = settings.BrightspaceStatePath;
             var outPath = settings.BrightspaceSubmissionMapOutPath;
 
@@ -315,6 +383,99 @@ public sealed class BrightspaceAutomationService(IClientSettingsService clientSe
         }
 
         return submissions;
+    }
+
+    private static async Task<List<BrightspaceCourseOption>> ReadCourseCatalogAsync(IPage page, string baseUrl)
+    {
+        var baseUri = new Uri(baseUrl, UriKind.Absolute);
+        var selector = "a[href*='/d2l/home/'], a[href*='/d2l/home?ou='], a[href*='/d2l/home/?ou=']";
+        var anchors = page.Locator(selector);
+        var count = await anchors.CountAsync();
+        var results = new List<BrightspaceCourseOption>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        for (var i = 0; i < count; i++)
+        {
+            var anchor = anchors.Nth(i);
+            var href = await anchor.GetAttributeAsync("href");
+            var resolvedUrl = ToAbsoluteUrl(baseUri, href);
+
+            if (string.IsNullOrWhiteSpace(resolvedUrl))
+            {
+                continue;
+            }
+
+            var courseId = TryExtractCourseId(resolvedUrl);
+            if (string.IsNullOrWhiteSpace(courseId))
+            {
+                continue;
+            }
+
+            var text = NormalizeWhitespace(await anchor.InnerTextAsync());
+            var title = NormalizeWhitespace(await anchor.GetAttributeAsync("title"));
+            var ariaLabel = NormalizeWhitespace(await anchor.GetAttributeAsync("aria-label"));
+            var label = FirstNonEmpty(text, title, ariaLabel);
+            if (string.IsNullOrWhiteSpace(label))
+            {
+                continue;
+            }
+
+            var key = $"{courseId}|{label}".ToLowerInvariant();
+            if (!seen.Add(key))
+            {
+                continue;
+            }
+
+            var courseCode = TryReadCourseCode(label);
+            var termLabel = BrightspaceTermLabelParser.ParseOrDefault(label);
+            results.Add(new BrightspaceCourseOption(
+                label,
+                resolvedUrl,
+                courseId,
+                termLabel,
+                courseCode));
+        }
+
+        return results
+            .OrderBy(static course => course.TermLabel, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(static course => course.Name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    private static async Task<List<BrightspaceCourseOption>> ReadCourseCatalogAcrossTermsAsync(IPage page, string baseUrl)
+    {
+        var merged = MergeCourses(Array.Empty<BrightspaceCourseOption>(), await ReadCourseCatalogAsync(page, baseUrl));
+        var termFilters = await ReadAvailableTermFilterLabelsAsync(page);
+
+        foreach (var termFilter in termFilters)
+        {
+            if (!await ActivateTermFilterAsync(page, termFilter))
+            {
+                continue;
+            }
+
+            await WaitForCourseListRefreshAsync(page);
+            var visibleCourses = await ReadCourseCatalogAsync(page, baseUrl);
+
+            if (visibleCourses.Count == 0)
+            {
+                continue;
+            }
+
+            var relabeledCourses = visibleCourses
+                .Select(course => course with
+                {
+                    TermLabel = NormalizeTermFilterLabel(termFilter, course.TermLabel),
+                })
+                .ToArray();
+
+            merged = MergeCourses(merged, relabeledCourses);
+        }
+
+        return merged
+            .OrderBy(static course => course.TermLabel, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(static course => course.Name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
     }
 
     private static async Task<List<BrightspaceQuickEvalSubmission>> ReadQuickEvalRowsAsync(IPage page, string url)
@@ -829,6 +990,286 @@ public sealed class BrightspaceAutomationService(IClientSettingsService clientSe
                 .Where(static line => !string.IsNullOrWhiteSpace(line)));
     }
 
+    private static async Task<InvalidOperationException> BuildCourseDiscoveryExceptionAsync(IPage page, string prefix)
+    {
+        var title = await page.TitleAsync();
+        var currentUrl = page.Url;
+        var anchorCount = await page.Locator("a[href]").CountAsync();
+        var candidateLinks = await ReadCandidateCourseLinksAsync(page);
+        var bodySnippet = await page.EvaluateAsync<string>(
+            """
+            () => {
+              const text = (document.body?.innerText || '').replace(/\s+/g, ' ').trim();
+              return text.slice(0, 500);
+            }
+            """);
+
+        var message = string.Join(
+            Environment.NewLine,
+            [
+                prefix,
+                $"Page title: {title}",
+                $"Page URL: {currentUrl}",
+                $"Anchor count: {anchorCount}",
+                $"Candidate links: {(candidateLinks.Count == 0 ? "none" : string.Join(" | ", candidateLinks))}",
+                $"Body preview: {bodySnippet}",
+            ]);
+
+        return new InvalidOperationException(message);
+    }
+
+    private static string? TryReadCourseCode(string? courseName)
+    {
+        if (string.IsNullOrWhiteSpace(courseName))
+        {
+            return null;
+        }
+
+        var match = Regex.Match(courseName, @"\b[A-Z]{3,5}\s*\d{3,5}\b", RegexOptions.IgnoreCase);
+        return match.Success ? match.Value.Trim() : null;
+    }
+
+    private static string? TryExtractCourseId(string url)
+    {
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
+        {
+            return null;
+        }
+
+        var pathMatch = Regex.Match(uri.AbsolutePath, @"/d2l/home/(\d+)", RegexOptions.IgnoreCase);
+        if (pathMatch.Success)
+        {
+            return pathMatch.Groups[1].Value;
+        }
+
+        var query = uri.Query.TrimStart('?');
+        if (string.IsNullOrWhiteSpace(query))
+        {
+            return null;
+        }
+
+        foreach (var part in query.Split('&', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            var pieces = part.Split('=', 2);
+            if (!string.Equals(pieces[0], "ou", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            if (pieces.Length < 2 || string.IsNullOrWhiteSpace(pieces[1]))
+            {
+                return null;
+            }
+
+            return Uri.UnescapeDataString(pieces[1]).Trim();
+        }
+
+        return null;
+    }
+
+    private static string? FirstNonEmpty(params string?[] values)
+        => values.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
+
+    private static List<BrightspaceCourseOption> MergeCourses(IEnumerable<BrightspaceCourseOption> existing, IEnumerable<BrightspaceCourseOption> additional)
+    {
+        var merged = new Dictionary<string, BrightspaceCourseOption>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var course in existing.Concat(additional))
+        {
+            var key = $"{course.CourseId}|{course.Name}";
+
+            if (!merged.TryGetValue(key, out var current))
+            {
+                merged[key] = course;
+                continue;
+            }
+
+            var replacement = current with
+            {
+                Url = string.IsNullOrWhiteSpace(current.Url) ? course.Url : current.Url,
+                CourseCode = string.IsNullOrWhiteSpace(current.CourseCode) ? course.CourseCode : current.CourseCode,
+                TermLabel = PreferMoreSpecificTerm(current.TermLabel, course.TermLabel),
+            };
+
+            merged[key] = replacement;
+        }
+
+        return merged.Values.ToList();
+    }
+
+    private static string PreferMoreSpecificTerm(string current, string candidate)
+    {
+        if (string.IsNullOrWhiteSpace(current) || string.Equals(current, "Uncategorized", StringComparison.OrdinalIgnoreCase))
+        {
+            return candidate;
+        }
+
+        if (string.IsNullOrWhiteSpace(candidate) || string.Equals(candidate, "Uncategorized", StringComparison.OrdinalIgnoreCase))
+        {
+            return current;
+        }
+
+        return current;
+    }
+
+    private static string NormalizeTermFilterLabel(string termFilter, string parsedTermLabel)
+    {
+        if (string.IsNullOrWhiteSpace(termFilter)
+            || string.Equals(termFilter, "All", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(termFilter, "All Terms", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(termFilter, "All Semesters", StringComparison.OrdinalIgnoreCase))
+        {
+            return parsedTermLabel;
+        }
+
+        return termFilter;
+    }
+
+    private static async Task<List<string>> ReadAvailableTermFilterLabelsAsync(IPage page)
+    {
+        return await page.EvaluateAsync<List<string>>(
+            """
+            () => {
+              const results = [];
+              const seen = new Set();
+              const termRegex = /\b(?:spring|summer|fall|autumn|winter)\s+20\d{2}\b|\b20\d{2}\s+(?:spring|summer|fall|autumn|winter)\b/i;
+              const genericRegex = /^(all|all terms|all semesters)$/i;
+              const selectors = [
+                'select option',
+                '[role="tab"]',
+                'button',
+                '[role="button"]',
+                'a',
+              ];
+
+              for (const selector of selectors) {
+                for (const node of document.querySelectorAll(selector)) {
+                  const text = (node.textContent || '').replace(/\s+/g, ' ').trim();
+                  if (!text || text.length > 40) {
+                    continue;
+                  }
+
+                  if (!termRegex.test(text) && !genericRegex.test(text)) {
+                    continue;
+                  }
+
+                  const key = text.toLowerCase();
+                  if (seen.has(key)) {
+                    continue;
+                  }
+
+                  seen.add(key);
+                  results.push(text);
+                }
+              }
+
+              return results;
+            }
+            """);
+    }
+
+    private static async Task<bool> ActivateTermFilterAsync(IPage page, string label)
+    {
+        if (await TryActivateSelectOptionAsync(page, label))
+        {
+            return true;
+        }
+
+        var tabLocator = page.GetByRole(AriaRole.Tab, new() { Name = label, Exact = true }).First;
+        if (await IsActionableAsync(tabLocator))
+        {
+            await tabLocator.ClickAsync();
+            return true;
+        }
+
+        var buttonLocator = page.GetByRole(AriaRole.Button, new() { Name = label, Exact = true }).First;
+        if (await IsActionableAsync(buttonLocator))
+        {
+            await buttonLocator.ClickAsync();
+            return true;
+        }
+
+        var fallbackLocator = page.GetByText(label, new() { Exact = true }).First;
+        if (await IsActionableAsync(fallbackLocator))
+        {
+            await fallbackLocator.ClickAsync();
+            return true;
+        }
+
+        return false;
+    }
+
+    private static async Task<bool> TryActivateSelectOptionAsync(IPage page, string label)
+    {
+        var selects = page.Locator("select");
+        var selectCount = await selects.CountAsync();
+
+        for (var i = 0; i < selectCount; i++)
+        {
+            var select = selects.Nth(i);
+            var optionValues = await select.EvaluateAsync<string[]>(
+                """
+                (element, desiredLabel) => {
+                  if (!(element instanceof HTMLSelectElement)) {
+                    return [];
+                  }
+
+                  return [...element.options]
+                    .filter(option => (option.textContent || '').replace(/\s+/g, ' ').trim() === desiredLabel)
+                    .map(option => option.value);
+                }
+                """,
+                label);
+
+            if (optionValues.Length == 0)
+            {
+                continue;
+            }
+
+            await select.SelectOptionAsync(new[] { optionValues[0] });
+            return true;
+        }
+
+        return false;
+    }
+
+    private static async Task WaitForCourseListRefreshAsync(IPage page)
+    {
+        try
+        {
+            await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        }
+        catch
+        {
+        }
+
+        await page.WaitForTimeoutAsync(750);
+    }
+
+    private static async Task<List<string>> ReadCandidateCourseLinksAsync(IPage page)
+    {
+        var selector = "a[href*='/d2l/home/'], a[href*='/d2l/home?ou='], a[href*='/d2l/home/?ou=']";
+        var anchors = page.Locator(selector);
+        var count = Math.Min(await anchors.CountAsync(), 12);
+        var results = new List<string>();
+
+        for (var i = 0; i < count; i++)
+        {
+            var anchor = anchors.Nth(i);
+            var href = await anchor.GetAttributeAsync("href");
+            var text = NormalizeWhitespace(await anchor.InnerTextAsync());
+            var title = NormalizeWhitespace(await anchor.GetAttributeAsync("title"));
+            var label = FirstNonEmpty(text, title, href);
+
+            if (!string.IsNullOrWhiteSpace(label))
+            {
+                results.Add(label);
+            }
+        }
+
+        return results;
+    }
+
     private static async Task<PlaywrightBrowser> LaunchBrowserAsync(IPlaywright playwright, string? channel, bool headless)
     {
         var resolvedChannel = string.IsNullOrWhiteSpace(channel)
@@ -857,4 +1298,5 @@ public sealed class BrightspaceAutomationService(IClientSettingsService clientSe
     }
 
     private sealed record QuickEvalPageState(bool HasRows, bool IsEmpty, string? DiagnosticMessage);
+
 }

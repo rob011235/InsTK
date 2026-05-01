@@ -5,6 +5,25 @@ using System.Text.RegularExpressions;
 namespace InsTK.MauiClient.Models;
 
 /// <summary>
+/// Represents a discoverable Brightspace course option for the signed-in instructor.
+/// </summary>
+public sealed record BrightspaceCourseOption(
+    string Name,
+    string Url,
+    string CourseId,
+    string TermLabel,
+    string? CourseCode);
+
+/// <summary>
+/// Represents the discovered Brightspace course catalog for the current session.
+/// </summary>
+public sealed record BrightspaceCourseCatalogResult(
+    string BaseUrl,
+    DateTimeOffset ScrapedAt,
+    IReadOnlyList<string> TermLabels,
+    IReadOnlyList<BrightspaceCourseOption> Courses);
+
+/// <summary>
 /// Represents a single Quick Eval row discovered in Brightspace.
 /// </summary>
 public sealed record BrightspaceQuickEvalSubmission(
@@ -170,4 +189,35 @@ internal static class BrightspaceAssignmentClassifier
             && (activityName.Contains("Program", StringComparison.OrdinalIgnoreCase)
                 || activityName.Contains("Competency", StringComparison.OrdinalIgnoreCase)
                 || ProgramCodePrefixRegex.IsMatch(activityName));
+}
+
+internal static class BrightspaceTermLabelParser
+{
+    private static readonly Regex SeasonYearRegex = new(
+        @"\b(Spring|Summer|Fall|Autumn|Winter)\s+20\d{2}\b",
+        RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+    private static readonly Regex YearSeasonRegex = new(
+        @"\b20\d{2}\s+(Spring|Summer|Fall|Autumn|Winter)\b",
+        RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+    public static string ParseOrDefault(string? courseName)
+    {
+        if (!string.IsNullOrWhiteSpace(courseName))
+        {
+            var seasonYear = SeasonYearRegex.Match(courseName);
+            if (seasonYear.Success)
+            {
+                return seasonYear.Value.Trim();
+            }
+
+            var yearSeason = YearSeasonRegex.Match(courseName);
+            if (yearSeason.Success)
+            {
+                return yearSeason.Value.Trim();
+            }
+        }
+
+        return "Uncategorized";
+    }
 }

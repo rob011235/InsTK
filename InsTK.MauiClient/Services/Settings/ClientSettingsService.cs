@@ -114,7 +114,7 @@ public sealed class ClientSettingsService : IClientSettingsService
             BackendBaseUrl = settings.BackendBaseUrl,
             OllamaBaseUrl = settings.OllamaBaseUrl,
             BrightspaceBrowserChannel = settings.BrightspaceBrowserChannel,
-            BrightspaceQuickEvalUrl = settings.BrightspaceQuickEvalUrl,
+            BrightspaceBaseUrl = settings.BrightspaceBaseUrl,
             BrightspaceStatePath = settings.BrightspaceStatePath,
             BrightspaceSubmissionMapOutPath = settings.BrightspaceSubmissionMapOutPath,
             WorkspaceRoot = settings.WorkspaceRoot,
@@ -137,7 +137,7 @@ public sealed class ClientSettingsService : IClientSettingsService
         settings.BackendBaseUrl = NormalizeLegacyBackendBaseUrl(settings.BackendBaseUrl);
         settings.OllamaBaseUrl = NormalizeRequiredUrl(settings.OllamaBaseUrl, "http://127.0.0.1:11434");
         settings.BrightspaceBrowserChannel = NormalizeRequiredValue(settings.BrightspaceBrowserChannel, "msedge");
-        settings.BrightspaceQuickEvalUrl = NormalizeOptionalUrl(settings.BrightspaceQuickEvalUrl);
+        settings.BrightspaceBaseUrl = NormalizeBrightspaceBaseUrl(settings.BrightspaceBaseUrl);
         settings.BrightspaceStatePath = NormalizeRequiredPath(settings.BrightspaceStatePath, GetDefaultBrightspaceStatePath());
         settings.BrightspaceSubmissionMapOutPath = NormalizeRequiredPath(settings.BrightspaceSubmissionMapOutPath, GetDefaultBrightspaceSubmissionMapOutPath());
         settings.WorkspaceRoot = string.IsNullOrWhiteSpace(settings.WorkspaceRoot)
@@ -243,6 +243,28 @@ public sealed class ClientSettingsService : IClientSettingsService
     private static string GetDefaultManagedOllamaRoot()
     {
         return Path.Combine(FileSystem.Current.AppDataDirectory, "Dependencies", "Ollama");
+    }
+
+    /// <summary>
+    /// Normalizes the Brightspace base URL and migrates older deep-link settings when present.
+    /// </summary>
+    /// <param name="value">The configured Brightspace base URL.</param>
+    /// <returns>The normalized Brightspace base URL.</returns>
+    private static string NormalizeBrightspaceBaseUrl(string? value)
+    {
+        var normalized = NormalizeOptionalUrl(value);
+
+        if (string.IsNullOrWhiteSpace(normalized))
+        {
+            return "https://mycourses.cnm.edu";
+        }
+
+        if (!Uri.TryCreate(normalized, UriKind.Absolute, out var uri))
+        {
+            return normalized;
+        }
+
+        return uri.GetLeftPart(UriPartial.Authority).TrimEnd('/');
     }
 
     /// <summary>
