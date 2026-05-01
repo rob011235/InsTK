@@ -1,6 +1,7 @@
 using InsTK.MauiClient.Services.Backend;
 using InsTK.MauiClient.Services.Ollama;
 using InsTK.MauiClient.Services.Settings;
+using InsTK.MauiClient.Services.Workstation;
 using InsTK.MauiClient.Services.Workspace;
 using Microsoft.Extensions.Logging;
 
@@ -27,8 +28,11 @@ public static class MauiProgram
 
         builder.Services.AddMauiBlazorWebView();
         builder.Services.AddSingleton<IClientSettingsService, ClientSettingsService>();
+        builder.Services.AddSingleton<IWorkstationProfileService, WorkstationProfileService>();
         builder.Services.AddSingleton<IWorkspaceService, WorkspaceService>();
+        builder.Services.AddSingleton<IOllamaModelCatalogService, OllamaModelCatalogService>();
         builder.Services.AddSingleton<IOllamaService, OllamaService>();
+        builder.Services.AddSingleton<IOllamaPromptService, OllamaPromptService>();
         builder.Services.AddSingleton<IOllamaRuntimeService, OllamaRuntimeService>();
         builder.Services.AddSingleton<IBackendSessionService, BackendSessionService>();
 

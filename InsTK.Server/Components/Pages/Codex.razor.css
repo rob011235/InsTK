@@ -1,0 +1,153 @@
+.codex-page {
+    display: grid;
+    gap: 1.5rem;
+    max-width: 960px;
+}
+
+.codex-hero,
+.codex-console,
+.codex-transcript {
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    border-radius: 1rem;
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.98));
+    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+    padding: 1.5rem;
+}
+
+.codex-hero {
+    background:
+        radial-gradient(circle at top right, rgba(14, 165, 233, 0.18), transparent 28%),
+        linear-gradient(135deg, #0f172a, #1e293b 60%, #334155);
+    color: #e2e8f0;
+}
+
+.codex-eyebrow {
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #7dd3fc;
+}
+
+.codex-hero h1 {
+    margin-bottom: 0.5rem;
+    font-size: clamp(2rem, 3vw, 2.8rem);
+}
+
+.codex-description {
+    margin-bottom: 0;
+    max-width: 42rem;
+    color: rgba(226, 232, 240, 0.88);
+}
+
+.codex-console__input {
+    min-height: 180px;
+    margin-bottom: 1rem;
+    resize: vertical;
+}
+
+.codex-console__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.codex-console__chip {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    padding: 0.35rem 0.8rem;
+    background: #e2e8f0;
+    color: #0f172a;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.codex-console__actions {
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.codex-console__hint {
+    color: #475569;
+}
+
+.codex-empty-state {
+    margin-top: 1rem;
+    border: 1px dashed #cbd5e1;
+    border-radius: 0.75rem;
+    padding: 1.25rem;
+    color: #64748b;
+    background: #f8fafc;
+}
+
+.codex-transcript__list {
+    display: grid;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.codex-entry {
+    border: 1px solid #dbe4ee;
+    border-radius: 0.85rem;
+    background: #ffffff;
+    padding: 1rem 1rem 0.9rem;
+}
+
+.codex-entry--assistant {
+    background: linear-gradient(180deg, #eff6ff, #ffffff);
+    border-color: #bfdbfe;
+}
+
+.codex-entry__header {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 0.6rem;
+    align-items: center;
+}
+
+.codex-entry__role {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    padding: 0.25rem 0.6rem;
+    background: #dbeafe;
+    color: #1d4ed8;
+    font-weight: 700;
+    font-size: 0.85rem;
+}
+
+.codex-entry--assistant .codex-entry__role {
+    background: #d1fae5;
+    color: #047857;
+}
+
+.codex-entry__time {
+    color: #64748b;
+    font-size: 0.9rem;
+}
+
+.codex-entry__prompt {
+    margin-bottom: 0;
+    white-space: pre-wrap;
+    color: #0f172a;
+}
+
+@media (max-width: 767.98px) {
+    .codex-hero,
+    .codex-console,
+    .codex-transcript {
+        padding: 1rem;
+    }
+
+    .codex-console__actions,
+    .codex-entry__header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}

@@ -5,6 +5,7 @@ using InsTK.WebClient.Pages;
 using InsTK.Server.Components;
 using InsTK.Server.Components.Account;
 using InsTK.Server.Data;
+using InsTK.Server.Services.Ollama;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -42,6 +43,14 @@ namespace InsTK.Server
             builder.Services.AddCascadingAuthenticationState();
             builder.Services.AddScoped<IdentityRedirectManager>();
             builder.Services.AddScoped<AuthenticationStateProvider, IdentityRevalidatingAuthenticationStateProvider>();
+            builder.Services.Configure<OllamaChatOptions>(builder.Configuration.GetSection("Ollama"));
+            builder.Services.AddHttpClient<IOllamaChatService, OllamaChatService>((services, client) =>
+            {
+                var options = services.GetRequiredService<Microsoft.Extensions.Options.IOptions<OllamaChatOptions>>().Value;
+                var baseUrl = string.IsNullOrWhiteSpace(options.BaseUrl) ? "http://127.0.0.1:11434" : options.BaseUrl.Trim().TrimEnd('/');
+                client.BaseAddress = new Uri($"{baseUrl}/", UriKind.Absolute);
+                client.Timeout = TimeSpan.FromMinutes(2);
+            });
 
             builder.Services.AddAuthentication(options =>
                 {

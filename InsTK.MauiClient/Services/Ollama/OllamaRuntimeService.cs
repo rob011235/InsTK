@@ -339,26 +339,78 @@ public sealed partial class OllamaRuntimeService(
 
         foreach (var model in modelsToEnsure)
         {
-            ReportActivity($"Ensuring required model {model} is available locally.");
-            var pullProgressKey = BuildModelPullCollapseKey(model);
-            ReportActivity($"Downloading model {model}.", collapseKey: pullProgressKey);
-            var pullResult = await RunManagedCommandAsync(
-                executablePath,
-                $"pull {model}",
-                settings,
-                cancellationToken,
-                pullProgressCollapseKey: pullProgressKey);
+            var pullResult = await EnsureModelCoreAsync(executablePath, settings, model, cancellationToken);
 
             if (!pullResult.IsSuccess)
             {
-                return Fail($"Failed while downloading required model {model}.", pullResult.ErrorMessage);
+                return pullResult;
             }
-
-            ReportActivity($"Model {model} is available locally.", collapseKey: pullProgressKey);
         }
 
         ReportActivity("Required Ollama grading models are installed.");
         return new OllamaRuntimeOperationResult(true, "Required Ollama grading models are installed.", null);
+    }
+
+    /// <inheritdoc />
+    public async Task<OllamaRuntimeOperationResult> EnsureModelAsync(string model, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(model))
+        {
+            return new OllamaRuntimeOperationResult(false, "Select a model before downloading.", null);
+        }
+
+        var settings = await clientSettingsService.GetAsync(cancellationToken);
+        var executablePath = GetManagedExecutablePath(settings);
+
+        if (!File.Exists(executablePath))
+        {
+            return new OllamaRuntimeOperationResult(false, "Managed Ollama runtime must be installed before models can be downloaded.", null);
+        }
+
+        var startResult = await StartManagedRuntimeAsync(cancellationToken);
+
+        if (!startResult.IsSuccess)
+        {
+            return startResult;
+        }
+
+        return await EnsureModelCoreAsync(executablePath, settings, model.Trim(), cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public async Task<OllamaRuntimeOperationResult> RemoveModelAsync(string model, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(model))
+        {
+            return new OllamaRuntimeOperationResult(false, "Select an installed model before removing it.", null);
+        }
+
+        var settings = await clientSettingsService.GetAsync(cancellationToken);
+        var executablePath = GetManagedExecutablePath(settings);
+
+        if (!File.Exists(executablePath))
+        {
+            return new OllamaRuntimeOperationResult(false, "Managed Ollama runtime must be installed before models can be removed.", null);
+        }
+
+        var startResult = await StartManagedRuntimeAsync(cancellationToken);
+
+        if (!startResult.IsSuccess)
+        {
+            return startResult;
+        }
+
+        var normalizedModel = model.Trim();
+        ReportActivity($"Removing model {normalizedModel} from local storage.");
+        var result = await RunManagedCommandAsync(executablePath, $"rm {normalizedModel}", settings, cancellationToken);
+
+        if (!result.IsSuccess)
+        {
+            return Fail($"Failed while removing model {normalizedModel}.", result.ErrorMessage);
+        }
+
+        ReportActivity($"Model {normalizedModel} was removed.");
+        return new OllamaRuntimeOperationResult(true, $"Model {normalizedModel} was removed.", null);
     }
 
     /// <summary>
@@ -622,6 +674,31 @@ public sealed partial class OllamaRuntimeService(
     private static string BuildModelPullCollapseKey(string model)
     {
         return $"pull:{model.Trim()}";
+    }
+
+    private async Task<OllamaRuntimeOperationResult> EnsureModelCoreAsync(
+        string executablePath,
+        DesktopClientSettings settings,
+        string model,
+        CancellationToken cancellationToken)
+    {
+        ReportActivity($"Ensuring model {model} is available locally.");
+        var pullProgressKey = BuildModelPullCollapseKey(model);
+        ReportActivity($"Downloading model {model}.", collapseKey: pullProgressKey);
+        var pullResult = await RunManagedCommandAsync(
+            executablePath,
+            $"pull {model}",
+            settings,
+            cancellationToken,
+            pullProgressCollapseKey: pullProgressKey);
+
+        if (!pullResult.IsSuccess)
+        {
+            return Fail($"Failed while downloading model {model}.", pullResult.ErrorMessage);
+        }
+
+        ReportActivity($"Model {model} is available locally.", collapseKey: pullProgressKey);
+        return new OllamaRuntimeOperationResult(true, $"Model {model} is available locally.", null);
     }
 
     /// <summary>

@@ -41,4 +41,20 @@ public interface IOllamaRuntimeService
     /// <param name="cancellationToken">A token used to cancel the operation.</param>
     /// <returns>The model download result.</returns>
     Task<OllamaRuntimeOperationResult> EnsureRequiredModelsAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Downloads a specific Ollama model into the configured local model store.
+    /// </summary>
+    /// <param name="model">The model name to download.</param>
+    /// <param name="cancellationToken">A token used to cancel the operation.</param>
+    /// <returns>The model download result.</returns>
+    Task<OllamaRuntimeOperationResult> EnsureModelAsync(string model, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Removes a specific Ollama model from the configured local model store.
+    /// </summary>
+    /// <param name="model">The model name to remove.</param>
+    /// <param name="cancellationToken">A token used to cancel the operation.</param>
+    /// <returns>The model removal result.</returns>
+    Task<OllamaRuntimeOperationResult> RemoveModelAsync(string model, CancellationToken cancellationToken = default);
 }
