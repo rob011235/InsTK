@@ -36,6 +36,16 @@ namespace InsTK.Shared.Models.Tutorials
 
         public string? GradingHints { get; set; }
 
+        [StringLength(200)]
+        public string? BrightspaceAssignmentTitle { get; set; }
+
+        public string? BrightspaceAssignmentInstructions { get; set; }
+
+        public int BrightspacePoints { get; set; } = 100;
+
+        [StringLength(500)]
+        public string? BrightspaceSubmissionInstructions { get; set; }
+
         public DateTime CreatedUtc { get; set; } = DateTime.UtcNow;
         public DateTime? UpdatedUtc { get; set; }
 

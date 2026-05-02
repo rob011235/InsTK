@@ -35,7 +35,8 @@ else
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h4 class="mb-0">WordPress HTML</h4>
-                        <a class="btn btn-sm btn-dark" href="@(BuildDownloadHref(htmlExport, "text/html"))" download="@(GetFileName(".html"))">
+                        <a class="btn btn-sm btn-dark" href="@(BuildDownloadHref(htmlExport, "text/html"))"
+                               download="@(GetFileName(".html"))">
                             Download HTML
                         </a>
                     </div>
@@ -50,12 +51,31 @@ else
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h4 class="mb-0">WordPress Markdown</h4>
-                        <a class="btn btn-sm btn-outline-dark" href="@(BuildDownloadHref(markdownExport, "text/markdown"))" download="@(GetFileName(".md"))">
+                        <a class="btn btn-sm btn-outline-dark" href="@(BuildDownloadHref(markdownExport, "text/markdown"))"
+                               download="@(GetFileName(".md"))">
                             Download Markdown
                         </a>
                     </div>
 
-                    <textarea class="form-control font-monospace" style="min-height: 320px;" readonly>@markdownExport</textarea>
+                    <textarea class="form-control font-monospace" style="min-height: 320px;"
+                              readonly>@markdownExport</textarea>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h4 class="mb-0">Brightspace Assignment HTML</h4>
+                        <a class="btn btn-sm btn-dark" href="@(BuildDownloadHref(brightspaceAssignmentHtml, "text/html"))"
+                               download="@(GetFileName("-brightspace-assignment.html"))">
+                            Download HTML
+                        </a>
+                    </div>
+
+                    <textarea class="form-control font-monospace" style="min-height: 320px;"
+                              readonly>@brightspaceAssignmentHtml</textarea>
                 </div>
             </div>
         </div>
@@ -69,6 +89,7 @@ else
     private TutorialDefinition? tutorial;
     private string htmlExport = string.Empty;
     private string markdownExport = string.Empty;
+    private string brightspaceAssignmentHtml = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
@@ -87,6 +108,7 @@ else
 
         htmlExport = TutorialContentFormatter.BuildWordPressHtml(tutorial);
         markdownExport = TutorialContentFormatter.BuildWordPressMarkdown(tutorial);
+        brightspaceAssignmentHtml = TutorialContentFormatter.BuildBrightspaceAssignmentHtml(tutorial);
     }
 
     private void BackToEdit()

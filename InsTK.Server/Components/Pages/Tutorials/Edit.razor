@@ -36,10 +36,8 @@ else
             <InputText class="form-control" @bind-Value="model.Technology" />
         </div>
 
-        <TutorialMarkdownEditor Label="Introduction Markdown"
-                                Value="@model.IntroMarkdown"
-                                ValueChanged="OnIntroMarkdownChanged"
-                                MinHeight="220px"
+        <TutorialMarkdownEditor Label="Introduction Markdown" Value="@model.IntroMarkdown"
+                                ValueChanged="OnIntroMarkdownChanged" MinHeight="220px"
                                 Placeholder="Add an introduction, setup notes, or learning goals."
                                 EmptyPreviewMessage="Introduction preview will appear as you write markdown." />
 
@@ -84,10 +82,8 @@ else
                             <InputText class="form-control" @bind-Value="step.Title" />
                         </div>
 
-                        <TutorialMarkdownEditor Label="Instruction Markdown"
-                                                Value="@step.InstructionMarkdown"
-                                                ValueChanged="value => OnStepMarkdownChanged(step, value)"
-                                                MinHeight="250px"
+                        <TutorialMarkdownEditor Label="Instruction Markdown" Value="@step.InstructionMarkdown"
+                                                ValueChanged="value => OnStepMarkdownChanged(step, value)" MinHeight="250px"
                                                 Placeholder="Write the student-facing markdown for this step."
                                                 EmptyPreviewMessage="Step preview will appear as you write markdown." />
 
@@ -101,10 +97,8 @@ else
         </button>
 
         <div class="mt-4">
-            <TutorialMarkdownEditor Label="Conclusion Markdown"
-                                    Value="@model.ConclusionMarkdown"
-                                    ValueChanged="OnConclusionMarkdownChanged"
-                                    MinHeight="220px"
+            <TutorialMarkdownEditor Label="Conclusion Markdown" Value="@model.ConclusionMarkdown"
+                                    ValueChanged="OnConclusionMarkdownChanged" MinHeight="220px"
                                     Placeholder="Add wrap-up notes, next steps, or recap content."
                                     EmptyPreviewMessage="Conclusion preview will appear as you write markdown." />
         </div>
@@ -114,7 +108,8 @@ else
         <div class="mb-3">
             <h4>Instructor Reference</h4>
             <p class="text-muted mb-0">
-                Identify the final repository evidence for the tutorial as a whole. This can represent the combined outcome of multiple steps.
+                Identify the final repository evidence for the tutorial as a whole. This can represent the combined outcome
+                of multiple steps.
             </p>
         </div>
 
@@ -148,8 +143,7 @@ else
 
             <div class="col-12">
                 <label class="form-label">Grading Hints</label>
-                <InputTextArea class="form-control" style="min-height: 120px;"
-                               @bind-Value="model.GradingHints" />
+                <InputTextArea class="form-control" style="min-height: 120px;" @bind-Value="model.GradingHints" />
             </div>
 
             <div class="col-12">
@@ -165,6 +159,50 @@ else
         <div class="alert alert-light border small mt-3 mb-0">
             Status: @(IsGradableTutorial() ? "Gradable tutorial" : "Instruction-only tutorial")
         </div>
+
+        <hr />
+
+        <div class="mb-3">
+            <h4>Brightspace Assignment Draft</h4>
+            <p class="text-muted mb-0">
+                Draft the assignment shell that will be copied into Brightspace.
+            </p>
+        </div>
+
+        <div class="row g-3">
+            <div class="col-md-8">
+                <label class="form-label">Assignment Title</label>
+                <InputText class="form-control" @bind-Value="model.BrightspaceAssignmentTitle" />
+                <div class="form-text">
+                    Leave blank to use the tutorial title.
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label">Points</label>
+                <InputNumber class="form-control" @bind-Value="model.BrightspacePoints" />
+            </div>
+
+            <div class="col-12">
+                <label class="form-label">Assignment Instructions</label>
+                <InputTextArea class="form-control" style="min-height: 180px;"
+                               @bind-Value="model.BrightspaceAssignmentInstructions" />
+                <div class="form-text">
+                    These are instructor-facing assignment directions for Brightspace.
+                </div>
+            </div>
+
+            <div class="col-12">
+                <label class="form-label">Submission Instructions</label>
+                <InputTextArea class="form-control" style="min-height: 120px;"
+                               @bind-Value="model.BrightspaceSubmissionInstructions" />
+                <div class="form-text">
+                    Example: Submit your GitHub repository URL and branch name in the Brightspace comments.
+                </div>
+            </div>
+        </div>
+
+        <hr />
 
         <div class="mt-3">
             <button type="submit" class="btn btn-primary me-2">Save</button>
@@ -346,6 +384,14 @@ else
         model.ReferenceFileNames = NormalizeOptional(model.ReferenceFileNames);
         model.ReferenceCode = NormalizeOptional(model.ReferenceCode);
         model.GradingHints = NormalizeOptional(model.GradingHints);
+        model.BrightspaceAssignmentTitle = NormalizeOptional(model.BrightspaceAssignmentTitle);
+        model.BrightspaceAssignmentInstructions = NormalizeOptional(model.BrightspaceAssignmentInstructions);
+        model.BrightspaceSubmissionInstructions = NormalizeOptional(model.BrightspaceSubmissionInstructions);
+
+        if (model.BrightspacePoints <= 0)
+        {
+            model.BrightspacePoints = 100;
+        }
 
         foreach (var step in model.Steps)
         {
@@ -382,7 +428,11 @@ else
                     .SetProperty(t => t.ReferenceFileNames, model.ReferenceFileNames)
                     .SetProperty(t => t.ReferenceCode, model.ReferenceCode)
                     .SetProperty(t => t.GradingHints, model.GradingHints)
-                    .SetProperty(t => t.UpdatedUtc, updatedUtc));
+                    .SetProperty(t => t.UpdatedUtc, updatedUtc)
+                    .SetProperty(t => t.BrightspaceAssignmentTitle, model.BrightspaceAssignmentTitle)
+                    .SetProperty(t => t.BrightspaceAssignmentInstructions, model.BrightspaceAssignmentInstructions)
+                    .SetProperty(t => t.BrightspacePoints, model.BrightspacePoints)
+                    .SetProperty(t => t.BrightspaceSubmissionInstructions, model.BrightspaceSubmissionInstructions));
 
             await db.TutorialSteps
                 .Where(s => s.TutorialDefinitionId == model.Id)

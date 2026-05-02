@@ -99,5 +99,49 @@ namespace InsTK.Server.Components.Pages.Tutorials
         {
             return WebUtility.HtmlEncode(value ?? string.Empty);
         }
+
+        public static string BuildBrightspaceAssignmentHtml(TutorialDefinition tutorial)
+        {
+            var html = new StringBuilder();
+
+            var title = string.IsNullOrWhiteSpace(tutorial.BrightspaceAssignmentTitle)
+                ? tutorial.Title
+                : tutorial.BrightspaceAssignmentTitle;
+
+            html.AppendLine($"<h1>{Encode(title)}</h1>");
+
+            html.AppendLine("<h2>Assignment Overview</h2>");
+
+            if (!string.IsNullOrWhiteSpace(tutorial.BrightspaceAssignmentInstructions))
+            {
+                html.AppendLine(RenderMarkdown(tutorial.BrightspaceAssignmentInstructions));
+            }
+            else if (!string.IsNullOrWhiteSpace(tutorial.Summary))
+            {
+                html.AppendLine($"<p>{Encode(tutorial.Summary)}</p>");
+            }
+
+            html.AppendLine("<h2>Tutorial Instructions</h2>");
+            html.AppendLine(BuildWordPressHtml(tutorial));
+
+            html.AppendLine("<h2>Submission Requirements</h2>");
+
+            if (!string.IsNullOrWhiteSpace(tutorial.BrightspaceSubmissionInstructions))
+            {
+                html.AppendLine(RenderMarkdown(tutorial.BrightspaceSubmissionInstructions));
+            }
+            else
+            {
+                html.AppendLine("""
+        <p>Submit the URL to your GitHub repository in the Brightspace submission comments.</p>
+        <p>If your work is not on the main branch, include the branch name.</p>
+        """);
+            }
+
+            html.AppendLine("<h2>Points</h2>");
+            html.AppendLine($"<p>This assignment is worth {tutorial.BrightspacePoints} points.</p>");
+
+            return html.ToString().Trim();
+        }
     }
 }
