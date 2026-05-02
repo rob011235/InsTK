@@ -291,6 +291,25 @@ else
                 Nav.NavigateTo("/tutorials");
                 return;
             }
+
+            // Apply defaults for existing records
+            if (string.IsNullOrWhiteSpace(model.BrightspaceSubmissionInstructions))
+            {
+                model.BrightspaceSubmissionInstructions =
+                    TutorialDefinition.DefaultBrightspaceSubmissionInstructions;
+            }
+
+            if (string.IsNullOrWhiteSpace(model.BrightspaceAssignmentTitle))
+            {
+                model.BrightspaceAssignmentTitle =
+                    $"Tutorial - {model.Title}".Trim();
+            }
+
+            if (string.IsNullOrWhiteSpace(model.BrightspaceAssignmentInstructions))
+            {
+                model.BrightspaceAssignmentInstructions =
+                    TutorialDefinition.DefaultBrightspaceAssignmentInstructions;
+            }
         }
 
         assignmentTitleWasManuallyEdited = !string.IsNullOrWhiteSpace(model.BrightspaceAssignmentTitle);

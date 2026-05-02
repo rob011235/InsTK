@@ -25,13 +25,17 @@ namespace InsTK.Shared.Models.Tutorials
         Submissions that do not follow this format may not be graded correctly.
         """;
 
+        public const string DefaultBrightspaceAssignmentInstructions = """
+        Complete the tutorial located here:
+
+        {{url}}
+        """;
+
         public Guid Id { get; set; } = Guid.NewGuid();
 
         [Required]
-        [StringLength(200)]
         public string Title { get; set; } = string.Empty;
 
-        [StringLength(500)]
         public string? Summary { get; set; }
 
         [StringLength(100)]
@@ -42,13 +46,10 @@ namespace InsTK.Shared.Models.Tutorials
         public string? ConclusionMarkdown { get; set; }
 
         [Url]
-        [StringLength(500)]
         public string? RepoUrl { get; set; }
 
-        [StringLength(200)]
         public string? BranchName { get; set; }
 
-        [StringLength(300)]
         public string? ReferenceSubPath { get; set; }
 
         public string? ReferenceFileNames { get; set; }
@@ -57,14 +58,12 @@ namespace InsTK.Shared.Models.Tutorials
 
         public string? GradingHints { get; set; }
 
-        [StringLength(200)]
         public string? BrightspaceAssignmentTitle { get; set; }
 
-        public string? BrightspaceAssignmentInstructions { get; set; }
+        public string? BrightspaceAssignmentInstructions { get; set; } = DefaultBrightspaceAssignmentInstructions;
 
         public int BrightspacePoints { get; set; } = 100;
 
-        [StringLength(500)]
         public string? BrightspaceSubmissionInstructions { get; set; } = DefaultBrightspaceSubmissionInstructions;
 
         public DateTime CreatedUtc { get; set; } = DateTime.UtcNow;

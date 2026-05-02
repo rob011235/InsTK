@@ -135,7 +135,10 @@ namespace InsTK.Server.Components.Pages.Tutorials
 
             if (!string.IsNullOrWhiteSpace(tutorial.BrightspaceAssignmentInstructions))
             {
-                html.AppendLine(RenderMarkdown(tutorial.BrightspaceAssignmentInstructions));
+                var instructions = tutorial.BrightspaceAssignmentInstructions
+                    .Replace("{{url}}", BuildTutorialUrl(tutorial));
+
+                html.AppendLine(RenderMarkdown(instructions));
             }
             else if (!string.IsNullOrWhiteSpace(tutorial.Summary))
             {
@@ -167,10 +170,6 @@ namespace InsTK.Server.Components.Pages.Tutorials
             {
                 html.AppendLine(RenderMarkdown(tutorial.BrightspaceSubmissionInstructions));
             }
-            else
-            {
-                html.AppendLine(DefaultBrightspaceSubmissionInstructions);
-            }
 
             html.AppendLine("<h2>Points</h2>");
             html.AppendLine($"<p>This assignment is worth {tutorial.BrightspacePoints} points.</p>");
@@ -183,6 +182,12 @@ namespace InsTK.Server.Components.Pages.Tutorials
             return string.IsNullOrWhiteSpace(tutorialTitle)
                 ? "Tutorial"
                 : $"Tutorial - {tutorialTitle.Trim()}";
+        }
+
+        private static string BuildTutorialUrl(TutorialDefinition tutorial)
+        {
+            // Adjust this to match your actual route
+            return $"https:///robgarnerblog.wordpress.com/tutorials/{tutorial.Title?.ToLower().Replace(' ', '-')}";
         }
     }
 }
