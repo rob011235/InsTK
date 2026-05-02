@@ -141,7 +141,7 @@ public sealed class BrightspaceAutomationService(IClientSettingsService clientSe
             await page.GotoAsync(baseUrl, new PageGotoOptions { WaitUntil = WaitUntilState.NetworkIdle });
             await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
 
-            var courses = await ReadCourseCatalogAcrossTermsAsync(page, baseUrl);
+            var courses = await ReadCourseCatalogAcrossViewsAsync(page, baseUrl);
             if (courses.Count == 0)
             {
                 throw await BuildCourseDiscoveryExceptionAsync(page, "No Brightspace course links were detected on the authenticated landing page.");
@@ -388,6 +388,21 @@ public sealed class BrightspaceAutomationService(IClientSettingsService clientSe
     private static async Task<List<BrightspaceCourseOption>> ReadCourseCatalogAsync(IPage page, string baseUrl)
     {
         var baseUri = new Uri(baseUrl, UriKind.Absolute);
+        try
+        {
+            var widgetCourses = await ReadMyCoursesWidgetCoursesAsync(page, baseUri);
+            if (widgetCourses.Count > 0)
+            {
+                return widgetCourses
+                    .OrderBy(static course => course.TermLabel, StringComparer.OrdinalIgnoreCase)
+                    .ThenBy(static course => course.Name, StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+            }
+        }
+        catch
+        {
+        }
+
         var selector = "a[href*='/d2l/home/'], a[href*='/d2l/home?ou='], a[href*='/d2l/home/?ou=']";
         var anchors = page.Locator(selector);
         var count = await anchors.CountAsync();
@@ -442,6 +457,155 @@ public sealed class BrightspaceAutomationService(IClientSettingsService clientSe
             .ToList();
     }
 
+    private static async Task<List<BrightspaceCourseOption>> ReadMyCoursesWidgetCoursesAsync(IPage page, Uri baseUri)
+    {
+        try
+        {
+            await page.WaitForFunctionAsync(
+                """
+                () => document.querySelector('d2l-my-courses-v2') || document.querySelector('d2l-my-courses-enrollment-card')
+                """,
+                null,
+                new PageWaitForFunctionOptions { Timeout = 10000 });
+        }
+        catch (TimeoutException)
+        {
+        }
+
+        var snapshots = await page.EvaluateAsync<List<MyCoursesWidgetCourseSnapshot>>(
+            """
+            baseUrl => {
+              const normalize = value => (value || '').replace(/\s+/g, ' ').trim();
+              const termRegex = /\b(?:spring|summer|fall|autumn|winter)\s+20\d{2}\b|\b20\d{2}\s+(?:spring|summer|fall|autumn|winter)\b/i;
+              const courseHrefSelector = "a[href*='/d2l/home/'], a[href*='/d2l/home?ou='], a[href*='/d2l/home/?ou='], d2l-card[href*='/d2l/home/'], d2l-card[href*='/d2l/home?ou='], d2l-card[href*='/d2l/home/?ou=']";
+
+              const queryAllDeep = (selector, root = document) => {
+                const results = [];
+                const visit = currentRoot => {
+                  if (!currentRoot || typeof currentRoot.querySelectorAll !== 'function') {
+                    return;
+                  }
+
+                  results.push(...currentRoot.querySelectorAll(selector));
+
+                  for (const element of currentRoot.querySelectorAll('*')) {
+                    if (element.shadowRoot) {
+                      visit(element.shadowRoot);
+                    }
+                  }
+                };
+
+                visit(root);
+                return results;
+              };
+
+              const tabsById = new Map();
+              for (const tab of queryAllDeep('d2l-tab[role="tab"], [role="tab"]')) {
+                const id = tab.getAttribute('id') || tab.id;
+                const label = normalize(tab.getAttribute('title')) || normalize(tab.textContent);
+                if (id && label) {
+                  tabsById.set(id, label);
+                }
+              }
+
+              const results = [];
+              for (const card of queryAllDeep('d2l-my-courses-enrollment-card')) {
+                const cardRoot = card.shadowRoot || card;
+                const cardNode = queryAllDeep('d2l-card', cardRoot)[0];
+                const linkNode = queryAllDeep(courseHrefSelector, cardRoot)[0] || cardNode;
+                const href = normalize(linkNode?.getAttribute('href'));
+                if (!href) {
+                  continue;
+                }
+
+                const name =
+                  normalize(queryAllDeep('.d2l-organization-name', cardRoot)[0]?.textContent) ||
+                  normalize(cardNode?.getAttribute('title')) ||
+                  normalize(cardNode?.getAttribute('text'));
+
+                const courseCode =
+                  normalize(queryAllDeep('.d2l-organization-code', cardRoot)[0]?.textContent) ||
+                  normalize(cardNode?.getAttribute('text')).split(',').map(part => normalize(part))[2] ||
+                  '';
+
+                const metadata = queryAllDeep('d2l-object-property-list-item', cardRoot)
+                  .map(node => normalize(node.textContent))
+                  .filter(Boolean);
+
+                let termLabel = metadata.find(value => termRegex.test(value)) || '';
+                if (!termLabel) {
+                  const cardText = normalize(cardNode?.getAttribute('text'));
+                  const cardTerm = cardText.split(',').map(part => normalize(part)).find(value => termRegex.test(value));
+                  if (cardTerm) {
+                    termLabel = cardTerm;
+                  }
+                }
+
+                if (!termLabel) {
+                  const panel = card.closest('d2l-tab-panel[role="tabpanel"]');
+                  if (panel) {
+                    const labelledBy = panel.getAttribute('aria-labelledby') || panel.getAttribute('labelled-by');
+                    termLabel = normalize(tabsById.get(labelledBy || '') || '');
+                  }
+                }
+
+                const cardId = normalize(card.getAttribute('id'));
+                const courseIdMatch = cardId.match(/enrollment-card-(\d+)/i);
+                const courseId = courseIdMatch?.[1] || '';
+                const absoluteUrl = new URL(href, baseUrl).toString();
+
+                results.push({
+                  name,
+                  url: absoluteUrl,
+                  courseId,
+                  termLabel,
+                  courseCode,
+                });
+              }
+
+              return results;
+            }
+            """,
+            baseUri.ToString());
+
+        var results = new List<BrightspaceCourseOption>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var snapshot in snapshots ?? [])
+        {
+            if (snapshot is null || string.IsNullOrWhiteSpace(snapshot.Url))
+            {
+                continue;
+            }
+
+            var courseId = FirstNonEmpty(snapshot.CourseId, TryExtractCourseId(snapshot.Url));
+            var label = NormalizeWhitespace(snapshot.Name);
+            if (string.IsNullOrWhiteSpace(courseId) || string.IsNullOrWhiteSpace(label))
+            {
+                continue;
+            }
+
+            var key = $"{courseId}|{label}".ToLowerInvariant();
+            if (!seen.Add(key))
+            {
+                continue;
+            }
+
+            var rawTermLabel = FirstNonEmpty(snapshot.TermLabel, snapshot.CourseCode, snapshot.Name);
+            var termLabel = BrightspaceTermLabelParser.ParseOrDefault(rawTermLabel);
+            var courseCode = NormalizeWhitespace(snapshot.CourseCode);
+
+            results.Add(new BrightspaceCourseOption(
+                label,
+                snapshot.Url,
+                courseId,
+                termLabel,
+                string.IsNullOrWhiteSpace(courseCode) ? TryReadCourseCode(label) : courseCode));
+        }
+
+        return results;
+    }
+
     private static async Task<List<BrightspaceCourseOption>> ReadCourseCatalogAcrossTermsAsync(IPage page, string baseUrl)
     {
         var merged = MergeCourses(Array.Empty<BrightspaceCourseOption>(), await ReadCourseCatalogAsync(page, baseUrl));
@@ -476,6 +640,292 @@ public sealed class BrightspaceAutomationService(IClientSettingsService clientSe
             .OrderBy(static course => course.TermLabel, StringComparer.OrdinalIgnoreCase)
             .ThenBy(static course => course.Name, StringComparer.OrdinalIgnoreCase)
             .ToList();
+    }
+
+    private static async Task<List<BrightspaceCourseOption>> ReadCourseCatalogAcrossViewsAsync(IPage page, string baseUrl)
+    {
+        var apiCourses = await ReadCourseCatalogFromManageCoursesApiAsync(page, new Uri(baseUrl, UriKind.Absolute));
+        if (apiCourses.Count > 0)
+        {
+            return apiCourses
+                .OrderBy(static course => course.TermLabel, StringComparer.OrdinalIgnoreCase)
+                .ThenBy(static course => course.Name, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+
+        var merged = await ReadCourseCatalogAcrossTermsAsync(page, baseUrl);
+
+        if (await TryOpenExpandedCourseViewAsync(page))
+        {
+            await WaitForCourseListRefreshAsync(page);
+            var expandedCourses = await ReadCourseCatalogAcrossTermsAsync(page, baseUrl);
+            merged = MergeCourses(merged, expandedCourses);
+        }
+
+        return merged
+            .OrderBy(static course => course.TermLabel, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(static course => course.Name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    private static async Task<List<BrightspaceCourseOption>> ReadCourseCatalogFromManageCoursesApiAsync(IPage page, Uri baseUri)
+    {
+        string? snapshotsJson = null;
+
+        try
+        {
+            snapshotsJson = await page.EvaluateAsync<string>(
+                """
+                async () => {
+                  const normalize = value => (value || '').toString().replace(/\s+/g, ' ').trim();
+                  const widget = document.querySelector('d2l-my-courses-v2');
+                  if (!widget) {
+                    return [];
+                  }
+
+                  const toAbsoluteUrl = value => {
+                    const normalized = normalize(value);
+                    if (!normalized) {
+                      return '';
+                    }
+
+                    try {
+                      return new URL(normalized, window.location.origin).toString();
+                    } catch {
+                      return '';
+                    }
+                  };
+
+                  const fetchJson = async attributeName => {
+                    const rawUrl = widget.getAttribute(attributeName);
+                    const absoluteUrl = toAbsoluteUrl(rawUrl);
+                    if (!absoluteUrl) {
+                      return null;
+                    }
+
+                    try {
+                      const response = await fetch(absoluteUrl, {
+                        credentials: 'include',
+                        headers: { 'accept': 'application/json, text/plain, */*' },
+                      });
+
+                      if (!response.ok) {
+                        return null;
+                      }
+
+                      return await response.json();
+                    } catch {
+                      return null;
+                    }
+                  };
+
+                  const fetchAllCoursePages = async () => {
+                    const firstPayload = await fetchJson('enrollments-url');
+                    if (!firstPayload) {
+                      return [];
+                    }
+
+                    const pages = [];
+                    const allCourses = [];
+                    const seenBookmarks = new Set();
+                    let payload = firstPayload;
+                    let url = toAbsoluteUrl(widget.getAttribute('enrollments-url'));
+
+                    while (payload && url) {
+                      pages.push(payload);
+
+                      if (Array.isArray(payload.Courses)) {
+                        allCourses.push(...payload.Courses);
+                      }
+
+                      const bookmark = normalize(payload.Bookmark);
+                      if (!bookmark || seenBookmarks.has(bookmark)) {
+                        break;
+                      }
+
+                      seenBookmarks.add(bookmark);
+
+                      const nextUrl = new URL(url, window.location.origin);
+                      nextUrl.searchParams.set('bookmark', bookmark);
+                      url = nextUrl.toString();
+
+                      try {
+                        const response = await fetch(url, {
+                          credentials: 'include',
+                          headers: { 'accept': 'application/json, text/plain, */*' },
+                        });
+
+                        if (!response.ok) {
+                          break;
+                        }
+
+                        payload = await response.json();
+                      } catch {
+                        break;
+                      }
+                    }
+
+                    return allCourses;
+                  };
+
+                  const collectObjects = root => {
+                    const results = [];
+                    const visited = new WeakSet();
+                    const visit = value => {
+                      if (!value || typeof value !== 'object' || visited.has(value)) {
+                        return;
+                      }
+
+                      visited.add(value);
+
+                      if (Array.isArray(value)) {
+                        for (const item of value) {
+                          visit(item);
+                        }
+
+                        return;
+                      }
+
+                      results.push(value);
+                      for (const child of Object.values(value)) {
+                        visit(child);
+                      }
+                    };
+
+                    visit(root);
+                    return results;
+                  };
+
+                  const readFirst = (source, keys) => {
+                    if (!source || typeof source !== 'object') {
+                      return '';
+                    }
+
+                    for (const key of keys) {
+                      if (!(key in source) || source[key] == null) {
+                        continue;
+                      }
+
+                      const value = source[key];
+                      if (typeof value === 'string' || typeof value === 'number') {
+                        const normalized = normalize(value);
+                        if (normalized) {
+                          return normalized;
+                        }
+                      }
+                    }
+
+                    return '';
+                  };
+
+                  const semestersPayload = await fetchJson('semesters-url');
+                  const courseEntries = await fetchAllCoursePages();
+                  if (!Array.isArray(courseEntries) || courseEntries.length === 0) {
+                    return '[]';
+                  }
+
+                  const semesterMap = new Map();
+                  for (const entry of collectObjects(semestersPayload)) {
+                    const id = readFirst(entry, ['Id', 'id', 'Value', 'value', 'SemesterId', 'semesterId']);
+                    const label = readFirst(entry, ['Name', 'name', 'Title', 'title', 'Label', 'label', 'Text', 'text']);
+                    if (id && label) {
+                      semesterMap.set(id, label);
+                    }
+                  }
+
+                  const results = [];
+                  const seen = new Set();
+
+                  for (const entry of courseEntries) {
+                    const courseId = readFirst(entry, ['OrgUnitId', 'orgUnitId', 'orgunitid', 'Id', 'id']);
+                    const name = readFirst(entry, ['Name', 'name', 'Title', 'title', 'OrgUnitName', 'orgUnitName', 'CourseName', 'courseName']);
+                    if (!courseId || !name) {
+                      continue;
+                    }
+
+                    const key = `${courseId}|${name}`.toLowerCase();
+                    if (seen.has(key)) {
+                      continue;
+                    }
+
+                    seen.add(key);
+
+                    const courseCode = readFirst(entry, ['Code', 'code', 'OrgUnitCode', 'orgUnitCode', 'CourseCode', 'courseCode']);
+                    const href = readFirst(entry, ['Url', 'url', 'Href', 'href', 'Path', 'path', 'HomeUrl', 'homeUrl']);
+                    const semesterId = readFirst(entry, ['SemesterId', 'semesterId']);
+                    const semesterName =
+                      readFirst(entry, ['SemesterName', 'semesterName']) ||
+                      readFirst(entry.Semester, ['Name', 'name', 'Title', 'title']) ||
+                      (semesterId ? normalize(semesterMap.get(semesterId)) : '');
+
+                    results.push({
+                      name,
+                      url: toAbsoluteUrl(href) || new URL(`/d2l/home/${courseId}`, window.location.origin).toString(),
+                      courseId,
+                      termLabel: semesterName,
+                      courseCode,
+                    });
+                  }
+
+                  return JSON.stringify(results);
+                }
+                """);
+        }
+        catch
+        {
+            return [];
+        }
+
+        List<MyCoursesWidgetCourseSnapshot>? snapshots;
+        try
+        {
+            snapshots = JsonSerializer.Deserialize<List<MyCoursesWidgetCourseSnapshot>>(snapshotsJson ?? "[]", SerializerOptions);
+        }
+        catch
+        {
+            return [];
+        }
+
+        var results = new List<BrightspaceCourseOption>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var snapshot in snapshots ?? [])
+        {
+            if (snapshot is null)
+            {
+                continue;
+            }
+
+            var courseId = FirstNonEmpty(snapshot.CourseId, TryExtractCourseId(snapshot.Url ?? string.Empty));
+            var name = NormalizeWhitespace(snapshot.Name);
+            if (string.IsNullOrWhiteSpace(courseId) || string.IsNullOrWhiteSpace(name))
+            {
+                continue;
+            }
+
+            var key = $"{courseId}|{name}".ToLowerInvariant();
+            if (!seen.Add(key))
+            {
+                continue;
+            }
+
+            var courseCode = NormalizeWhitespace(snapshot.CourseCode);
+            var termLabel = BrightspaceTermLabelParser.ParseOrDefault(FirstNonEmpty(snapshot.TermLabel, courseCode, name));
+            var courseUrl = NormalizeWhitespace(snapshot.Url);
+            if (string.IsNullOrWhiteSpace(courseUrl))
+            {
+                courseUrl = new Uri(baseUri, $"/d2l/home/{courseId}").ToString();
+            }
+
+            results.Add(new BrightspaceCourseOption(
+                name,
+                courseUrl,
+                courseId,
+                termLabel,
+                string.IsNullOrWhiteSpace(courseCode) ? TryReadCourseCode(name) : courseCode));
+        }
+
+        return results;
     }
 
     private static async Task<List<BrightspaceQuickEvalSubmission>> ReadQuickEvalRowsAsync(IPage page, string url)
@@ -1070,6 +1520,9 @@ public sealed class BrightspaceAutomationService(IClientSettingsService clientSe
     private static string? FirstNonEmpty(params string?[] values)
         => values.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
 
+    private static string EscapeCssAttributeValue(string value)
+        => value.Replace("\\", "\\\\", StringComparison.Ordinal).Replace("\"", "\\\"", StringComparison.Ordinal);
+
     private static List<BrightspaceCourseOption> MergeCourses(IEnumerable<BrightspaceCourseOption> existing, IEnumerable<BrightspaceCourseOption> additional)
     {
         var merged = new Dictionary<string, BrightspaceCourseOption>(StringComparer.OrdinalIgnoreCase);
@@ -1127,6 +1580,66 @@ public sealed class BrightspaceAutomationService(IClientSettingsService clientSe
 
     private static async Task<List<string>> ReadAvailableTermFilterLabelsAsync(IPage page)
     {
+        List<string>? widgetLabels = null;
+        try
+        {
+            widgetLabels = await page.EvaluateAsync<List<string>>(
+                """
+                () => {
+                  const normalize = value => (value || '').replace(/\s+/g, ' ').trim();
+                  const results = [];
+                  const seen = new Set();
+                  const termRegex = /\b(?:spring|summer|fall|autumn|winter)\s+20\d{2}\b|\b20\d{2}\s+(?:spring|summer|fall|autumn|winter)\b/i;
+                  const genericRegex = /^(all|all terms|all semesters)$/i;
+
+                  const queryAllDeep = (selector, root = document) => {
+                    const found = [];
+                    const visit = currentRoot => {
+                      if (!currentRoot || typeof currentRoot.querySelectorAll !== 'function') {
+                        return;
+                      }
+
+                      found.push(...currentRoot.querySelectorAll(selector));
+
+                      for (const element of currentRoot.querySelectorAll('*')) {
+                        if (element.shadowRoot) {
+                          visit(element.shadowRoot);
+                        }
+                      }
+                    };
+
+                    visit(root);
+                    return found;
+                  };
+
+                  for (const node of queryAllDeep("d2l-tab[role='tab'], [role='tab']")) {
+                    const text = normalize(node.getAttribute('title')) || normalize(node.textContent);
+                    if (!text || (!termRegex.test(text) && !genericRegex.test(text))) {
+                      continue;
+                    }
+
+                    const key = text.toLowerCase();
+                    if (seen.has(key)) {
+                      continue;
+                    }
+
+                    seen.add(key);
+                    results.push(text);
+                  }
+
+                  return results;
+                }
+                """);
+        }
+        catch
+        {
+        }
+
+        if (widgetLabels is { Count: > 0 })
+        {
+            return widgetLabels;
+        }
+
         return await page.EvaluateAsync<List<string>>(
             """
             () => {
@@ -1170,6 +1683,16 @@ public sealed class BrightspaceAutomationService(IClientSettingsService clientSe
 
     private static async Task<bool> ActivateTermFilterAsync(IPage page, string label)
     {
+        if (await TryActivateWidgetTabWithLocatorAsync(page, label))
+        {
+            return true;
+        }
+
+        if (await TryActivateWidgetTabAsync(page, label))
+        {
+            return true;
+        }
+
         if (await TryActivateSelectOptionAsync(page, label))
         {
             return true;
@@ -1197,6 +1720,94 @@ public sealed class BrightspaceAutomationService(IClientSettingsService clientSe
         }
 
         return false;
+    }
+
+    private static async Task<bool> TryActivateWidgetTabWithLocatorAsync(IPage page, string label)
+    {
+        var locator = page.Locator($"d2l-tab[title=\"{EscapeCssAttributeValue(label)}\"]").First;
+        if (!await IsActionableAsync(locator))
+        {
+            return false;
+        }
+
+        await locator.ClickAsync(new LocatorClickOptions { Force = true });
+
+        try
+        {
+            await page.WaitForFunctionAsync(
+                """
+                desiredLabel => {
+                  const tab = document.querySelector(`d2l-tab[title="${desiredLabel.replace(/["\\]/g, '\\$&')}"]`);
+                  if (!tab) {
+                    return false;
+                  }
+
+                  return tab.hasAttribute('selected') || tab.getAttribute('aria-selected') === 'true';
+                }
+                """,
+                label,
+                new PageWaitForFunctionOptions { Timeout = 5000 });
+        }
+        catch
+        {
+        }
+
+        return true;
+    }
+
+    private static async Task<bool> TryActivateWidgetTabAsync(IPage page, string label)
+    {
+        try
+        {
+            return await page.EvaluateAsync<bool>(
+                """
+                desiredLabel => {
+                  const normalize = value => (value || '').replace(/\s+/g, ' ').trim();
+
+                  const queryAllDeep = (selector, root = document) => {
+                    const found = [];
+                    const visit = currentRoot => {
+                      if (!currentRoot || typeof currentRoot.querySelectorAll !== 'function') {
+                        return;
+                      }
+
+                      found.push(...currentRoot.querySelectorAll(selector));
+
+                      for (const element of currentRoot.querySelectorAll('*')) {
+                        if (element.shadowRoot) {
+                          visit(element.shadowRoot);
+                        }
+                      }
+                    };
+
+                    visit(root);
+                    return found;
+                  };
+
+                  const target = queryAllDeep("d2l-tab[role='tab'], [role='tab']")
+                    .find(node => {
+                      const text = normalize(node.getAttribute('title')) || normalize(node.textContent);
+                      return text === desiredLabel;
+                    });
+
+                  if (!target) {
+                    return false;
+                  }
+
+                  target.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, composed: true }));
+                  if (typeof target.click === 'function') {
+                    target.click();
+                  }
+
+                  return true;
+                }
+                """,
+                label);
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     private static async Task<bool> TryActivateSelectOptionAsync(IPage page, string label)
@@ -1227,6 +1838,53 @@ public sealed class BrightspaceAutomationService(IClientSettingsService clientSe
             }
 
             await select.SelectOptionAsync(new[] { optionValues[0] });
+            return true;
+        }
+
+        return false;
+    }
+
+    private static async Task<bool> TryOpenExpandedCourseViewAsync(IPage page)
+    {
+        var labels = new[]
+        {
+            "View All Courses",
+            "All Courses",
+            "Course Selector",
+            "My Courses",
+            "View all courses",
+            "All courses",
+        };
+
+        foreach (var label in labels)
+        {
+            if (await TryClickNamedControlAsync(page, AriaRole.Link, label))
+            {
+                return true;
+            }
+
+            if (await TryClickNamedControlAsync(page, AriaRole.Button, label))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static async Task<bool> TryClickNamedControlAsync(IPage page, AriaRole role, string label)
+    {
+        var locator = page.GetByRole(role, new() { Name = label, Exact = true }).First;
+        if (await IsActionableAsync(locator))
+        {
+            await locator.ClickAsync();
+            return true;
+        }
+
+        var textLocator = page.GetByText(label, new() { Exact = true }).First;
+        if (await IsActionableAsync(textLocator))
+        {
+            await textLocator.ClickAsync();
             return true;
         }
 
@@ -1296,6 +1954,13 @@ public sealed class BrightspaceAutomationService(IClientSettingsService clientSe
     {
         ActivityReported?.Invoke(this, new BrightspaceActivityEventArgs(message, isError));
     }
+
+    private sealed record MyCoursesWidgetCourseSnapshot(
+        string? Name,
+        string? Url,
+        string? CourseId,
+        string? TermLabel,
+        string? CourseCode);
 
     private sealed record QuickEvalPageState(bool HasRows, bool IsEmpty, string? DiagnosticMessage);
 

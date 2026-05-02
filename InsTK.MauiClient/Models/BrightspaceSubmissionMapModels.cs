@@ -201,6 +201,10 @@ internal static class BrightspaceTermLabelParser
         @"\b20\d{2}\s+(Spring|Summer|Fall|Autumn|Winter)\b",
         RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
+    private static readonly Regex CompactTermCodeRegex = new(
+        @"\b(?<term>SPR|SUM|FAL|AUT|WIN)\s*(?<year>20\d{2})\b",
+        RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
     public static string ParseOrDefault(string? courseName)
     {
         if (!string.IsNullOrWhiteSpace(courseName))
@@ -215,6 +219,25 @@ internal static class BrightspaceTermLabelParser
             if (yearSeason.Success)
             {
                 return yearSeason.Value.Trim();
+            }
+
+            var compactTerm = CompactTermCodeRegex.Match(courseName);
+            if (compactTerm.Success)
+            {
+                var term = compactTerm.Groups["term"].Value.ToUpperInvariant() switch
+                {
+                    "SPR" => "Spring",
+                    "SUM" => "Summer",
+                    "FAL" => "Fall",
+                    "AUT" => "Autumn",
+                    "WIN" => "Winter",
+                    _ => null,
+                };
+
+                if (!string.IsNullOrWhiteSpace(term))
+                {
+                    return $"{term} {compactTerm.Groups["year"].Value}";
+                }
             }
         }
 
