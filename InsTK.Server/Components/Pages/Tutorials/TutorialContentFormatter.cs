@@ -7,6 +7,27 @@ namespace InsTK.Server.Components.Pages.Tutorials
 {
     internal static class TutorialContentFormatter
     {
+        private const string DefaultBrightspaceSubmissionInstructions = """
+        <p>Submit the URL to your GitHub repository in the Brightspace submission comments.</p>
+
+        <p>The first URL in your submission will be used for grading.</p>
+
+        <p>If you are not using the main branch, you must include the branch in the URL using this format:</p>
+
+        <pre><code>https://github.com/{owner}/{repository}/tree/{branch}</code></pre>
+
+        <p>Examples:</p>
+
+        <pre><code>https://github.com/jdoe/BlazorApp
+        https://github.com/cnm-students/BlazorApp/tree/feature/tutorial-step-3</code></pre>
+
+        <p>You can copy the correct URL directly from GitHub by selecting your branch and copying the page URL.</p>
+
+        <p>Only submit a repository URL. Do not submit links to files, pull requests, or other pages.</p>
+
+        <p>Submissions that do not follow this format may not be graded correctly.</p>
+        """;
+
         private static readonly MarkdownPipeline MarkdownPipeline = new MarkdownPipelineBuilder()
             .UseAdvancedExtensions()
             .Build();
@@ -105,8 +126,8 @@ namespace InsTK.Server.Components.Pages.Tutorials
             var html = new StringBuilder();
 
             var title = string.IsNullOrWhiteSpace(tutorial.BrightspaceAssignmentTitle)
-                ? tutorial.Title
-                : tutorial.BrightspaceAssignmentTitle;
+                ? BuildDefaultAssignmentTitle(tutorial.Title)
+                : tutorial.BrightspaceAssignmentTitle.Trim();
 
             html.AppendLine($"<h1>{Encode(title)}</h1>");
 
@@ -122,7 +143,23 @@ namespace InsTK.Server.Components.Pages.Tutorials
             }
 
             html.AppendLine("<h2>Tutorial Instructions</h2>");
-            html.AppendLine(BuildWordPressHtml(tutorial));
+
+            if (!string.IsNullOrWhiteSpace(tutorial.IntroMarkdown))
+            {
+                html.AppendLine(RenderMarkdown(tutorial.IntroMarkdown));
+            }
+
+            foreach (var step in tutorial.Steps.OrderBy(s => s.DisplayOrder))
+            {
+                html.AppendLine($"<h3>Step {step.DisplayOrder}: {Encode(step.Title)}</h3>");
+                html.AppendLine(RenderMarkdown(step.InstructionMarkdown));
+            }
+
+            if (!string.IsNullOrWhiteSpace(tutorial.ConclusionMarkdown))
+            {
+                html.AppendLine("<h3>Conclusion</h3>");
+                html.AppendLine(RenderMarkdown(tutorial.ConclusionMarkdown));
+            }
 
             html.AppendLine("<h2>Submission Requirements</h2>");
 
@@ -132,16 +169,20 @@ namespace InsTK.Server.Components.Pages.Tutorials
             }
             else
             {
-                html.AppendLine("""
-        <p>Submit the URL to your GitHub repository in the Brightspace submission comments.</p>
-        <p>If your work is not on the main branch, include the branch name.</p>
-        """);
+                html.AppendLine(DefaultBrightspaceSubmissionInstructions);
             }
 
             html.AppendLine("<h2>Points</h2>");
             html.AppendLine($"<p>This assignment is worth {tutorial.BrightspacePoints} points.</p>");
 
             return html.ToString().Trim();
+        }
+
+        private static string BuildDefaultAssignmentTitle(string? tutorialTitle)
+        {
+            return string.IsNullOrWhiteSpace(tutorialTitle)
+                ? "Tutorial"
+                : $"Tutorial - {tutorialTitle.Trim()}";
         }
     }
 }

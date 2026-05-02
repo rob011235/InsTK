@@ -21,207 +21,239 @@ else
         <DataAnnotationsValidator />
         <ValidationSummary />
 
-        <div class="mb-3">
-            <label class="form-label">Title</label>
-            <InputText class="form-control" @bind-Value="model.Title" />
-        </div>
+        <ul class="nav nav-tabs mb-3">
+            <li class="nav-item">
+                <button type="button" class="nav-link @(activeTab == "tutorial" ? "active" : "")"
+                        @onclick='() => SetActiveTab("tutorial")'>
+                    Tutorial
+                </button>
+            </li>
 
-        <div class="mb-3">
-            <label class="form-label">Summary</label>
-            <InputTextArea class="form-control" @bind-Value="model.Summary" />
-        </div>
+            <li class="nav-item">
+                <button type="button" class="nav-link @(activeTab == "reference" ? "active" : "")"
+                        @onclick='() => SetActiveTab("reference")'>
+                    Git Reference
+                </button>
+            </li>
 
-        <div class="mb-3">
-            <label class="form-label">Technology</label>
-            <InputText class="form-control" @bind-Value="model.Technology" />
-        </div>
+            <li class="nav-item">
+                <button type="button" class="nav-link @(activeTab == "assignment" ? "active" : "")"
+                        @onclick='() => SetActiveTab("assignment")'>
+                    Brightspace Assignment
+                </button>
+            </li>
+        </ul>
 
-        <TutorialMarkdownEditor Label="Introduction Markdown" Value="@model.IntroMarkdown"
-                                ValueChanged="OnIntroMarkdownChanged" MinHeight="220px"
-                                Placeholder="Add an introduction, setup notes, or learning goals."
-                                EmptyPreviewMessage="Introduction preview will appear as you write markdown." />
-
-        <hr />
-
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h4 class="mb-0">Steps</h4>
-        </div>
-
-        @if (!model.Steps.Any())
+        @if (activeTab == "tutorial")
         {
-            <p>No steps added yet.</p>
-        }
-        else
-        {
-            @foreach (var step in model.Steps.OrderBy(s => s.DisplayOrder).ToList())
+            <div class="mb-3">
+                <label class="form-label">Title</label>
+                <InputText class="form-control" Value="@model.Title" ValueChanged="OnTutorialTitleChanged"
+                           ValueExpression="() => model.Title" />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Summary</label>
+                <InputTextArea class="form-control" @bind-Value="model.Summary" />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Technology</label>
+                <InputText class="form-control" @bind-Value="model.Technology" />
+            </div>
+
+            <TutorialMarkdownEditor Label="Introduction Markdown" Value="@model.IntroMarkdown"
+                                    ValueChanged="OnIntroMarkdownChanged" MinHeight="220px"
+                                    Placeholder="Add an introduction, setup notes, or learning goals."
+                                    EmptyPreviewMessage="Introduction preview will appear as you write markdown." />
+
+            <hr />
+
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4 class="mb-0">Steps</h4>
+            </div>
+
+            @if (!model.Steps.Any())
             {
-                <div class="card mb-3">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h5 class="mb-0">Step @step.DisplayOrder</h5>
+                <p>No steps added yet.</p>
+            }
+            else
+            {
+                @foreach (var step in model.Steps.OrderBy(s => s.DisplayOrder).ToList())
+                {
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5 class="mb-0">Step @step.DisplayOrder</h5>
 
-                            <div>
-                                <button type="button" class="btn btn-sm btn-outline-secondary me-2"
-                                        @onclick="() => MoveStepUp(step)">
-                                    Up
-                                </button>
+                                <div>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary me-2"
+                                            @onclick="() => MoveStepUp(step)">
+                                        Up
+                                    </button>
 
-                                <button type="button" class="btn btn-sm btn-outline-secondary me-2"
-                                        @onclick="() => MoveStepDown(step)">
-                                    Down
-                                </button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary me-2"
+                                            @onclick="() => MoveStepDown(step)">
+                                        Down
+                                    </button>
 
-                                <button type="button" class="btn btn-sm btn-outline-danger" @onclick="() => RemoveStep(step)">
-                                    Remove
-                                </button>
+                                    <button type="button" class="btn btn-sm btn-outline-danger" @onclick="() => RemoveStep(step)">
+                                        Remove
+                                    </button>
+                                </div>
                             </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Title</label>
+                                <InputText class="form-control" @bind-Value="step.Title" />
+                            </div>
+
+                            <TutorialMarkdownEditor Label="Instruction Markdown" Value="@step.InstructionMarkdown"
+                                                    ValueChanged="value => OnStepMarkdownChanged(step, value)" MinHeight="250px"
+                                                    Placeholder="Write the student-facing markdown for this step."
+                                                    EmptyPreviewMessage="Step preview will appear as you write markdown." />
+
                         </div>
+                    </div>
+                }
+            }
 
-                        <div class="mb-3">
-                            <label class="form-label">Title</label>
-                            <InputText class="form-control" @bind-Value="step.Title" />
-                        </div>
+            <button type="button" class="btn btn-outline-primary" @onclick="AddStep">
+                Add Step
+            </button>
 
-                        <TutorialMarkdownEditor Label="Instruction Markdown" Value="@step.InstructionMarkdown"
-                                                ValueChanged="value => OnStepMarkdownChanged(step, value)" MinHeight="250px"
-                                                Placeholder="Write the student-facing markdown for this step."
-                                                EmptyPreviewMessage="Step preview will appear as you write markdown." />
+            <div class="mt-4">
+                <TutorialMarkdownEditor Label="Conclusion Markdown" Value="@model.ConclusionMarkdown"
+                                        ValueChanged="OnConclusionMarkdownChanged" MinHeight="220px"
+                                        Placeholder="Add wrap-up notes, next steps, or recap content."
+                                        EmptyPreviewMessage="Conclusion preview will appear as you write markdown." />
+            </div>
 
+        }
+        @if (activeTab == "reference")
+        {
+
+            <div class="mb-3">
+                <h4>Instructor Reference</h4>
+                <p class="text-muted mb-0">
+                    Identify the final repository evidence for the tutorial as a whole. This can represent the combined outcome
+                    of multiple steps.
+                </p>
+            </div>
+
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Repository URL</label>
+                    <InputText class="form-control font-monospace" @bind-Value="model.RepoUrl" />
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">Branch Name</label>
+                    <InputText class="form-control font-monospace" @bind-Value="model.BranchName" />
+                </div>
+
+                <div class="col-12">
+                    <label class="form-label">Reference Subpath</label>
+                    <InputText class="form-control font-monospace" @bind-Value="model.ReferenceSubPath" />
+                    <div class="form-text">
+                        Optional repo subdirectory that contains the final tutorial result.
                     </div>
                 </div>
-            }
+
+                <div class="col-12">
+                    <label class="form-label">Reference File Names</label>
+                    <InputTextArea class="form-control font-monospace" style="min-height: 120px;"
+                                   @bind-Value="model.ReferenceFileNames" />
+                    <div class="form-text">
+                        List the repo files that demonstrate the final tutorial result. One file per line works well.
+                    </div>
+                </div>
+
+                <div class="col-12">
+                    <label class="form-label">Grading Hints</label>
+                    <InputTextArea class="form-control" style="min-height: 120px;" @bind-Value="model.GradingHints" />
+                </div>
+
+                <div class="col-12">
+                    <label class="form-label">Reference Code</label>
+                    <InputTextArea class="form-control font-monospace" style="min-height: 260px;"
+                                   @bind-Value="model.ReferenceCode" />
+                    <div class="form-text">
+                        Use this for the final reference implementation or combined expected result.
+                    </div>
+                </div>
+            </div>
+
+            <div class="alert alert-light border small mt-3 mb-0">
+                Status: @(IsGradableTutorial() ? "Gradable tutorial" : "Instruction-only tutorial")
+            </div>
         }
+        @if (activeTab == "assignment")
+        {
 
-        <button type="button" class="btn btn-outline-primary" @onclick="AddStep">
-            Add Step
-        </button>
-
-        <div class="mt-4">
-            <TutorialMarkdownEditor Label="Conclusion Markdown" Value="@model.ConclusionMarkdown"
-                                    ValueChanged="OnConclusionMarkdownChanged" MinHeight="220px"
-                                    Placeholder="Add wrap-up notes, next steps, or recap content."
-                                    EmptyPreviewMessage="Conclusion preview will appear as you write markdown." />
-        </div>
-
-        <hr />
-
-        <div class="mb-3">
-            <h4>Instructor Reference</h4>
-            <p class="text-muted mb-0">
-                Identify the final repository evidence for the tutorial as a whole. This can represent the combined outcome
-                of multiple steps.
-            </p>
-        </div>
-
-        <div class="row g-3">
-            <div class="col-md-6">
-                <label class="form-label">Repository URL</label>
-                <InputText class="form-control font-monospace" @bind-Value="model.RepoUrl" />
+            <div class="mb-3">
+                <h4>Brightspace Assignment Draft</h4>
+                <p class="text-muted mb-0">
+                    Draft the assignment shell that will be copied into Brightspace.
+                </p>
             </div>
 
-            <div class="col-md-6">
-                <label class="form-label">Branch Name</label>
-                <InputText class="form-control font-monospace" @bind-Value="model.BranchName" />
-            </div>
+            <div class="row g-3">
+                <div class="col-md-8">
+                    <label class="form-label">Assignment Title</label>
+                    <InputText class="form-control" Value="@model.BrightspaceAssignmentTitle"
+                               ValueChanged="OnBrightspaceAssignmentTitleChanged"
+                               ValueExpression="() => model.BrightspaceAssignmentTitle" />
+                    <div class="form-text">
+                        Leave blank to use the tutorial title.
+                    </div>
+                </div>
 
-            <div class="col-12">
-                <label class="form-label">Reference Subpath</label>
-                <InputText class="form-control font-monospace" @bind-Value="model.ReferenceSubPath" />
-                <div class="form-text">
-                    Optional repo subdirectory that contains the final tutorial result.
+                <div class="col-md-4">
+                    <label class="form-label">Points</label>
+                    <InputNumber class="form-control" @bind-Value="model.BrightspacePoints" />
+                </div>
+
+                <div class="col-12">
+                    <label class="form-label">Assignment Instructions</label>
+                    <InputTextArea class="form-control" style="min-height: 180px;"
+                                   @bind-Value="model.BrightspaceAssignmentInstructions" />
+                    <div class="form-text">
+                        These are instructor-facing assignment directions for Brightspace.
+                    </div>
+                </div>
+
+                <div class="col-12">
+                    <label class="form-label">Submission Instructions</label>
+                    <InputTextArea class="form-control" style="min-height: 120px;"
+                                   @bind-Value="model.BrightspaceSubmissionInstructions" />
+                    <div class="form-text">
+                        Example: Submit your GitHub repository URL and branch name in the Brightspace comments.
+                    </div>
                 </div>
             </div>
 
-            <div class="col-12">
-                <label class="form-label">Reference File Names</label>
-                <InputTextArea class="form-control font-monospace" style="min-height: 120px;"
-                               @bind-Value="model.ReferenceFileNames" />
-                <div class="form-text">
-                    List the repo files that demonstrate the final tutorial result. One file per line works well.
-                </div>
-            </div>
+            <hr />
 
-            <div class="col-12">
-                <label class="form-label">Grading Hints</label>
-                <InputTextArea class="form-control" style="min-height: 120px;" @bind-Value="model.GradingHints" />
-            </div>
+            <div class="mt-3">
+                <button type="submit" class="btn btn-primary me-2">Save</button>
 
-            <div class="col-12">
-                <label class="form-label">Reference Code</label>
-                <InputTextArea class="form-control font-monospace" style="min-height: 260px;"
-                               @bind-Value="model.ReferenceCode" />
-                <div class="form-text">
-                    Use this for the final reference implementation or combined expected result.
-                </div>
-            </div>
-        </div>
+                @if (!IsNew)
+                {
+                    <button type="button" class="btn btn-outline-primary me-2" @onclick="Preview">
+                        Preview
+                    </button>
 
-        <div class="alert alert-light border small mt-3 mb-0">
-            Status: @(IsGradableTutorial() ? "Gradable tutorial" : "Instruction-only tutorial")
-        </div>
+                    <button type="button" class="btn btn-outline-dark me-2" @onclick="Export">
+                        Export
+                    </button>
+                }
 
-        <hr />
-
-        <div class="mb-3">
-            <h4>Brightspace Assignment Draft</h4>
-            <p class="text-muted mb-0">
-                Draft the assignment shell that will be copied into Brightspace.
-            </p>
-        </div>
-
-        <div class="row g-3">
-            <div class="col-md-8">
-                <label class="form-label">Assignment Title</label>
-                <InputText class="form-control" @bind-Value="model.BrightspaceAssignmentTitle" />
-                <div class="form-text">
-                    Leave blank to use the tutorial title.
-                </div>
-            </div>
-
-            <div class="col-md-4">
-                <label class="form-label">Points</label>
-                <InputNumber class="form-control" @bind-Value="model.BrightspacePoints" />
-            </div>
-
-            <div class="col-12">
-                <label class="form-label">Assignment Instructions</label>
-                <InputTextArea class="form-control" style="min-height: 180px;"
-                               @bind-Value="model.BrightspaceAssignmentInstructions" />
-                <div class="form-text">
-                    These are instructor-facing assignment directions for Brightspace.
-                </div>
-            </div>
-
-            <div class="col-12">
-                <label class="form-label">Submission Instructions</label>
-                <InputTextArea class="form-control" style="min-height: 120px;"
-                               @bind-Value="model.BrightspaceSubmissionInstructions" />
-                <div class="form-text">
-                    Example: Submit your GitHub repository URL and branch name in the Brightspace comments.
-                </div>
-            </div>
-        </div>
-
-        <hr />
-
-        <div class="mt-3">
-            <button type="submit" class="btn btn-primary me-2">Save</button>
-
-            @if (!IsNew)
-            {
-                <button type="button" class="btn btn-outline-primary me-2" @onclick="Preview">
-                    Preview
+                <button type="button" class="btn btn-secondary" @onclick="Cancel">
+                    Cancel
                 </button>
-
-                <button type="button" class="btn btn-outline-dark me-2" @onclick="Export">
-                    Export
-                </button>
-            }
-
-            <button type="button" class="btn btn-secondary" @onclick="Cancel">
-                Cancel
-            </button>
-        </div>
+            </div>
+        }
     </EditForm>
 }
 
@@ -232,6 +264,8 @@ else
     private TutorialDefinition? model;
 
     private bool IsNew => !Id.HasValue;
+    private string activeTab = "tutorial";
+    private bool assignmentTitleWasManuallyEdited;
 
     protected override async Task OnInitializedAsync()
     {
@@ -257,6 +291,13 @@ else
                 Nav.NavigateTo("/tutorials");
                 return;
             }
+        }
+
+        assignmentTitleWasManuallyEdited = !string.IsNullOrWhiteSpace(model.BrightspaceAssignmentTitle);
+
+        if (!assignmentTitleWasManuallyEdited)
+        {
+            model.BrightspaceAssignmentTitle = BuildDefaultAssignmentTitle(model.Title);
         }
 
         NormalizeStepOrder();
@@ -384,7 +425,9 @@ else
         model.ReferenceFileNames = NormalizeOptional(model.ReferenceFileNames);
         model.ReferenceCode = NormalizeOptional(model.ReferenceCode);
         model.GradingHints = NormalizeOptional(model.GradingHints);
-        model.BrightspaceAssignmentTitle = NormalizeOptional(model.BrightspaceAssignmentTitle);
+        model.BrightspaceAssignmentTitle = string.IsNullOrWhiteSpace(model.BrightspaceAssignmentTitle)
+            ? BuildDefaultAssignmentTitle(model.Title)
+            : model.BrightspaceAssignmentTitle.Trim();
         model.BrightspaceAssignmentInstructions = NormalizeOptional(model.BrightspaceAssignmentInstructions);
         model.BrightspaceSubmissionInstructions = NormalizeOptional(model.BrightspaceSubmissionInstructions);
 
@@ -481,5 +524,48 @@ else
     private bool IsGradableTutorial()
     {
         return model != null && !string.IsNullOrWhiteSpace(model.ReferenceCode);
+    }
+
+    private void SetActiveTab(string tabName)
+    {
+        activeTab = tabName;
+    }
+
+    private Task OnTutorialTitleChanged(string value)
+    {
+        if (model == null)
+        {
+            return Task.CompletedTask;
+        }
+
+        model.Title = value;
+
+        if (!assignmentTitleWasManuallyEdited &&
+            string.IsNullOrWhiteSpace(model.BrightspaceAssignmentTitle))
+        {
+            model.BrightspaceAssignmentTitle = BuildDefaultAssignmentTitle(value);
+        }
+
+        return Task.CompletedTask;
+    }
+
+    private Task OnBrightspaceAssignmentTitleChanged(string value)
+    {
+        if (model == null)
+        {
+            return Task.CompletedTask;
+        }
+
+        model.BrightspaceAssignmentTitle = value;
+        assignmentTitleWasManuallyEdited = !string.IsNullOrWhiteSpace(value);
+
+        return Task.CompletedTask;
+    }
+
+    private static string BuildDefaultAssignmentTitle(string? tutorialTitle)
+    {
+        return string.IsNullOrWhiteSpace(tutorialTitle)
+            ? "Tutorial"
+            : $"Tutorial - {tutorialTitle.Trim()}";
     }
 }
