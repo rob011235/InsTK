@@ -373,3 +373,10 @@ MigrationBackup/
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
 .dotnethome/
+
+# Repo-specific generated artifacts
+/build-verify/
+/BrightspaceProbeArtifacts/
+/migration-build.log
+/InsTK.Server/wwwroot/uploads/*
+!/InsTK.Server/wwwroot/uploads/.gitkeep
