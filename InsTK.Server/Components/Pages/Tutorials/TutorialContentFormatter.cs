@@ -7,27 +7,6 @@ namespace InsTK.Server.Components.Pages.Tutorials
 {
     internal static class TutorialContentFormatter
     {
-        private const string DefaultBrightspaceSubmissionInstructions = """
-        <p>Submit the URL to your GitHub repository in the Brightspace submission comments.</p>
-
-        <p>The first URL in your submission will be used for grading.</p>
-
-        <p>If you are not using the main branch, you must include the branch in the URL using this format:</p>
-
-        <pre><code>https://github.com/{owner}/{repository}/tree/{branch}</code></pre>
-
-        <p>Examples:</p>
-
-        <pre><code>https://github.com/jdoe/BlazorApp
-        https://github.com/cnm-students/BlazorApp/tree/feature/tutorial-step-3</code></pre>
-
-        <p>You can copy the correct URL directly from GitHub by selecting your branch and copying the page URL.</p>
-
-        <p>Only submit a repository URL. Do not submit links to files, pull requests, or other pages.</p>
-
-        <p>Submissions that do not follow this format may not be graded correctly.</p>
-        """;
-
         private static readonly MarkdownPipeline MarkdownPipeline = new MarkdownPipelineBuilder()
             .UseAdvancedExtensions()
             .Build();
@@ -131,48 +110,30 @@ namespace InsTK.Server.Components.Pages.Tutorials
 
             html.AppendLine($"<h1>{Encode(title)}</h1>");
 
+            var assignmentInstructions = string.IsNullOrWhiteSpace(tutorial.BrightspaceAssignmentInstructions)
+                ? TutorialDefinition.DefaultBrightspaceAssignmentInstructions
+                : tutorial.BrightspaceAssignmentInstructions;
+
+            assignmentInstructions = assignmentInstructions.Replace("{{url}}", BuildTutorialUrl(tutorial));
+
             html.AppendLine("<h2>Assignment Overview</h2>");
-
-            if (!string.IsNullOrWhiteSpace(tutorial.BrightspaceAssignmentInstructions))
-            {
-                var instructions = tutorial.BrightspaceAssignmentInstructions
-                    .Replace("{{url}}", BuildTutorialUrl(tutorial));
-
-                html.AppendLine(RenderMarkdown(instructions));
-            }
-            else if (!string.IsNullOrWhiteSpace(tutorial.Summary))
-            {
-                html.AppendLine($"<p>{Encode(tutorial.Summary)}</p>");
-            }
-
-            html.AppendLine("<h2>Tutorial Instructions</h2>");
-
-            if (!string.IsNullOrWhiteSpace(tutorial.IntroMarkdown))
-            {
-                html.AppendLine(RenderMarkdown(tutorial.IntroMarkdown));
-            }
-
-            foreach (var step in tutorial.Steps.OrderBy(s => s.DisplayOrder))
-            {
-                html.AppendLine($"<h3>Step {step.DisplayOrder}: {Encode(step.Title)}</h3>");
-                html.AppendLine(RenderMarkdown(step.InstructionMarkdown));
-            }
-
-            if (!string.IsNullOrWhiteSpace(tutorial.ConclusionMarkdown))
-            {
-                html.AppendLine("<h3>Conclusion</h3>");
-                html.AppendLine(RenderMarkdown(tutorial.ConclusionMarkdown));
-            }
+            html.AppendLine(RenderMarkdown(assignmentInstructions));
 
             html.AppendLine("<h2>Submission Requirements</h2>");
 
-            if (!string.IsNullOrWhiteSpace(tutorial.BrightspaceSubmissionInstructions))
-            {
-                html.AppendLine(RenderMarkdown(tutorial.BrightspaceSubmissionInstructions));
-            }
+            var submissionInstructions = string.IsNullOrWhiteSpace(tutorial.BrightspaceSubmissionInstructions)
+                ? TutorialDefinition.DefaultBrightspaceSubmissionInstructions
+                : tutorial.BrightspaceSubmissionInstructions;
+
+            html.AppendLine(RenderMarkdown(submissionInstructions));
 
             html.AppendLine("<h2>Points</h2>");
-            html.AppendLine($"<p>This assignment is worth {tutorial.BrightspacePoints} points.</p>");
+
+            var points = tutorial.BrightspacePoints > 0
+                ? tutorial.BrightspacePoints
+                : 100;
+
+            html.AppendLine($"<p>This assignment is worth {points} points.</p>");
 
             return html.ToString().Trim();
         }
