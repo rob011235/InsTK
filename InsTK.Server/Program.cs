@@ -5,10 +5,10 @@ using InsTK.WebClient.Pages;
 using InsTK.Server.Components;
 using InsTK.Server.Components.Account;
 using InsTK.Server.Data;
-using InsTK.Server.Services.Ollama;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using System.IO;
 
 namespace InsTK.Server
@@ -43,14 +43,6 @@ namespace InsTK.Server
             builder.Services.AddCascadingAuthenticationState();
             builder.Services.AddScoped<IdentityRedirectManager>();
             builder.Services.AddScoped<AuthenticationStateProvider, IdentityRevalidatingAuthenticationStateProvider>();
-            builder.Services.Configure<OllamaChatOptions>(builder.Configuration.GetSection("Ollama"));
-            builder.Services.AddHttpClient<IOllamaChatService, OllamaChatService>((services, client) =>
-            {
-                var options = services.GetRequiredService<Microsoft.Extensions.Options.IOptions<OllamaChatOptions>>().Value;
-                var baseUrl = string.IsNullOrWhiteSpace(options.BaseUrl) ? "http://127.0.0.1:11434" : options.BaseUrl.Trim().TrimEnd('/');
-                client.BaseAddress = new Uri($"{baseUrl}/", UriKind.Absolute);
-                client.Timeout = TimeSpan.FromMinutes(2);
-            });
 
             builder.Services.AddAuthentication(options =>
                 {
@@ -61,7 +53,9 @@ namespace InsTK.Server
 
             var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 
-            builder.Services.AddDbContextFactory<ApplicationDbContext>(options => options.UseSqlServer(connectionString));
+            builder.Services.AddDbContextFactory<ApplicationDbContext>(options =>
+                options.UseSqlServer(connectionString)
+                    .ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning)));
 
             builder.Services.AddScoped(sp => sp.GetRequiredService<IDbContextFactory<ApplicationDbContext>>().CreateDbContext());
 
@@ -143,7 +137,17 @@ namespace InsTK.Server
             // Add additional endpoints required by the Identity /Account Razor components.
             app.MapAdditionalIdentityEndpoints();
 
+            RunMigrations(app);
+
             app.Run();
+        }
+
+        private static void RunMigrations(WebApplication app)
+        {
+            using var scope = app.Services.CreateScope();
+            var factory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<ApplicationDbContext>>();
+            using var db = factory.CreateDbContext();
+            db.Database.Migrate();
         }
     }
 }

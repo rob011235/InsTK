@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace InsTK.Server.Migrations
 {
     /// <inheritdoc />
-    public partial class DeployV1DB : Migration
+    public partial class InitialCreate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -55,17 +55,21 @@ namespace InsTK.Server.Migrations
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    Title = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    Summary = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
+                    Title = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Summary = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     Technology = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
-                    IntroMarkdown = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    ConclusionMarkdown = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    RepoUrl = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    BranchName = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
-                    ReferenceSubPath = table.Column<string>(type: "nvarchar(300)", maxLength: 300, nullable: true),
+                    YouTubeUrl = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    ContentMarkdown = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    RepoUrl = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    BranchName = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    ReferenceSubPath = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     ReferenceFileNames = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     ReferenceCode = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     GradingHints = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    BrightspaceAssignmentTitle = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    BrightspaceAssignmentInstructions = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    BrightspacePoints = table.Column<int>(type: "int", nullable: false),
+                    BrightspaceSubmissionInstructions = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     CreatedUtc = table.Column<DateTime>(type: "datetime2", nullable: false),
                     UpdatedUtc = table.Column<DateTime>(type: "datetime2", nullable: true)
                 },
@@ -180,27 +184,6 @@ namespace InsTK.Server.Migrations
                         onDelete: ReferentialAction.Cascade);
                 });
 
-            migrationBuilder.CreateTable(
-                name: "TutorialSteps",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    TutorialDefinitionId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    DisplayOrder = table.Column<int>(type: "int", nullable: false),
-                    Title = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    InstructionMarkdown = table.Column<string>(type: "nvarchar(max)", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_TutorialSteps", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_TutorialSteps_Tutorials_TutorialDefinitionId",
-                        column: x => x.TutorialDefinitionId,
-                        principalTable: "Tutorials",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
             migrationBuilder.CreateIndex(
                 name: "IX_AspNetRoleClaims_RoleId",
                 table: "AspNetRoleClaims",
@@ -239,11 +222,6 @@ namespace InsTK.Server.Migrations
                 column: "NormalizedUserName",
                 unique: true,
                 filter: "[NormalizedUserName] IS NOT NULL");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_TutorialSteps_TutorialDefinitionId",
-                table: "TutorialSteps",
-                column: "TutorialDefinitionId");
         }
 
         /// <inheritdoc />
@@ -265,16 +243,13 @@ namespace InsTK.Server.Migrations
                 name: "AspNetUserTokens");
 
             migrationBuilder.DropTable(
-                name: "TutorialSteps");
+                name: "Tutorials");
 
             migrationBuilder.DropTable(
                 name: "AspNetRoles");
 
             migrationBuilder.DropTable(
                 name: "AspNetUsers");
-
-            migrationBuilder.DropTable(
-                name: "Tutorials");
         }
     }
 }

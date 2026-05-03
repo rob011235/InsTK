@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace InsTK.Server.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260502224050_SimplifyTutorialContentModel")]
-    partial class SimplifyTutorialContentModel
+    [Migration("20260503051404_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -145,6 +145,9 @@ namespace InsTK.Server.Migrations
 
                     b.Property<DateTime?>("UpdatedUtc")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("YouTubeUrl")
+                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
 
