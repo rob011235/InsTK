@@ -2,6 +2,7 @@
 @page "/tutorials/edit/{Id:guid}"
 @rendermode InteractiveServer
 
+@using System.Linq
 @using InsTK.Server.Data
 @using InsTK.Shared.Models.Tutorials
 @using Microsoft.EntityFrameworkCore
@@ -17,181 +18,61 @@
 }
 else
 {
-    <EditForm Model="model" OnValidSubmit="Save" FormName="tutorialForm">
-        <DataAnnotationsValidator />
-        <ValidationSummary />
+    <ul class="nav nav-tabs mb-3">
+        <li class="nav-item">
+            <button type="button" class="nav-link @(activeTab == "tutorial" ? "active" : "")"
+                    @onclick='() => SetActiveTab("tutorial")'>
+                Tutorial
+            </button>
+        </li>
 
-        <ul class="nav nav-tabs mb-3">
-            <li class="nav-item">
-                <button type="button" class="nav-link @(activeTab == "tutorial" ? "active" : "")"
-                        @onclick='() => SetActiveTab("tutorial")'>
-                    Tutorial
-                </button>
-            </li>
+        <li class="nav-item">
+            <button type="button" class="nav-link @(activeTab == "reference" ? "active" : "")"
+                    @onclick='() => SetActiveTab("reference")'>
+                Git Reference
+            </button>
+        </li>
 
-            <li class="nav-item">
-                <button type="button" class="nav-link @(activeTab == "reference" ? "active" : "")"
-                        @onclick='() => SetActiveTab("reference")'>
-                    Git Reference
-                </button>
-            </li>
+        <li class="nav-item">
+            <button type="button" class="nav-link @(activeTab == "assignment" ? "active" : "")"
+                    @onclick='() => SetActiveTab("assignment")'>
+                Brightspace Assignment
+            </button>
+        </li>
+    </ul>
 
-            <li class="nav-item">
-                <button type="button" class="nav-link @(activeTab == "assignment" ? "active" : "")"
-                        @onclick='() => SetActiveTab("assignment")'>
-                    Brightspace Assignment
-                </button>
-            </li>
-        </ul>
+    @if (activeTab == "tutorial")
+    {
+        <TutorialAuthoringTab Model="model"
+                              OnTutorialTitleChanged="OnTutorialTitleChanged"
+                              OnContentMarkdownChanged="OnContentMarkdownChanged"
+                              OnSaveRequested="Save"
+                              OnExportRequested="OpenTutorialExportModal"
+                              OnReturnToListRequested="ReturnToList" />
+    }
 
-        @if (activeTab == "tutorial")
-        {
-            <div class="mb-3">
-                <label class="form-label">Title</label>
-                <InputText class="form-control" Value="@model.Title" ValueChanged="OnTutorialTitleChanged"
-                           ValueExpression="() => model.Title" />
-            </div>
+    @if (activeTab == "reference")
+    {
+        <TutorialGitReferenceTab Model="model"
+                                 OnSaveRequested="Save"
+                                 OnReturnToListRequested="ReturnToList" />
+    }
 
-            <div class="mb-3">
-                <label class="form-label">Summary</label>
-                <InputTextArea class="form-control" @bind-Value="model.Summary" />
-            </div>
+    @if (activeTab == "assignment")
+    {
+        <TutorialBrightspaceAssignmentTab Model="model"
+                                          OnAssignmentTitleChanged="OnBrightspaceAssignmentTitleChanged"
+                                          OnSaveRequested="Save"
+                                          OnExportRequested="OpenAssignmentExportModal"
+                                          OnReturnToListRequested="ReturnToList" />
+    }
 
-            <div class="mb-3">
-                <label class="form-label">Technology</label>
-                <InputText class="form-control" @bind-Value="model.Technology" />
-            </div>
-
-            <TutorialMarkdownEditor Label="Tutorial Content Markdown" Value="@model.ContentMarkdown"
-                                    ValueChanged="OnContentMarkdownChanged" MinHeight="520px"
-                                    Placeholder="Write the full tutorial here. Use markdown headings like ## Step 1 if you want step structure." />
-
-        }
-        @if (activeTab == "reference")
-        {
-
-            <div class="mb-3">
-                <h4>Instructor Reference</h4>
-                <p class="text-muted mb-0">
-                    Identify the final repository evidence for the tutorial as a whole. This can represent the combined outcome
-                    of multiple steps.
-                </p>
-            </div>
-
-            <div class="row g-3">
-                <div class="col-md-6">
-                    <label class="form-label">Repository URL</label>
-                    <InputText class="form-control font-monospace" @bind-Value="model.RepoUrl" />
-                </div>
-
-                <div class="col-md-6">
-                    <label class="form-label">Branch Name</label>
-                    <InputText class="form-control font-monospace" @bind-Value="model.BranchName" />
-                </div>
-
-                <div class="col-12">
-                    <label class="form-label">Reference Subpath</label>
-                    <InputText class="form-control font-monospace" @bind-Value="model.ReferenceSubPath" />
-                    <div class="form-text">
-                        Optional repo subdirectory that contains the final tutorial result.
-                    </div>
-                </div>
-
-                <div class="col-12">
-                    <label class="form-label">Reference File Names</label>
-                    <InputTextArea class="form-control font-monospace" style="min-height: 120px;"
-                                   @bind-Value="model.ReferenceFileNames" />
-                    <div class="form-text">
-                        List the repo files that demonstrate the final tutorial result. One file per line works well.
-                    </div>
-                </div>
-
-                <div class="col-12">
-                    <label class="form-label">Grading Hints</label>
-                    <InputTextArea class="form-control" style="min-height: 120px;" @bind-Value="model.GradingHints" />
-                </div>
-
-                <div class="col-12">
-                    <label class="form-label">Reference Code</label>
-                    <InputTextArea class="form-control font-monospace" style="min-height: 260px;"
-                                   @bind-Value="model.ReferenceCode" />
-                    <div class="form-text">
-                        Use this for the final reference implementation or combined expected result.
-                    </div>
-                </div>
-            </div>
-
-            <div class="alert alert-light border small mt-3 mb-0">
-                Status: @(IsGradableTutorial() ? "Gradable tutorial" : "Instruction-only tutorial")
-            </div>
-        }
-        @if (activeTab == "assignment")
-        {
-
-            <div class="mb-3">
-                <h4>Brightspace Assignment Draft</h4>
-                <p class="text-muted mb-0">
-                    Draft the assignment shell that will be copied into Brightspace.
-                </p>
-            </div>
-
-            <div class="row g-3">
-                <div class="col-md-8">
-                    <label class="form-label">Assignment Title</label>
-                    <InputText class="form-control" Value="@model.BrightspaceAssignmentTitle"
-                               ValueChanged="OnBrightspaceAssignmentTitleChanged"
-                               ValueExpression="() => model.BrightspaceAssignmentTitle" />
-                    <div class="form-text">
-                        Leave blank to use the tutorial title.
-                    </div>
-                </div>
-
-                <div class="col-md-4">
-                    <label class="form-label">Points</label>
-                    <InputNumber class="form-control" @bind-Value="model.BrightspacePoints" />
-                </div>
-
-                <div class="col-12">
-                    <label class="form-label">Assignment Instructions</label>
-                    <InputTextArea class="form-control" style="min-height: 180px;"
-                                   @bind-Value="model.BrightspaceAssignmentInstructions" />
-                    <div class="form-text">
-                        These are instructor-facing assignment directions for Brightspace.
-                    </div>
-                </div>
-
-                <div class="col-12">
-                    <label class="form-label">Submission Instructions</label>
-                    <InputTextArea class="form-control" style="min-height: 120px;"
-                                   @bind-Value="model.BrightspaceSubmissionInstructions" />
-                    <div class="form-text">
-                        Example: Submit your GitHub repository URL and branch name in the Brightspace comments.
-                    </div>
-                </div>
-            </div>
-
-        }
-            <hr />
-
-            <div class="mt-3">
-                <button type="submit" class="btn btn-primary me-2">Save</button>
-
-                @if (!IsNew)
-                {
-                    <button type="button" class="btn btn-outline-primary me-2" @onclick="Preview">
-                        Preview
-                    </button>
-
-                    <button type="button" class="btn btn-outline-dark me-2" @onclick="Export">
-                        Export
-                    </button>
-                }
-
-                <button type="button" class="btn btn-secondary" @onclick="Cancel">
-                    Cancel
-                </button>
-            </div>
-    </EditForm>
+    @if (exportModalSections.Count > 0)
+    {
+        <TutorialExportModal Title="@exportModalTitle"
+                             Sections="exportModalSections"
+                             OnCloseRequested="CloseExportModal" />
+    }
 }
 
 @code {
@@ -203,6 +84,8 @@ else
     private bool IsNew => !Id.HasValue;
     private string activeTab = "tutorial";
     private bool assignmentTitleWasManuallyEdited;
+    private string exportModalTitle = string.Empty;
+    private List<TutorialExportSection> exportModalSections = [];
 
     protected override async Task OnInitializedAsync()
     {
@@ -235,12 +118,6 @@ else
                     TutorialDefinition.DefaultBrightspaceSubmissionInstructions;
             }
 
-            if (string.IsNullOrWhiteSpace(model.BrightspaceAssignmentTitle))
-            {
-                model.BrightspaceAssignmentTitle =
-                    $"Tutorial - {model.Title}".Trim();
-            }
-
             if (string.IsNullOrWhiteSpace(model.BrightspaceAssignmentInstructions))
             {
                 model.BrightspaceAssignmentInstructions =
@@ -248,7 +125,7 @@ else
             }
         }
 
-        assignmentTitleWasManuallyEdited = !string.IsNullOrWhiteSpace(model.BrightspaceAssignmentTitle);
+        assignmentTitleWasManuallyEdited = !UsesDefaultAssignmentTitle(model.Title, model.BrightspaceAssignmentTitle);
 
         if (!assignmentTitleWasManuallyEdited)
         {
@@ -279,26 +156,7 @@ else
         if (model == null)
             return;
 
-        model.Title = model.Title?.Trim() ?? string.Empty;
-        model.Summary = NormalizeOptional(model.Summary);
-        model.Technology = NormalizeOptional(model.Technology);
-        model.ContentMarkdown = NormalizeOptional(model.ContentMarkdown);
-        model.RepoUrl = NormalizeOptional(model.RepoUrl);
-        model.BranchName = NormalizeOptional(model.BranchName);
-        model.ReferenceSubPath = NormalizeOptional(model.ReferenceSubPath);
-        model.ReferenceFileNames = NormalizeOptional(model.ReferenceFileNames);
-        model.ReferenceCode = NormalizeOptional(model.ReferenceCode);
-        model.GradingHints = NormalizeOptional(model.GradingHints);
-        model.BrightspaceAssignmentTitle = string.IsNullOrWhiteSpace(model.BrightspaceAssignmentTitle)
-            ? BuildDefaultAssignmentTitle(model.Title)
-            : model.BrightspaceAssignmentTitle.Trim();
-        model.BrightspaceAssignmentInstructions = NormalizeOptional(model.BrightspaceAssignmentInstructions);
-        model.BrightspaceSubmissionInstructions = NormalizeOptional(model.BrightspaceSubmissionInstructions);
-
-        if (model.BrightspacePoints <= 0)
-        {
-            model.BrightspacePoints = 100;
-        }
+        ApplyNormalizedDraft(CreateNormalizedDraft());
 
         if (IsNew)
         {
@@ -337,33 +195,31 @@ else
 
         await db.SaveChangesAsync();
 
-        Nav.NavigateTo("/tutorials");
+        if (IsNew)
+        {
+            Nav.NavigateTo($"/tutorials/edit/{model.Id}");
+            return;
+        }
     }
 
-    private void Cancel()
+    private void ReturnToList()
     {
         Nav.NavigateTo("/tutorials");
     }
 
-    private void Preview()
+    private void OpenTutorialExportModal()
     {
         if (model == null)
             return;
 
-        Nav.NavigateTo($"/tutorials/{model.Id}/preview");
-    }
-
-    private void Export()
-    {
-        if (model == null)
-            return;
-
-        Nav.NavigateTo($"/tutorials/{model.Id}/export");
-    }
-
-    private bool IsGradableTutorial()
-    {
-        return model != null && !string.IsNullOrWhiteSpace(model.ReferenceCode);
+        var draft = CreateNormalizedDraft();
+        exportModalTitle = $"Tutorial Export: {draft.Title}";
+        var slug = BuildTutorialFileSlug(draft.Title);
+        exportModalSections =
+        [
+            new TutorialExportSection("WordPress HTML", TutorialContentFormatter.BuildWordPressHtml(draft), "text/html", $"{slug}.html", 320),
+            new TutorialExportSection("WordPress Markdown", TutorialContentFormatter.BuildWordPressMarkdown(draft), "text/markdown", $"{slug}.md", 320)
+        ];
     }
 
     private void SetActiveTab(string tabName)
@@ -396,7 +252,7 @@ else
         }
 
         model.BrightspaceAssignmentTitle = value;
-        assignmentTitleWasManuallyEdited = !string.IsNullOrWhiteSpace(value);
+        assignmentTitleWasManuallyEdited = !UsesDefaultAssignmentTitle(model.Title, value);
 
         return Task.CompletedTask;
     }
@@ -406,5 +262,111 @@ else
         return string.IsNullOrWhiteSpace(tutorialTitle)
             ? "Tutorial"
             : $"Tutorial - {tutorialTitle.Trim()}";
+    }
+
+    private static bool UsesDefaultAssignmentTitle(string? tutorialTitle, string? assignmentTitle)
+    {
+        if (string.IsNullOrWhiteSpace(assignmentTitle))
+        {
+            return true;
+        }
+
+        return string.Equals(
+            assignmentTitle.Trim(),
+            BuildDefaultAssignmentTitle(tutorialTitle),
+            StringComparison.Ordinal);
+    }
+
+    private void OpenAssignmentExportModal()
+    {
+        if (model == null)
+            return;
+
+        var draft = CreateNormalizedDraft();
+        exportModalTitle = $"Brightspace Assignment Export: {draft.BrightspaceAssignmentTitle}";
+        var slug = BuildTutorialFileSlug(draft.Title);
+        exportModalSections =
+        [
+            new TutorialExportSection("Brightspace Assignment HTML", TutorialContentFormatter.BuildBrightspaceAssignmentHtml(draft), "text/html", $"{slug}-brightspace-assignment.html", 360)
+        ];
+    }
+
+    private void CloseExportModal()
+    {
+        exportModalTitle = string.Empty;
+        exportModalSections = [];
+    }
+
+    private TutorialDefinition CreateNormalizedDraft()
+    {
+        if (model == null)
+        {
+            return new TutorialDefinition();
+        }
+
+        var normalizedTitle = model.Title?.Trim() ?? string.Empty;
+        var normalizedAssignmentTitle = string.IsNullOrWhiteSpace(model.BrightspaceAssignmentTitle)
+            ? BuildDefaultAssignmentTitle(normalizedTitle)
+            : model.BrightspaceAssignmentTitle.Trim();
+
+        return new TutorialDefinition
+        {
+            Id = model.Id,
+            Title = normalizedTitle,
+            Summary = NormalizeOptional(model.Summary),
+            Technology = NormalizeOptional(model.Technology),
+            ContentMarkdown = NormalizeOptional(model.ContentMarkdown),
+            RepoUrl = NormalizeOptional(model.RepoUrl),
+            BranchName = NormalizeOptional(model.BranchName),
+            ReferenceSubPath = NormalizeOptional(model.ReferenceSubPath),
+            ReferenceFileNames = NormalizeOptional(model.ReferenceFileNames),
+            ReferenceCode = NormalizeOptional(model.ReferenceCode),
+            GradingHints = NormalizeOptional(model.GradingHints),
+            BrightspaceAssignmentTitle = normalizedAssignmentTitle,
+            BrightspaceAssignmentInstructions = NormalizeOptional(model.BrightspaceAssignmentInstructions),
+            BrightspacePoints = model.BrightspacePoints > 0 ? model.BrightspacePoints : 100,
+            BrightspaceSubmissionInstructions = NormalizeOptional(model.BrightspaceSubmissionInstructions),
+            CreatedUtc = model.CreatedUtc,
+            UpdatedUtc = model.UpdatedUtc
+        };
+    }
+
+    private void ApplyNormalizedDraft(TutorialDefinition draft)
+    {
+        if (model == null)
+        {
+            return;
+        }
+
+        model.Title = draft.Title;
+        model.Summary = draft.Summary;
+        model.Technology = draft.Technology;
+        model.ContentMarkdown = draft.ContentMarkdown;
+        model.RepoUrl = draft.RepoUrl;
+        model.BranchName = draft.BranchName;
+        model.ReferenceSubPath = draft.ReferenceSubPath;
+        model.ReferenceFileNames = draft.ReferenceFileNames;
+        model.ReferenceCode = draft.ReferenceCode;
+        model.GradingHints = draft.GradingHints;
+        model.BrightspaceAssignmentTitle = draft.BrightspaceAssignmentTitle;
+        model.BrightspaceAssignmentInstructions = draft.BrightspaceAssignmentInstructions;
+        model.BrightspacePoints = draft.BrightspacePoints;
+        model.BrightspaceSubmissionInstructions = draft.BrightspaceSubmissionInstructions;
+    }
+
+    private static string BuildTutorialFileSlug(string? title)
+    {
+        var slug = new string((title ?? "tutorial")
+            .ToLowerInvariant()
+            .Select(ch => char.IsLetterOrDigit(ch) ? ch : '-')
+            .ToArray());
+
+        while (slug.Contains("--", StringComparison.Ordinal))
+        {
+            slug = slug.Replace("--", "-", StringComparison.Ordinal);
+        }
+
+        slug = slug.Trim('-');
+        return string.IsNullOrWhiteSpace(slug) ? "tutorial" : slug;
     }
 }

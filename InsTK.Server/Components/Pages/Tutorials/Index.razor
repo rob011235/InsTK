@@ -44,14 +44,6 @@ else
                             Edit
                         </button>
 
-                        <button class="btn btn-sm btn-outline-primary me-2" @onclick="() => Preview(t.Id)">
-                            Preview
-                        </button>
-
-                        <button class="btn btn-sm btn-outline-dark me-2" @onclick="() => Export(t.Id)">
-                            Export
-                        </button>
-
                         <button class="btn btn-sm btn-danger" @onclick="() => Delete(t.Id)">
                             Delete
                         </button>
@@ -88,16 +80,6 @@ else
     private void Edit(Guid id)
     {
         Nav.NavigateTo($"/tutorials/edit/{id}");
-    }
-
-    private void Preview(Guid id)
-    {
-        Nav.NavigateTo($"/tutorials/{id}/preview");
-    }
-
-    private void Export(Guid id)
-    {
-        Nav.NavigateTo($"/tutorials/{id}/export");
     }
 
     private async Task Delete(Guid id)

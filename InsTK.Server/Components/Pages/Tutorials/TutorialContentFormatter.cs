@@ -1,5 +1,7 @@
 using System.Net;
 using System.Text;
+using System.Xml;
+using System.Xml.Linq;
 using InsTK.Shared.Models.Tutorials;
 using Markdig;
 
@@ -7,13 +9,58 @@ namespace InsTK.Server.Components.Pages.Tutorials
 {
     internal static class TutorialContentFormatter
     {
+        private static readonly HashSet<string> AllowedElements =
+        [
+            "a",
+            "blockquote",
+            "br",
+            "code",
+            "del",
+            "em",
+            "h1",
+            "h2",
+            "h3",
+            "h4",
+            "h5",
+            "h6",
+            "hr",
+            "img",
+            "li",
+            "ol",
+            "p",
+            "pre",
+            "strong",
+            "table",
+            "tbody",
+            "td",
+            "th",
+            "thead",
+            "tr",
+            "ul"
+        ];
+
+        private static readonly HashSet<string> StripContentElements =
+        [
+            "script",
+            "style",
+            "iframe",
+            "object",
+            "embed",
+            "form",
+            "input",
+            "button",
+            "select",
+            "textarea"
+        ];
+
         private static readonly MarkdownPipeline MarkdownPipeline = new MarkdownPipelineBuilder()
             .UseAdvancedExtensions()
             .Build();
 
         public static string RenderMarkdown(string? markdown)
         {
-            return Markdown.ToHtml(markdown ?? string.Empty, MarkdownPipeline).Trim();
+            var html = Markdown.ToHtml(markdown ?? string.Empty, MarkdownPipeline);
+            return SanitizeHtml(html).Trim();
         }
 
         public static string BuildWordPressHtml(TutorialDefinition tutorial)
@@ -152,6 +199,158 @@ namespace InsTK.Server.Components.Pages.Tutorials
 
             var slug = builder.ToString().Trim('-');
             return string.IsNullOrWhiteSpace(slug) ? "tutorial" : slug;
+        }
+
+        private static string SanitizeHtml(string html)
+        {
+            if (string.IsNullOrWhiteSpace(html))
+            {
+                return string.Empty;
+            }
+
+            try
+            {
+                var root = XElement.Parse($"<root>{html}</root>", LoadOptions.PreserveWhitespace);
+                var output = new StringBuilder();
+
+                foreach (var node in root.Nodes())
+                {
+                    AppendSanitizedNode(output, node);
+                }
+
+                return output.ToString();
+            }
+            catch (XmlException)
+            {
+                return WebUtility.HtmlEncode(html);
+            }
+        }
+
+        private static void AppendSanitizedNode(StringBuilder output, XNode node)
+        {
+            switch (node)
+            {
+                case XText textNode:
+                    output.Append(WebUtility.HtmlEncode(textNode.Value));
+                    break;
+
+                case XElement element:
+                    AppendSanitizedElement(output, element);
+                    break;
+            }
+        }
+
+        private static void AppendSanitizedElement(StringBuilder output, XElement element)
+        {
+            var tagName = element.Name.LocalName.ToLowerInvariant();
+
+            if (StripContentElements.Contains(tagName))
+            {
+                return;
+            }
+
+            if (!AllowedElements.Contains(tagName))
+            {
+                foreach (var child in element.Nodes())
+                {
+                    AppendSanitizedNode(output, child);
+                }
+
+                return;
+            }
+
+            output.Append('<').Append(tagName);
+            AppendAllowedAttributes(output, element, tagName);
+
+            if (IsVoidElement(tagName))
+            {
+                output.Append(" />");
+                return;
+            }
+
+            output.Append('>');
+
+            foreach (var child in element.Nodes())
+            {
+                AppendSanitizedNode(output, child);
+            }
+
+            output.Append("</").Append(tagName).Append('>');
+        }
+
+        private static void AppendAllowedAttributes(StringBuilder output, XElement element, string tagName)
+        {
+            foreach (var attribute in element.Attributes())
+            {
+                var attributeName = attribute.Name.LocalName.ToLowerInvariant();
+
+                if (attributeName.StartsWith("on", StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                if (tagName == "a" && attributeName == "href" && TrySanitizeUrl(attribute.Value, out var href))
+                {
+                    output.Append(' ').Append("href=\"").Append(EncodeAttribute(href)).Append('"');
+                    continue;
+                }
+
+                if (tagName == "img" && attributeName == "src" && TrySanitizeUrl(attribute.Value, out var src))
+                {
+                    output.Append(' ').Append("src=\"").Append(EncodeAttribute(src)).Append('"');
+                    continue;
+                }
+
+                if ((tagName == "a" || tagName == "img") &&
+                    (attributeName == "title" || attributeName == "alt"))
+                {
+                    output.Append(' ').Append(attributeName).Append("=\"")
+                        .Append(EncodeAttribute(attribute.Value)).Append('"');
+                }
+            }
+        }
+
+        private static bool TrySanitizeUrl(string? value, out string sanitized)
+        {
+            sanitized = string.Empty;
+
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return false;
+            }
+
+            var candidate = value.Trim();
+
+            if (candidate.StartsWith("/", StringComparison.Ordinal))
+            {
+                sanitized = candidate;
+                return true;
+            }
+
+            if (!Uri.TryCreate(candidate, UriKind.Absolute, out var uri))
+            {
+                return false;
+            }
+
+            if (uri.Scheme != Uri.UriSchemeHttp &&
+                uri.Scheme != Uri.UriSchemeHttps &&
+                uri.Scheme != Uri.UriSchemeMailto)
+            {
+                return false;
+            }
+
+            sanitized = uri.ToString();
+            return true;
+        }
+
+        private static bool IsVoidElement(string tagName)
+        {
+            return tagName is "br" or "hr" or "img";
+        }
+
+        private static string EncodeAttribute(string value)
+        {
+            return WebUtility.HtmlEncode(value);
         }
     }
 }

@@ -4,4 +4,5 @@
     <Project Path="InsTK.Shared/InsTK.Shared.csproj" />
     <Project Path="InsTK.WebClient/InsTK.WebClient.csproj" />
     <Project Path="InsTK.Server/InsTK.Server.csproj" />
+    <Project Path="Tests/Tests.csproj" />
 </Solution>
