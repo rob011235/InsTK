@@ -21,6 +21,14 @@
 
     <div class="row g-3">
         <div class="col-md-6">
+            <label class="form-label">Technology</label>
+            <InputText class="form-control" @bind-Value="Model.Technology" />
+            <div class="form-text">
+                Grading-only technology label for instructor reference.
+            </div>
+        </div>
+
+        <div class="col-md-6">
             <label class="form-label">Repository URL</label>
             <InputText class="form-control font-monospace" @bind-Value="Model.RepoUrl" />
         </div>

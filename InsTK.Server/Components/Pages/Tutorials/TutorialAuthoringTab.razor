@@ -28,8 +28,11 @@
     </div>
 
     <div class="mb-3">
-        <label class="form-label">Technology</label>
-        <InputText class="form-control" @bind-Value="Model.Technology" />
+        <label class="form-label">YouTube URL</label>
+        <InputText class="form-control font-monospace" @bind-Value="Model.YouTubeUrl" />
+        <div class="form-text">
+            Exported to WordPress immediately after the summary.
+        </div>
     </div>
 
     <TutorialMarkdownEditor Label="Tutorial Content Markdown" Value="@Model.ContentMarkdown"

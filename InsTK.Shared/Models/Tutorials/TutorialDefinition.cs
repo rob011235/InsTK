@@ -41,6 +41,9 @@ namespace InsTK.Shared.Models.Tutorials
         [StringLength(100)]
         public string? Technology { get; set; }
 
+        [Url]
+        public string? YouTubeUrl { get; set; }
+
         public string? ContentMarkdown { get; set; }
 
         [Url]

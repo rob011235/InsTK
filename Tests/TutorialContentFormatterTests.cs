@@ -12,6 +12,7 @@ public sealed class TutorialContentFormatterTests
         var tutorial = new TutorialDefinition
         {
             Title = "Sample Tutorial",
+            Technology = "ASP.NET Core",
             ContentMarkdown = "## Step 1\n\nDo the thing."
         };
 
@@ -19,6 +20,28 @@ public sealed class TutorialContentFormatterTests
 
         Assert.Contains("<h2>Step 1</h2>", html);
         Assert.Contains("<p>Do the thing.</p>", html);
+        Assert.DoesNotContain("Technology:", html);
+    }
+
+    [Fact]
+    public void BuildWordPressHtml_IncludesYouTubeEmbedAfterSummary()
+    {
+        var tutorial = new TutorialDefinition
+        {
+            Title = "Sample Tutorial",
+            Summary = "Learn the workflow.",
+            YouTubeUrl = "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+            ContentMarkdown = "## Step 1\n\nDo the thing."
+        };
+
+        var html = TutorialContentFormatter.BuildWordPressHtml(tutorial);
+        var summaryIndex = html.IndexOf("<p>Learn the workflow.</p>", StringComparison.Ordinal);
+        var iframeIndex = html.IndexOf("https://www.youtube.com/embed/dQw4w9WgXcQ", StringComparison.Ordinal);
+        var contentIndex = html.IndexOf("<h2>Step 1</h2>", StringComparison.Ordinal);
+
+        Assert.True(summaryIndex >= 0);
+        Assert.True(iframeIndex > summaryIndex);
+        Assert.True(contentIndex > iframeIndex);
     }
 
     [Fact]
@@ -27,6 +50,7 @@ public sealed class TutorialContentFormatterTests
         var tutorial = new TutorialDefinition
         {
             Title = "Sample Tutorial",
+            Technology = "ASP.NET Core",
             ContentMarkdown = "## Step 1\n\nDo the thing."
         };
 
@@ -34,6 +58,55 @@ public sealed class TutorialContentFormatterTests
 
         Assert.Contains("## Step 1", markdown);
         Assert.Contains("Do the thing.", markdown);
+        Assert.DoesNotContain("Technology:", markdown);
+    }
+
+    [Fact]
+    public void BuildWordPressMarkdown_NormalizesShortYouTubeUrlToWatchUrl()
+    {
+        var tutorial = new TutorialDefinition
+        {
+            Title = "Sample Tutorial",
+            Summary = "Learn the workflow.",
+            YouTubeUrl = "https://youtu.be/dQw4w9WgXcQ",
+            ContentMarkdown = "## Step 1\n\nDo the thing."
+        };
+
+        var markdown = TutorialContentFormatter.BuildWordPressMarkdown(tutorial);
+
+        Assert.Contains("https://www.youtube.com/watch?v=dQw4w9WgXcQ", markdown);
+    }
+
+    [Fact]
+    public void BuildWordPressHtml_NormalizesEmbedYouTubeUrl()
+    {
+        var tutorial = new TutorialDefinition
+        {
+            Title = "Sample Tutorial",
+            YouTubeUrl = "https://www.youtube.com/embed/dQw4w9WgXcQ"
+        };
+
+        var html = TutorialContentFormatter.BuildWordPressHtml(tutorial);
+
+        Assert.Contains("https://www.youtube.com/embed/dQw4w9WgXcQ", html);
+    }
+
+    [Fact]
+    public void BuildWordPressExports_SkipInvalidYouTubeUrl()
+    {
+        var tutorial = new TutorialDefinition
+        {
+            Title = "Sample Tutorial",
+            Summary = "Learn the workflow.",
+            YouTubeUrl = "https://example.com/not-youtube",
+            ContentMarkdown = "## Step 1\n\nDo the thing."
+        };
+
+        var html = TutorialContentFormatter.BuildWordPressHtml(tutorial);
+        var markdown = TutorialContentFormatter.BuildWordPressMarkdown(tutorial);
+
+        Assert.DoesNotContain("youtube.com/embed", html, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("youtube.com/watch", markdown, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

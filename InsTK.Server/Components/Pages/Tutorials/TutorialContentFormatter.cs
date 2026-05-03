@@ -74,9 +74,12 @@ namespace InsTK.Server.Components.Pages.Tutorials
                 html.AppendLine($"<p>{Encode(tutorial.Summary)}</p>");
             }
 
-            if (!string.IsNullOrWhiteSpace(tutorial.Technology))
+            var embedUrl = BuildYouTubeEmbedUrl(tutorial.YouTubeUrl);
+            if (embedUrl != null)
             {
-                html.AppendLine($"<p><strong>Technology:</strong> {Encode(tutorial.Technology)}</p>");
+                html.AppendLine("""<div class="tutorial-video">""");
+                html.AppendLine($"""<iframe width="560" height="315" src="{Encode(embedUrl)}" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>""");
+                html.AppendLine("</div>");
             }
 
             if (!string.IsNullOrWhiteSpace(tutorial.ContentMarkdown))
@@ -100,9 +103,10 @@ namespace InsTK.Server.Components.Pages.Tutorials
                 markdown.AppendLine();
             }
 
-            if (!string.IsNullOrWhiteSpace(tutorial.Technology))
+            var watchUrl = BuildYouTubeWatchUrl(tutorial.YouTubeUrl);
+            if (watchUrl != null)
             {
-                markdown.AppendLine($"Technology: {tutorial.Technology.Trim()}");
+                markdown.AppendLine(watchUrl);
                 markdown.AppendLine();
             }
 
@@ -118,6 +122,18 @@ namespace InsTK.Server.Components.Pages.Tutorials
         private static string Encode(string? value)
         {
             return WebUtility.HtmlEncode(value ?? string.Empty);
+        }
+
+        private static string? BuildYouTubeEmbedUrl(string? youtubeUrl)
+        {
+            var videoId = TryExtractYouTubeVideoId(youtubeUrl);
+            return videoId == null ? null : $"https://www.youtube.com/embed/{videoId}";
+        }
+
+        private static string? BuildYouTubeWatchUrl(string? youtubeUrl)
+        {
+            var videoId = TryExtractYouTubeVideoId(youtubeUrl);
+            return videoId == null ? null : $"https://www.youtube.com/watch?v={videoId}";
         }
 
         public static string BuildBrightspaceAssignmentHtml(TutorialDefinition tutorial)
@@ -199,6 +215,97 @@ namespace InsTK.Server.Components.Pages.Tutorials
 
             var slug = builder.ToString().Trim('-');
             return string.IsNullOrWhiteSpace(slug) ? "tutorial" : slug;
+        }
+
+        private static string? TryExtractYouTubeVideoId(string? youtubeUrl)
+        {
+            if (string.IsNullOrWhiteSpace(youtubeUrl))
+            {
+                return null;
+            }
+
+            if (!Uri.TryCreate(youtubeUrl.Trim(), UriKind.Absolute, out var uri))
+            {
+                return null;
+            }
+
+            if (!string.Equals(uri.Scheme, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
+            {
+                return null;
+            }
+
+            var host = uri.Host.Trim().ToLowerInvariant();
+            if (host.StartsWith("www.", StringComparison.Ordinal))
+            {
+                host = host[4..];
+            }
+
+            if (host == "youtu.be")
+            {
+                return NormalizeYouTubeVideoId(uri.AbsolutePath.Trim('/'));
+            }
+
+            if (host is not "youtube.com" and not "m.youtube.com")
+            {
+                return null;
+            }
+
+            var path = uri.AbsolutePath.Trim('/');
+            if (string.Equals(path, "watch", StringComparison.OrdinalIgnoreCase))
+            {
+                return NormalizeYouTubeVideoId(ReadQueryParameter(uri.Query, "v"));
+            }
+
+            if (path.StartsWith("embed/", StringComparison.OrdinalIgnoreCase))
+            {
+                return NormalizeYouTubeVideoId(path["embed/".Length..]);
+            }
+
+            if (path.StartsWith("shorts/", StringComparison.OrdinalIgnoreCase))
+            {
+                return NormalizeYouTubeVideoId(path["shorts/".Length..]);
+            }
+
+            return null;
+        }
+
+        private static string? NormalizeYouTubeVideoId(string? videoId)
+        {
+            if (string.IsNullOrWhiteSpace(videoId))
+            {
+                return null;
+            }
+
+            var candidate = videoId.Trim();
+            var separatorIndex = candidate.IndexOfAny(['/', '?', '&']);
+            if (separatorIndex >= 0)
+            {
+                candidate = candidate[..separatorIndex];
+            }
+
+            return candidate.Length == 11 ? candidate : null;
+        }
+
+        private static string? ReadQueryParameter(string query, string parameterName)
+        {
+            if (string.IsNullOrWhiteSpace(query))
+            {
+                return null;
+            }
+
+            var trimmedQuery = query.TrimStart('?');
+            foreach (var segment in trimmedQuery.Split('&', StringSplitOptions.RemoveEmptyEntries))
+            {
+                var parts = segment.Split('=', 2);
+                if (parts.Length == 2 &&
+                    string.Equals(parts[0], parameterName, StringComparison.OrdinalIgnoreCase))
+                {
+                    return Uri.UnescapeDataString(parts[1]);
+                }
+            }
+
+            return null;
         }
 
         private static string SanitizeHtml(string html)

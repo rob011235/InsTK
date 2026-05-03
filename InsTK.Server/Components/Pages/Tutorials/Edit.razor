@@ -18,54 +18,63 @@
 }
 else
 {
-    <ul class="nav nav-tabs mb-3">
-        <li class="nav-item">
-            <button type="button" class="nav-link @(activeTab == "tutorial" ? "active" : "")"
-                    @onclick='() => SetActiveTab("tutorial")'>
-                Tutorial
-            </button>
-        </li>
+    <section class="mt-4">
+        <div class="rounded-4 border bg-body-tertiary p-3 shadow-sm">
+            <ul class="nav nav-tabs border-0 mb-0">
+                <li class="nav-item">
+                    <button type="button"
+                            class="nav-link rounded-top-3 @(activeTab == "tutorial" ? "active bg-white border-bottom border-white text-dark fw-semibold" : "text-secondary bg-transparent")"
+                            @onclick='() => SetActiveTab("tutorial")'>
+                        Tutorial
+                    </button>
+                </li>
 
-        <li class="nav-item">
-            <button type="button" class="nav-link @(activeTab == "reference" ? "active" : "")"
-                    @onclick='() => SetActiveTab("reference")'>
-                Git Reference
-            </button>
-        </li>
+                <li class="nav-item">
+                    <button type="button"
+                            class="nav-link rounded-top-3 @(activeTab == "reference" ? "active bg-white border-bottom border-white text-dark fw-semibold" : "text-secondary bg-transparent")"
+                            @onclick='() => SetActiveTab("reference")'>
+                        Git Reference
+                    </button>
+                </li>
 
-        <li class="nav-item">
-            <button type="button" class="nav-link @(activeTab == "assignment" ? "active" : "")"
-                    @onclick='() => SetActiveTab("assignment")'>
-                Brightspace Assignment
-            </button>
-        </li>
-    </ul>
+                <li class="nav-item">
+                    <button type="button"
+                            class="nav-link rounded-top-3 @(activeTab == "assignment" ? "active bg-white border-bottom border-white text-dark fw-semibold" : "text-secondary bg-transparent")"
+                            @onclick='() => SetActiveTab("assignment")'>
+                        Brightspace Assignment
+                    </button>
+                </li>
+            </ul>
 
-    @if (activeTab == "tutorial")
-    {
-        <TutorialAuthoringTab Model="model"
-                              OnTutorialTitleChanged="OnTutorialTitleChanged"
-                              OnContentMarkdownChanged="OnContentMarkdownChanged"
-                              OnSaveRequested="Save"
-                              OnExportRequested="OpenTutorialExportModal"
-                              OnReturnToListRequested="ReturnToList" />
-    }
-
-    @if (activeTab == "reference")
-    {
-        <TutorialGitReferenceTab Model="model"
-                                 OnSaveRequested="Save"
-                                 OnReturnToListRequested="ReturnToList" />
-    }
-
-    @if (activeTab == "assignment")
-    {
-        <TutorialBrightspaceAssignmentTab Model="model"
-                                          OnAssignmentTitleChanged="OnBrightspaceAssignmentTitleChanged"
+            <div class="rounded-bottom-4 rounded-end-4 border border-top-0 bg-white p-4 shadow-sm">
+                @if (activeTab == "tutorial")
+                {
+                    <TutorialAuthoringTab Model="model"
+                                          OnTutorialTitleChanged="OnTutorialTitleChanged"
+                                          OnContentMarkdownChanged="OnContentMarkdownChanged"
                                           OnSaveRequested="Save"
-                                          OnExportRequested="OpenAssignmentExportModal"
+                                          OnExportRequested="OpenTutorialExportModal"
                                           OnReturnToListRequested="ReturnToList" />
-    }
+                }
+
+                @if (activeTab == "reference")
+                {
+                    <TutorialGitReferenceTab Model="model"
+                                             OnSaveRequested="Save"
+                                             OnReturnToListRequested="ReturnToList" />
+                }
+
+                @if (activeTab == "assignment")
+                {
+                    <TutorialBrightspaceAssignmentTab Model="model"
+                                                      OnAssignmentTitleChanged="OnBrightspaceAssignmentTitleChanged"
+                                                      OnSaveRequested="Save"
+                                                      OnExportRequested="OpenAssignmentExportModal"
+                                                      OnReturnToListRequested="ReturnToList" />
+                }
+            </div>
+        </div>
+    </section>
 
     @if (exportModalSections.Count > 0)
     {
@@ -179,6 +188,7 @@ else
                     .SetProperty(t => t.Title, model.Title)
                     .SetProperty(t => t.Summary, model.Summary)
                     .SetProperty(t => t.Technology, model.Technology)
+                    .SetProperty(t => t.YouTubeUrl, model.YouTubeUrl)
                     .SetProperty(t => t.ContentMarkdown, model.ContentMarkdown)
                     .SetProperty(t => t.RepoUrl, model.RepoUrl)
                     .SetProperty(t => t.BranchName, model.BranchName)
@@ -315,6 +325,7 @@ else
             Title = normalizedTitle,
             Summary = NormalizeOptional(model.Summary),
             Technology = NormalizeOptional(model.Technology),
+            YouTubeUrl = NormalizeOptional(model.YouTubeUrl),
             ContentMarkdown = NormalizeOptional(model.ContentMarkdown),
             RepoUrl = NormalizeOptional(model.RepoUrl),
             BranchName = NormalizeOptional(model.BranchName),
@@ -341,6 +352,7 @@ else
         model.Title = draft.Title;
         model.Summary = draft.Summary;
         model.Technology = draft.Technology;
+        model.YouTubeUrl = draft.YouTubeUrl;
         model.ContentMarkdown = draft.ContentMarkdown;
         model.RepoUrl = draft.RepoUrl;
         model.BranchName = draft.BranchName;
