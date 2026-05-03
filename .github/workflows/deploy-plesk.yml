@@ -54,7 +54,7 @@ jobs:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: Restore dependencies
-        run: dotnet restore
+        run: dotnet restore ${{ env.SERVER_PROJECT_DIR }}/${{ env.SERVER_PROJECT_FILE }}
 
       - name: Create appsettings.Production.json
         run: |
@@ -74,7 +74,7 @@ jobs:
           EOF
 
       - name: Build
-        run: dotnet build --configuration Release --no-restore
+        run: dotnet build ${{ env.SERVER_PROJECT_DIR }}/${{ env.SERVER_PROJECT_FILE }} --configuration Release --no-restore
 
       - name: Publish ${{ env.APP_NAME }} (self-contained)
         run: |
