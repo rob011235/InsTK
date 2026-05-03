@@ -41,9 +41,7 @@ namespace InsTK.Shared.Models.Tutorials
         [StringLength(100)]
         public string? Technology { get; set; }
 
-        public string? IntroMarkdown { get; set; }
-
-        public string? ConclusionMarkdown { get; set; }
+        public string? ContentMarkdown { get; set; }
 
         [Url]
         public string? RepoUrl { get; set; }
@@ -69,6 +67,5 @@ namespace InsTK.Shared.Models.Tutorials
         public DateTime CreatedUtc { get; set; } = DateTime.UtcNow;
         public DateTime? UpdatedUtc { get; set; }
 
-        public List<TutorialStep> Steps { get; set; } = new();
     }
 }

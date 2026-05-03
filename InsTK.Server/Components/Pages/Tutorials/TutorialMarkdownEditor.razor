@@ -5,50 +5,23 @@
 
     <div class="tutorial-markdown-workbench">
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-            <div class="small text-muted">
-                Preview uses the same Markdig renderer as tutorial preview and export.
-            </div>
-
             <span class="small text-muted">Use the toolbar image button for PNG, JPG, JPEG, or GIF files up to 2 MB.</span>
         </div>
 
-        <div class="tutorial-markdown-layout">
-            <div class="tutorial-markdown-layout__editor">
-                <div class="tutorial-markdown-editor">
-                    <Markdown @ref="markdownEditor"
-                              Value="@CurrentValue"
-                              ValueChanged="OnMarkdownChangedAsync"
-                              UploadImage="true"
-                              ShowIcons="@ToolbarIconsToShow"
-                              HideIcons="@ToolbarIconsToHide"
-                              ImageUploadEndpoint="/tutorials/markdown-images"
-                              ImagePathAbsolute="true"
-                              ImageAccept="image/png,image/jpeg,image/gif"
-                              ImageMaxSize="@MaxImageBytes"
-                              MinHeight="@MinHeight"
-                              MaxUploadImageChunkSize="20480"
-                              Placeholder="@Placeholder" />
-                </div>
-            </div>
-
-            <aside class="tutorial-markdown-layout__preview">
-                <section class="tutorial-markdown-preview">
-                    <div class="border-bottom px-3 py-2 bg-light small text-uppercase text-muted fw-semibold">
-                        Live Preview
-                    </div>
-
-                    <div class="tutorial-markdown-preview__body">
-                        @if (string.IsNullOrWhiteSpace(CurrentValue))
-                        {
-                            <p class="text-muted mb-0">@EmptyPreviewMessage</p>
-                        }
-                        else
-                        {
-                            <div>@((MarkupString)markdownHtml)</div>
-                        }
-                    </div>
-                </section>
-            </aside>
+        <div class="tutorial-markdown-editor">
+            <Markdown @ref="markdownEditor"
+                      Value="@CurrentValue"
+                      ValueChanged="OnMarkdownChangedAsync"
+                      UploadImage="true"
+                      ShowIcons="@ToolbarIconsToShow"
+                      HideIcons="@ToolbarIconsToHide"
+                      ImageUploadEndpoint="/tutorials/markdown-images"
+                      ImagePathAbsolute="true"
+                      ImageAccept="image/png,image/jpeg,image/gif"
+                      ImageMaxSize="@MaxImageBytes"
+                      MinHeight="@MinHeight"
+                      MaxUploadImageChunkSize="20480"
+                      Placeholder="@Placeholder" />
         </div>
     </div>
 </div>
@@ -73,28 +46,12 @@
     [Parameter]
     public string MinHeight { get; set; } = "250px";
 
-    [Parameter]
-    public string EmptyPreviewMessage { get; set; } = "Preview will appear as you write markdown.";
-
     private Blazorise.Markdown.Markdown? markdownEditor;
-    private string markdownHtml = string.Empty;
-    private string? lastRenderedMarkdown;
 
     private string CurrentValue => Value ?? string.Empty;
 
-    protected override void OnParametersSet()
-    {
-        if (!string.Equals(lastRenderedMarkdown, CurrentValue, StringComparison.Ordinal))
-        {
-            markdownHtml = TutorialContentFormatter.RenderMarkdown(CurrentValue);
-            lastRenderedMarkdown = CurrentValue;
-        }
-    }
-
     private async Task OnMarkdownChangedAsync(string value)
     {
-        markdownHtml = TutorialContentFormatter.RenderMarkdown(value);
-        lastRenderedMarkdown = value;
         await ValueChanged.InvokeAsync(value ?? string.Empty);
     }
 }

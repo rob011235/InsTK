@@ -32,20 +32,9 @@ namespace InsTK.Server.Components.Pages.Tutorials
                 html.AppendLine($"<p><strong>Technology:</strong> {Encode(tutorial.Technology)}</p>");
             }
 
-            if (!string.IsNullOrWhiteSpace(tutorial.IntroMarkdown))
+            if (!string.IsNullOrWhiteSpace(tutorial.ContentMarkdown))
             {
-                html.AppendLine(RenderMarkdown(tutorial.IntroMarkdown));
-            }
-
-            foreach (var step in tutorial.Steps.OrderBy(s => s.DisplayOrder))
-            {
-                html.AppendLine($"<h2>Step {step.DisplayOrder}: {Encode(step.Title)}</h2>");
-                html.AppendLine(RenderMarkdown(step.InstructionMarkdown));
-            }
-
-            if (!string.IsNullOrWhiteSpace(tutorial.ConclusionMarkdown))
-            {
-                html.AppendLine(RenderMarkdown(tutorial.ConclusionMarkdown));
+                html.AppendLine(RenderMarkdown(tutorial.ContentMarkdown));
             }
 
             return html.ToString().Trim();
@@ -70,25 +59,9 @@ namespace InsTK.Server.Components.Pages.Tutorials
                 markdown.AppendLine();
             }
 
-            if (!string.IsNullOrWhiteSpace(tutorial.IntroMarkdown))
+            if (!string.IsNullOrWhiteSpace(tutorial.ContentMarkdown))
             {
-                markdown.AppendLine(tutorial.IntroMarkdown.Trim());
-                markdown.AppendLine();
-            }
-
-            foreach (var step in tutorial.Steps.OrderBy(s => s.DisplayOrder))
-            {
-                markdown.AppendLine($"## Step {step.DisplayOrder}: {step.Title}");
-                markdown.AppendLine();
-                markdown.AppendLine((step.InstructionMarkdown ?? string.Empty).Trim());
-                markdown.AppendLine();
-            }
-
-            if (!string.IsNullOrWhiteSpace(tutorial.ConclusionMarkdown))
-            {
-                markdown.AppendLine("## Conclusion");
-                markdown.AppendLine();
-                markdown.AppendLine(tutorial.ConclusionMarkdown.Trim());
+                markdown.AppendLine(tutorial.ContentMarkdown.Trim());
                 markdown.AppendLine();
             }
 
@@ -147,8 +120,38 @@ namespace InsTK.Server.Components.Pages.Tutorials
 
         private static string BuildTutorialUrl(TutorialDefinition tutorial)
         {
-            // Adjust this to match your actual route
-            return $"https:///robgarnerblog.wordpress.com/tutorials/{tutorial.Title?.ToLower().Replace(' ', '-')}";
+            var slug = BuildTutorialSlug(tutorial.Title);
+            return $"https://robgarnerblog.wordpress.com/tutorials/{slug}";
+        }
+
+        private static string BuildTutorialSlug(string? title)
+        {
+            if (string.IsNullOrWhiteSpace(title))
+            {
+                return "tutorial";
+            }
+
+            var builder = new StringBuilder();
+            var lastWasHyphen = false;
+
+            foreach (var character in title.Trim().ToLowerInvariant())
+            {
+                if (char.IsLetterOrDigit(character))
+                {
+                    builder.Append(character);
+                    lastWasHyphen = false;
+                    continue;
+                }
+
+                if (!lastWasHyphen)
+                {
+                    builder.Append('-');
+                    lastWasHyphen = true;
+                }
+            }
+
+            var slug = builder.ToString().Trim('-');
+            return string.IsNullOrWhiteSpace(slug) ? "tutorial" : slug;
         }
     }
 }

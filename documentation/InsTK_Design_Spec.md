@@ -135,8 +135,7 @@ public class TutorialDefinition
     public string? Summary { get; set; }
     public string? Technology { get; set; }
 
-    public string? IntroMarkdown { get; set; }
-    public string? ConclusionMarkdown { get; set; }
+    public string? ContentMarkdown { get; set; }
 
     public string? RepoUrl { get; set; }
     public string? BranchName { get; set; }
@@ -145,21 +144,8 @@ public class TutorialDefinition
     public string? ReferenceCode { get; set; }
     public string? GradingHints { get; set; }
 
-    public List<TutorialStep> Steps { get; set; } = new();
     public DateTime CreatedUtc { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedUtc { get; set; }
-}
-```
-
-```csharp
-public class TutorialStep
-{
-    public Guid Id { get; set; } = Guid.NewGuid();
-    public Guid TutorialDefinitionId { get; set; }
-
-    public int DisplayOrder { get; set; }
-    public string Title { get; set; } = string.Empty;
-    public string InstructionMarkdown { get; set; } = string.Empty;
 }
 ```
 

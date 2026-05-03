@@ -26,7 +26,6 @@ else
             <tr>
                 <th>Title</th>
                 <th>Technology</th>
-                <th>Steps</th>
                 <th>Gradable</th>
                 <th>Updated</th>
                 <th></th>
@@ -38,7 +37,6 @@ else
                 <tr>
                     <td>@t.Title</td>
                     <td>@(t.Technology ?? "-")</td>
-                    <td>@t.Steps.Count</td>
                     <td>@(IsGradableTutorial(t) ? "Yes" : "No")</td>
                     <td>@FormatDate(t.UpdatedUtc ?? t.CreatedUtc)</td>
                     <td>
@@ -78,7 +76,6 @@ else
 
         tutorials = await db.Tutorials
             .AsNoTracking()
-            .Include(t => t.Steps)
             .OrderByDescending(t => t.UpdatedUtc ?? t.CreatedUtc)
             .ToListAsync();
     }

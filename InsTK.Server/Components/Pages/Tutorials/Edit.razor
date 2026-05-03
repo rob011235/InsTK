@@ -62,72 +62,9 @@ else
                 <InputText class="form-control" @bind-Value="model.Technology" />
             </div>
 
-            <TutorialMarkdownEditor Label="Introduction Markdown" Value="@model.IntroMarkdown"
-                                    ValueChanged="OnIntroMarkdownChanged" MinHeight="220px"
-                                    Placeholder="Add an introduction, setup notes, or learning goals."
-                                    EmptyPreviewMessage="Introduction preview will appear as you write markdown." />
-
-            <hr />
-
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h4 class="mb-0">Steps</h4>
-            </div>
-
-            @if (!model.Steps.Any())
-            {
-                <p>No steps added yet.</p>
-            }
-            else
-            {
-                @foreach (var step in model.Steps.OrderBy(s => s.DisplayOrder).ToList())
-                {
-                    <div class="card mb-3">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-center mb-3">
-                                <h5 class="mb-0">Step @step.DisplayOrder</h5>
-
-                                <div>
-                                    <button type="button" class="btn btn-sm btn-outline-secondary me-2"
-                                            @onclick="() => MoveStepUp(step)">
-                                        Up
-                                    </button>
-
-                                    <button type="button" class="btn btn-sm btn-outline-secondary me-2"
-                                            @onclick="() => MoveStepDown(step)">
-                                        Down
-                                    </button>
-
-                                    <button type="button" class="btn btn-sm btn-outline-danger" @onclick="() => RemoveStep(step)">
-                                        Remove
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="form-label">Title</label>
-                                <InputText class="form-control" @bind-Value="step.Title" />
-                            </div>
-
-                            <TutorialMarkdownEditor Label="Instruction Markdown" Value="@step.InstructionMarkdown"
-                                                    ValueChanged="value => OnStepMarkdownChanged(step, value)" MinHeight="250px"
-                                                    Placeholder="Write the student-facing markdown for this step."
-                                                    EmptyPreviewMessage="Step preview will appear as you write markdown." />
-
-                        </div>
-                    </div>
-                }
-            }
-
-            <button type="button" class="btn btn-outline-primary" @onclick="AddStep">
-                Add Step
-            </button>
-
-            <div class="mt-4">
-                <TutorialMarkdownEditor Label="Conclusion Markdown" Value="@model.ConclusionMarkdown"
-                                        ValueChanged="OnConclusionMarkdownChanged" MinHeight="220px"
-                                        Placeholder="Add wrap-up notes, next steps, or recap content."
-                                        EmptyPreviewMessage="Conclusion preview will appear as you write markdown." />
-            </div>
+            <TutorialMarkdownEditor Label="Tutorial Content Markdown" Value="@model.ContentMarkdown"
+                                    ValueChanged="OnContentMarkdownChanged" MinHeight="520px"
+                                    Placeholder="Write the full tutorial here. Use markdown headings like ## Step 1 if you want step structure." />
 
         }
         @if (activeTab == "reference")
@@ -233,6 +170,7 @@ else
                 </div>
             </div>
 
+        }
             <hr />
 
             <div class="mt-3">
@@ -253,7 +191,6 @@ else
                     Cancel
                 </button>
             </div>
-        }
     </EditForm>
 }
 
@@ -283,7 +220,6 @@ else
             var tutorialId = Id.GetValueOrDefault();
 
             model = await db.Tutorials
-                .Include(t => t.Steps)
                 .FirstOrDefaultAsync(t => t.Id == tutorialId);
 
             if (model == null)
@@ -319,78 +255,6 @@ else
             model.BrightspaceAssignmentTitle = BuildDefaultAssignmentTitle(model.Title);
         }
 
-        NormalizeStepOrder();
-    }
-
-    private void AddStep()
-    {
-        if (model == null)
-            return;
-
-        model.Steps.Add(new TutorialStep
-        {
-            DisplayOrder = model.Steps.Count + 1,
-            Title = string.Empty,
-            InstructionMarkdown = string.Empty
-        });
-
-        NormalizeStepOrder();
-    }
-
-    private void RemoveStep(TutorialStep step)
-    {
-        if (model == null)
-            return;
-
-        model.Steps.Remove(step);
-        NormalizeStepOrder();
-    }
-
-    private void MoveStepUp(TutorialStep step)
-    {
-        if (model == null)
-            return;
-
-        var ordered = model.Steps.OrderBy(s => s.DisplayOrder).ToList();
-        var index = ordered.IndexOf(step);
-
-        if (index <= 0)
-            return;
-
-        (ordered[index - 1], ordered[index]) = (ordered[index], ordered[index - 1]);
-
-        model.Steps = ordered;
-        NormalizeStepOrder();
-    }
-
-    private void MoveStepDown(TutorialStep step)
-    {
-        if (model == null)
-            return;
-
-        var ordered = model.Steps.OrderBy(s => s.DisplayOrder).ToList();
-        var index = ordered.IndexOf(step);
-
-        if (index < 0 || index >= ordered.Count - 1)
-            return;
-
-        (ordered[index], ordered[index + 1]) = (ordered[index + 1], ordered[index]);
-
-        model.Steps = ordered;
-        NormalizeStepOrder();
-    }
-
-    private void NormalizeStepOrder()
-    {
-        if (model == null)
-            return;
-
-        var order = 1;
-
-        foreach (var step in model.Steps.OrderBy(s => s.DisplayOrder))
-        {
-            step.DisplayOrder = order++;
-        }
     }
 
     private static string? NormalizeOptional(string? value)
@@ -398,29 +262,13 @@ else
         return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
     }
 
-    private Task OnIntroMarkdownChanged(string value)
+    private Task OnContentMarkdownChanged(string value)
     {
         if (model != null)
         {
-            model.IntroMarkdown = value;
+            model.ContentMarkdown = value;
         }
 
-        return Task.CompletedTask;
-    }
-
-    private Task OnConclusionMarkdownChanged(string value)
-    {
-        if (model != null)
-        {
-            model.ConclusionMarkdown = value;
-        }
-
-        return Task.CompletedTask;
-    }
-
-    private Task OnStepMarkdownChanged(TutorialStep step, string value)
-    {
-        step.InstructionMarkdown = value;
         return Task.CompletedTask;
     }
 
@@ -431,13 +279,10 @@ else
         if (model == null)
             return;
 
-        NormalizeStepOrder();
-
         model.Title = model.Title?.Trim() ?? string.Empty;
         model.Summary = NormalizeOptional(model.Summary);
         model.Technology = NormalizeOptional(model.Technology);
-        model.IntroMarkdown = NormalizeOptional(model.IntroMarkdown);
-        model.ConclusionMarkdown = NormalizeOptional(model.ConclusionMarkdown);
+        model.ContentMarkdown = NormalizeOptional(model.ContentMarkdown);
         model.RepoUrl = NormalizeOptional(model.RepoUrl);
         model.BranchName = NormalizeOptional(model.BranchName);
         model.ReferenceSubPath = NormalizeOptional(model.ReferenceSubPath);
@@ -453,12 +298,6 @@ else
         if (model.BrightspacePoints <= 0)
         {
             model.BrightspacePoints = 100;
-        }
-
-        foreach (var step in model.Steps)
-        {
-            step.Title = step.Title?.Trim() ?? string.Empty;
-            step.InstructionMarkdown = step.InstructionMarkdown?.Trim() ?? string.Empty;
         }
 
         if (IsNew)
@@ -482,8 +321,7 @@ else
                     .SetProperty(t => t.Title, model.Title)
                     .SetProperty(t => t.Summary, model.Summary)
                     .SetProperty(t => t.Technology, model.Technology)
-                    .SetProperty(t => t.IntroMarkdown, model.IntroMarkdown)
-                    .SetProperty(t => t.ConclusionMarkdown, model.ConclusionMarkdown)
+                    .SetProperty(t => t.ContentMarkdown, model.ContentMarkdown)
                     .SetProperty(t => t.RepoUrl, model.RepoUrl)
                     .SetProperty(t => t.BranchName, model.BranchName)
                     .SetProperty(t => t.ReferenceSubPath, model.ReferenceSubPath)
@@ -495,23 +333,6 @@ else
                     .SetProperty(t => t.BrightspaceAssignmentInstructions, model.BrightspaceAssignmentInstructions)
                     .SetProperty(t => t.BrightspacePoints, model.BrightspacePoints)
                     .SetProperty(t => t.BrightspaceSubmissionInstructions, model.BrightspaceSubmissionInstructions));
-
-            await db.TutorialSteps
-                .Where(s => s.TutorialDefinitionId == model.Id)
-                .ExecuteDeleteAsync();
-
-            var replacementSteps = model.Steps
-                .OrderBy(s => s.DisplayOrder)
-                .Select(step => new TutorialStep
-                {
-                    TutorialDefinitionId = model.Id,
-                    DisplayOrder = step.DisplayOrder,
-                    Title = step.Title,
-                    InstructionMarkdown = step.InstructionMarkdown
-                })
-                .ToList();
-
-            db.TutorialSteps.AddRange(replacementSteps);
         }
 
         await db.SaveChangesAsync();
@@ -559,8 +380,7 @@ else
 
         model.Title = value;
 
-        if (!assignmentTitleWasManuallyEdited &&
-            string.IsNullOrWhiteSpace(model.BrightspaceAssignmentTitle))
+        if (!assignmentTitleWasManuallyEdited)
         {
             model.BrightspaceAssignmentTitle = BuildDefaultAssignmentTitle(value);
         }

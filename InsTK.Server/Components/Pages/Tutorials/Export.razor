@@ -97,7 +97,6 @@ else
 
         tutorial = await db.Tutorials
             .AsNoTracking()
-            .Include(t => t.Steps)
             .FirstOrDefaultAsync(t => t.Id == Id);
 
         if (tutorial == null)
