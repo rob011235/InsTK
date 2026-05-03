@@ -96,13 +96,16 @@ jobs:
         run: ls -R ${{ env.PUBLISH_DIR }}
 
       - name: Deploy ${{ env.APP_NAME }} via FTPS to Plesk
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.6
         with:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
           protocol: ftps
           port: 21
+          security: loose
           local-dir: ${{ env.PUBLISH_DIR }}/
-          server-dir: ./${{ env.DEPLOY_DIRECTORY }}/
+          server-dir: ${{ env.DEPLOY_DIRECTORY }}/
+          timeout: 120000
+          log-level: verbose
           dangerous-clean-slate: false
