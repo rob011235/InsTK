@@ -399,6 +399,11 @@ namespace InsTK.Server.Components.Pages.Tutorials
                 if (tagName == "a" && attributeName == "href" && TrySanitizeUrl(attribute.Value, out var href))
                 {
                     output.Append(' ').Append("href=\"").Append(EncodeAttribute(href)).Append('"');
+                    if (ShouldOpenInNewTab(href))
+                    {
+                        output.Append(' ').Append("target=\"_blank\"");
+                    }
+
                     continue;
                 }
 
@@ -453,6 +458,16 @@ namespace InsTK.Server.Components.Pages.Tutorials
         private static bool IsVoidElement(string tagName)
         {
             return tagName is "br" or "hr" or "img";
+        }
+
+        private static bool ShouldOpenInNewTab(string href)
+        {
+            if (!Uri.TryCreate(href, UriKind.Absolute, out var uri))
+            {
+                return false;
+            }
+
+            return uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps;
         }
 
         private static string EncodeAttribute(string value)
