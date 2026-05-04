@@ -29,6 +29,8 @@ jobs:
             echo "DEPLOY_DOMAIN=instk.net" >> "$GITHUB_ENV"
             echo "DEPLOY_DIRECTORY=instk.net" >> "$GITHUB_ENV"
             echo "ALLOWED_HOSTS=instk.net" >> "$GITHUB_ENV"
+            echo "ADMIN_EMAIL=${{ secrets.ADMIN_EMAIL }}" >> "$GITHUB_ENV"
+            echo "ADMIN_PASSWORD=${{ secrets.ADMIN_PASSWORD }}" >> "$GITHUB_ENV"
             {
               echo "SQL_CONNECTION<<EOF"
               echo "${{ secrets.PROD_SQL_CONNECTION }}"
@@ -38,6 +40,8 @@ jobs:
             echo "DEPLOY_DOMAIN=staging.instk.net" >> "$GITHUB_ENV"
             echo "DEPLOY_DIRECTORY=staging.instk.net" >> "$GITHUB_ENV"
             echo "ALLOWED_HOSTS=staging.instk.net" >> "$GITHUB_ENV"
+            echo "ADMIN_EMAIL=${{ secrets.ADMIN_EMAIL }}" >> "$GITHUB_ENV"
+            echo "ADMIN_PASSWORD=${{ secrets.ADMIN_PASSWORD }}" >> "$GITHUB_ENV"
             {
               echo "SQL_CONNECTION<<EOF"
               echo "${{ secrets.STAGING_SQL_CONNECTION }}"
@@ -68,6 +72,10 @@ jobs:
                 "Default": "Information",
                 "Microsoft.AspNetCore": "Warning"
               }
+            },
+            "Admin": {
+              "Email": "${ADMIN_EMAIL}",
+              "Password": "${ADMIN_PASSWORD}"
             },
             "AllowedHosts": "${ALLOWED_HOSTS}"
           }
