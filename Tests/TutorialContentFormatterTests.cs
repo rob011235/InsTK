@@ -155,6 +155,7 @@ public sealed class TutorialContentFormatterTests
         var html = TutorialContentFormatter.BuildBrightspaceAssignmentHtml(tutorial);
 
         Assert.Contains("https://robgarnerblog.wordpress.com/tutorials/installing-unity-unity3d", html);
+        Assert.Contains("target=\"_blank\"", html);
     }
 
     [Fact]
@@ -184,6 +185,7 @@ public sealed class TutorialContentFormatterTests
         var html = TutorialContentFormatter.RenderMarkdown(markdown);
 
         Assert.Contains("href=\"https://example.com/docs\"", html);
+        Assert.Contains("target=\"_blank\"", html);
         Assert.DoesNotContain("javascript:alert", html, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("src=\"/uploads/example.png\"", html);
         Assert.DoesNotContain("onerror", html, StringComparison.OrdinalIgnoreCase);
