@@ -1,13 +1,13 @@
 using AngleSharp.Dom;
 using Bunit;
-using Blazorise;
-using Blazorise.Bootstrap5;
-using Blazorise.Icons.FontAwesome;
+using BlazorBootstrap;
 using InsTK.Server.Components.Pages.Tutorials;
 using InsTK.Server.Data;
 using InsTK.Shared.Models.Tutorials;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.FileProviders;
 using Xunit;
 
 namespace Tests;
@@ -18,10 +18,8 @@ public sealed class TutorialEditComponentTests : TestContext
     {
         JSInterop.Mode = JSRuntimeMode.Loose;
 
-        Services
-            .AddBlazorise(options => options.Immediate = true)
-            .AddBootstrap5Providers()
-            .AddFontAwesomeIcons();
+        Services.AddBlazorBootstrap();
+        Services.AddSingleton<IWebHostEnvironment>(new TestWebHostEnvironment());
     }
 
     [Fact]
@@ -96,6 +94,27 @@ public sealed class TutorialEditComponentTests : TestContext
         Assert.Contains("Review the draft instructions.", cut.Markup);
     }
 
+    [Fact]
+    public void EditPage_LoadsExistingMarkdownIntoEditor()
+    {
+        var tutorialId = Guid.NewGuid();
+        using var seedContext = CreateContext("existing-markdown");
+        seedContext.Tutorials.Add(new TutorialDefinition
+        {
+            Id = tutorialId,
+            Title = "Existing Tutorial",
+            ContentMarkdown = "## Existing Step\n\nSaved content."
+        });
+        seedContext.SaveChanges();
+
+        Services.AddSingleton<IDbContextFactory<ApplicationDbContext>>(CreateFactory("existing-markdown"));
+
+        var cut = RenderComponent<Edit>(parameters => parameters.Add(component => component.Id, tutorialId));
+
+        Assert.Contains("Existing Step", cut.Markup);
+        Assert.Contains("Saved content.", cut.Markup);
+    }
+
     private static IDbContextFactory<ApplicationDbContext> CreateFactory(string databaseName = "edit-tests")
     {
         var options = new DbContextOptionsBuilder<ApplicationDbContext>()
@@ -137,5 +156,20 @@ public sealed class TutorialEditComponentTests : TestContext
         {
             return ValueTask.FromResult(CreateDbContext());
         }
+    }
+
+    private sealed class TestWebHostEnvironment : IWebHostEnvironment
+    {
+        public string ApplicationName { get; set; } = "Tests";
+
+        public IFileProvider WebRootFileProvider { get; set; } = new NullFileProvider();
+
+        public string WebRootPath { get; set; } = Path.Combine("C:\\repos\\InsTK", "InsTK.Server", "wwwroot");
+
+        public string EnvironmentName { get; set; } = "Development";
+
+        public string ContentRootPath { get; set; } = Path.Combine("C:\\repos\\InsTK", "InsTK.Server");
+
+        public IFileProvider ContentRootFileProvider { get; set; } = new NullFileProvider();
     }
 }
