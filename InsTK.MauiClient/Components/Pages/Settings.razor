@@ -1,0 +1,874 @@
+@* Copyright (c) Robert Garner. All rights reserved. *@
+@page "/settings"
+@inject IClientSettingsService ClientSettingsService
+@inject IWorkspaceService WorkspaceService
+@inject IWorkstationProfileService WorkstationProfileService
+@inject IOllamaModelCatalogService OllamaModelCatalogService
+@inject IOllamaService OllamaService
+@inject IOllamaRuntimeService OllamaRuntimeService
+@inject IBackendSessionService BackendSessionService
+@implements IDisposable
+
+<PageTitle>Settings</PageTitle>
+
+<h1>Settings</h1>
+
+<p class="lead">Configure backend connectivity, local Brightspace automation, managed Ollama runtime behavior, and workstation model policy.</p>
+
+@if (isLoading)
+{
+    <p>Loading workstation configuration...</p>
+}
+else
+{
+    <div class="row g-4 mt-1">
+        <div class="col-12 col-xl-6">
+            <section class="card shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h2 class="h4 mb-0">Workstation Settings</h2>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="ResetToDefaultsAsync">Defaults</button>
+                    </div>
+
+                    <EditForm Model="settings" OnSubmit="SaveSettingsAsync">
+                        <div class="mb-3">
+                            <label class="form-label">Backend Base URL</label>
+                            <InputText class="form-control font-monospace" @bind-Value="settings.BackendBaseUrl" />
+                            <div class="form-text">Debug default: https://localhost:7016.</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Ollama Base URL</label>
+                            <InputText class="form-control font-monospace" @bind-Value="settings.OllamaBaseUrl" />
+                            <div class="form-text">Default local endpoint: http://127.0.0.1:11434.</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Workspace Root</label>
+                            <InputText class="form-control font-monospace" @bind-Value="settings.WorkspaceRoot" />
+                            <div class="form-text">Local root folder for cloned repositories, runs, and grading reports.</div>
+                        </div>
+
+                        <div class="settings-section">
+                            <div class="settings-section__header">
+                                <h3 class="h5 mb-1">Brightspace</h3>
+                                <p class="mb-0 text-body-secondary">Local browser automation settings used to log into Brightspace, save the workstation session, and discover available courses on this workstation.</p>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Brightspace Browser Channel</label>
+                                <InputText class="form-control font-monospace" @bind-Value="settings.BrightspaceBrowserChannel" />
+                                <div class="form-text">Use `msedge` on Windows unless you specifically want `chrome`.</div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Brightspace Base URL</label>
+                                <InputText class="form-control font-monospace" @bind-Value="settings.BrightspaceBaseUrl" />
+                                <div class="form-text">Use the Brightspace root URL, such as https://mycourses.cnm.edu.</div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Brightspace Session State Path</label>
+                                <InputText class="form-control font-monospace" @bind-Value="settings.BrightspaceStatePath" />
+                                <div class="form-text">Local file used to store the saved Playwright browser session after manual Brightspace login.</div>
+                            </div>
+
+                            <div class="mb-0">
+                                <label class="form-label">Brightspace Submission Map Path</label>
+                                <InputText class="form-control font-monospace" @bind-Value="settings.BrightspaceSubmissionMapOutPath" />
+                                <div class="form-text">Reserved local JSON output path for Brightspace-derived grading artifacts.</div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Managed Ollama Root</label>
+                            <InputText class="form-control font-monospace" @bind-Value="settings.ManagedOllamaRoot" />
+                            <div class="form-text">Root folder where the MAUI client will manage the Ollama runtime.</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Ollama Models Root</label>
+                            <InputText class="form-control font-monospace" @bind-Value="settings.OllamaModelsRoot" />
+                            <div class="form-text">Root folder where Ollama should store downloaded models.</div>
+                        </div>
+
+                        <div class="settings-section">
+                            <div class="settings-section__header">
+                                <h3 class="h5 mb-1">Runtime</h3>
+                                <p class="mb-0 text-body-secondary">Settings that control the managed Ollama runtime itself.</p>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Required Ollama Version</label>
+                                <InputText class="form-control font-monospace" @bind-Value="settings.RequiredOllamaVersion" />
+                                <div class="form-text">Pinned managed runtime version required for grading on this workstation.</div>
+                            </div>
+
+                            <div class="mb-0">
+                                <label class="form-label">Required Windows Zip SHA-256</label>
+                                <InputText class="form-control font-monospace" @bind-Value="settings.RequiredOllamaWindowsZipSha256" />
+                                <div class="form-text">Expected SHA-256 for the pinned official `ollama-windows-amd64.zip` asset.</div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary" disabled="@isSaving || isRuntimeBusy">Save Settings</button>
+                            <button type="button" class="btn btn-outline-primary" @onclick="RefreshStatusAsync" disabled="@isRefreshing">Refresh Status</button>
+                        </div>
+                    </EditForm>
+
+                    @if (!string.IsNullOrWhiteSpace(saveMessage))
+                    {
+                        <div class="alert alert-success mt-3 mb-0" role="status">@saveMessage</div>
+                    }
+
+                    @if (!string.IsNullOrWhiteSpace(errorMessage))
+                    {
+                        <div class="alert alert-danger mt-3 mb-0" role="alert">@errorMessage</div>
+                    }
+                </div>
+            </section>
+        </div>
+
+        <div class="col-12 col-xl-6">
+            <section class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h2 class="h4">Current Status</h2>
+
+                    @if (workspace is not null)
+                    {
+                        <div class="status-panel mb-4">
+                            <div class="status-panel__header">
+                                <h3 class="h6 mb-0">Workspace</h3>
+                                <span class="badge @(workspace.Exists ? "text-bg-success" : "text-bg-secondary")">
+                                    @(workspace.Exists ? "Ready" : "Not Created")
+                                </span>
+                            </div>
+
+                            <dl class="status-list">
+                                <dt>Root</dt>
+                                <dd>@workspace.RootPath</dd>
+                                <dt>Repositories</dt>
+                                <dd>@workspace.RepositoriesPath</dd>
+                                <dt>Runs</dt>
+                                <dd>@workspace.GradingRunsPath</dd>
+                                <dt>Reports</dt>
+                                <dd>@workspace.ReportsPath</dd>
+                            </dl>
+                        </div>
+                    }
+
+                    @if (workstationProfile is not null)
+                    {
+                        <div class="status-panel mb-4">
+                            <div class="status-panel__header">
+                                <h3 class="h6 mb-0">Machine Profile</h3>
+                                <span class="badge @(IsConfiguredPrimaryModelRecommended() ? "text-bg-success" : "text-bg-warning")">
+                                    @(IsConfiguredPrimaryModelRecommended() ? "Model Match" : "Model Mismatch")
+                                </span>
+                            </div>
+
+                            <dl class="status-list">
+                                <dt>Operating System</dt>
+                                <dd>@workstationProfile.OperatingSystem</dd>
+                                <dt>Logical CPU</dt>
+                                <dd>@workstationProfile.ProcessorCount</dd>
+                                <dt>Total RAM</dt>
+                                <dd>@FormatGiB(workstationProfile.TotalMemoryBytes) GiB</dd>
+                                <dt>Available RAM</dt>
+                                <dd>@FormatGiB(workstationProfile.AvailableMemoryBytes) GiB</dd>
+                                <dt>Recommended Primary</dt>
+                                <dd>@recommendedPrimaryModel?.Name</dd>
+                                <dt>Recommended Fallback</dt>
+                                <dd>@recommendedFallbackModel?.Name</dd>
+                                <dt>Recommendation</dt>
+                                <dd>@workstationProfile.RecommendationSummary</dd>
+                                <dt>Configured Primary</dt>
+                                <dd>@settings.PrimaryOllamaModel</dd>
+                                <dt>Supported Models</dt>
+                                <dd>@string.Join(", ", supportedModels.Select(model => model.Name))</dd>
+                            </dl>
+                        </div>
+                    }
+
+                    @if (backendStatus is not null)
+                    {
+                        <div class="status-panel mb-4">
+                            <div class="status-panel__header">
+                                <h3 class="h6 mb-0">Backend Bootstrap</h3>
+                                <span class="badge @(backendStatus.IsReachable ? "text-bg-success" : "text-bg-warning")">
+                                    @(backendStatus.IsReachable ? "Reachable" : "Attention")
+                                </span>
+                            </div>
+
+                            <dl class="status-list">
+                                <dt>Base URL</dt>
+                                <dd>@DisplayOrPlaceholder(backendStatus.BaseUrl)</dd>
+                                <dt>Auth State</dt>
+                                <dd>@backendStatus.AuthenticationState</dd>
+                                <dt>Summary</dt>
+                                <dd>@backendStatus.Summary</dd>
+                                @if (!string.IsNullOrWhiteSpace(backendStatus.ErrorMessage))
+                                {
+                                    <dt>Error</dt>
+                                    <dd>@backendStatus.ErrorMessage</dd>
+                                }
+                            </dl>
+                        </div>
+                    }
+
+                    @if (ollamaStatus is not null)
+                    {
+                        <div class="status-panel mb-4">
+                            <div class="status-panel__header">
+                                <h3 class="h6 mb-0">Ollama Runtime Setup</h3>
+                                <span class="badge @GetRuntimeBadgeClass(ollamaRuntimeStatus?.State ?? OllamaRuntimeState.Missing)">
+                                    @GetRuntimeLabel(ollamaRuntimeStatus?.State ?? OllamaRuntimeState.Missing)
+                                </span>
+                            </div>
+
+                            @if (ollamaRuntimeStatus is not null)
+                            {
+                                <dl class="status-list">
+                                    <dt>Managed Runtime</dt>
+                                    <dd>@ollamaRuntimeStatus.ManagedExecutablePath</dd>
+                                    <dt>Required Version</dt>
+                                    <dd>@ollamaRuntimeStatus.RequiredVersion</dd>
+                                    <dt>Detected Version</dt>
+                                    <dd>@DisplayOrPlaceholder(ollamaRuntimeStatus.DetectedVersion)</dd>
+                                    <dt>Server Version</dt>
+                                    <dd>@DisplayOrPlaceholder(ollamaRuntimeStatus.ServerVersion)</dd>
+                                    <dt>Zip SHA-256</dt>
+                                    <dd>@ollamaRuntimeStatus.RequiredWindowsZipSha256</dd>
+                                    <dt>Models Root</dt>
+                                    <dd>@ollamaRuntimeStatus.ModelsRoot</dd>
+                                    <dt>Summary</dt>
+                                    <dd>@ollamaRuntimeStatus.Summary</dd>
+                                    @if (!string.IsNullOrWhiteSpace(ollamaRuntimeStatus.ErrorMessage))
+                                    {
+                                        <dt>Error</dt>
+                                        <dd>@ollamaRuntimeStatus.ErrorMessage</dd>
+                                    }
+                                </dl>
+
+                                <div class="settings-section mt-3">
+                                    <div class="settings-section__header">
+                                        <h4 class="h5 mb-1">Runtime</h4>
+                                        <p class="mb-0 text-body-secondary">Install or start the managed Ollama runtime.</p>
+                                    </div>
+
+                                    <div class="runtime-actions">
+                                        <button type="button" class="btn btn-primary" @onclick="InstallOrUpdateRuntimeAsync" disabled="@isRuntimeBusy">Install or Update Runtime</button>
+                                        <button type="button" class="btn btn-outline-primary" @onclick="StartRuntimeAsync" disabled="@isRuntimeBusy">Start Runtime</button>
+                                    </div>
+                                </div>
+
+                                <div class="settings-section mt-3">
+                                    <div class="settings-section__header">
+                                        <h4 class="h5 mb-1">Models</h4>
+                                        <p class="mb-0 text-body-secondary">Select the primary and secondary models, download them if needed, and clean up unused models.</p>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label">Primary Ollama Model</label>
+                                        <InputSelect class="form-select font-monospace" @bind-Value="settings.PrimaryOllamaModel" @bind-Value:after="PersistSelectedModelsAsync">
+                                            @foreach (var model in selectableModels)
+                                            {
+                                                <option value="@model.Name">@GetModelOptionLabel(model, checkPrimaryRecommendation: true, checkFallbackRecommendation: false)</option>
+                                            }
+                                        </InputSelect>
+                                        <div class="form-text">Pick any model. Recommended and already installed options are labeled.</div>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label">Secondary Ollama Model</label>
+                                        <InputSelect class="form-select font-monospace" @bind-Value="settings.FallbackOllamaModel" @bind-Value:after="PersistSelectedModelsAsync">
+                                            @foreach (var model in selectableModels)
+                                            {
+                                                <option value="@model.Name">@GetModelOptionLabel(model, checkPrimaryRecommendation: false, checkFallbackRecommendation: true)</option>
+                                            }
+                                        </InputSelect>
+                                        <div class="form-text">Used automatically when the primary model cannot be loaded.</div>
+                                    </div>
+
+                                    <div class="runtime-actions mb-4">
+                                        <button type="button" class="btn btn-primary" @onclick="SaveModelsAndDownloadRequiredAsync" disabled="@isSaving || isRuntimeBusy">Download Primary + Fallback</button>
+                                        <button type="button" class="btn btn-outline-secondary" @onclick="ApplyRecommendedModels" disabled="@isRuntimeBusy || recommendedPrimaryModel is null || recommendedFallbackModel is null">Use Recommended Models</button>
+                                    </div>
+
+                                    <h5 class="h6 mb-2">Downloaded Models</h5>
+
+                                    @if (installedModels.Count == 0)
+                                    {
+                                        <p class="mb-0 text-body-secondary">No models are currently downloaded.</p>
+                                    }
+                                    else
+                                    {
+                                        <div class="downloaded-models">
+                                            @foreach (var model in installedModels)
+                                            {
+                                                <div class="downloaded-models__row">
+                                                    <div>
+                                                        <div class="font-monospace">@model</div>
+                                                        <div class="form-text">
+                                                            @(IsModelInUse(model) ? "Currently selected for primary or secondary use." : "Unused; safe candidate for removal if you need disk space.")
+                                                        </div>
+                                                    </div>
+                                                    <button type="button" class="btn btn-sm btn-outline-danger" @onclick="() => RemoveInstalledModelAsync(model)" disabled="@isRuntimeBusy">
+                                                        Remove
+                                                    </button>
+                                                </div>
+                                            }
+                                        </div>
+
+                                        <div class="runtime-actions mt-3">
+                                            <button type="button" class="btn btn-outline-danger" @onclick="RemoveUnusedModelsAsync" disabled="@isRuntimeBusy || !installedModels.Any(model => !IsModelInUse(model))">
+                                                Remove All Unused Models
+                                            </button>
+                                        </div>
+                                    }
+                                </div>
+
+                                @if (isRuntimeBusy)
+                                {
+                                    <div class="runtime-busy mt-3" role="status" aria-live="polite">
+                                        <span class="spinner-border spinner-border-sm runtime-busy__spinner" aria-hidden="true"></span>
+                                        <div>
+                                            <div class="runtime-busy__title">@currentRuntimeOperation</div>
+                                            <div class="runtime-busy__detail">This can take several minutes for large models. New activity will appear below.</div>
+                                        </div>
+                                    </div>
+                                }
+
+                                @if (!string.IsNullOrWhiteSpace(runtimeMessage))
+                                {
+                                    <div class="alert alert-success mt-3 mb-0" role="status">@runtimeMessage</div>
+                                }
+
+                                @if (!string.IsNullOrWhiteSpace(runtimeErrorMessage))
+                                {
+                                    <div class="alert alert-danger mt-3 mb-0" role="alert">@runtimeErrorMessage</div>
+                                }
+
+                                @if (runtimeActivityLog.Count > 0)
+                                {
+                                    <div class="runtime-log mt-3">
+                                        <h4 class="h6 mb-2">Runtime Activity</h4>
+                                        <ul class="runtime-log__list">
+                                            @foreach (var entry in runtimeActivityLog)
+                                            {
+                                                <li class="runtime-log__entry @(entry.IsError ? "runtime-log__entry--error" : string.Empty)">@entry.Message</li>
+                                            }
+                                        </ul>
+                                    </div>
+                                }
+                            }
+                        </div>
+
+                        <div class="status-panel">
+                            <div class="status-panel__header">
+                                <h3 class="h6 mb-0">Ollama</h3>
+                                <span class="badge @(ollamaStatus.IsReachable ? "text-bg-success" : "text-bg-warning")">
+                                    @(ollamaStatus.IsReachable ? "Reachable" : "Attention")
+                                </span>
+                            </div>
+
+                            <dl class="status-list">
+                                <dt>Base URL</dt>
+                                <dd>@DisplayOrPlaceholder(ollamaStatus.BaseUrl)</dd>
+                                <dt>Server Version</dt>
+                                <dd>@DisplayOrPlaceholder(ollamaStatus.ServerVersion)</dd>
+                                <dt>Models</dt>
+                                <dd>@ollamaStatus.ModelCount</dd>
+                                <dt>Summary</dt>
+                                <dd>@ollamaStatus.Summary</dd>
+                                @if (!string.IsNullOrWhiteSpace(ollamaStatus.ErrorMessage))
+                                {
+                                    <dt>Error</dt>
+                                    <dd>@ollamaStatus.ErrorMessage</dd>
+                                }
+                            </dl>
+                        </div>
+                    }
+                </div>
+            </section>
+        </div>
+    </div>
+}
+
+@code {
+    private const int MaxRuntimeLogEntries = 12;
+    private DesktopClientSettings settings = new();
+    private WorkspaceSnapshot? workspace;
+    private WorkstationProfile? workstationProfile;
+    private IReadOnlyList<OllamaModelOption> supportedModels = Array.Empty<OllamaModelOption>();
+    private OllamaModelOption? recommendedPrimaryModel;
+    private OllamaModelOption? recommendedFallbackModel;
+    private OllamaConnectionStatus? ollamaStatus;
+    private OllamaRuntimeStatus? ollamaRuntimeStatus;
+    private BackendConnectionStatus? backendStatus;
+    private bool isLoading = true;
+    private bool isSaving;
+    private bool isRefreshing;
+    private bool isRuntimeBusy;
+    private string? saveMessage;
+    private string? errorMessage;
+    private string? currentRuntimeOperation;
+    private string? runtimeMessage;
+    private string? runtimeErrorMessage;
+    private readonly List<OllamaRuntimeActivityEventArgs> runtimeActivityLog = new();
+
+    private IReadOnlyList<string> installedModels =>
+        ollamaStatus?.ModelNames
+            .OrderBy(static model => model, StringComparer.OrdinalIgnoreCase)
+            .ToArray()
+        ?? Array.Empty<string>();
+
+    private IReadOnlyList<OllamaModelOption> selectableModels => BuildSelectableModels();
+
+    protected override async Task OnInitializedAsync()
+    {
+        OllamaRuntimeService.ActivityReported += HandleRuntimeActivityReported;
+        settings = await ClientSettingsService.GetAsync();
+        await RefreshStatusAsync();
+        isLoading = false;
+    }
+
+    private async Task SaveSettingsAsync()
+    {
+        isSaving = true;
+        saveMessage = null;
+        errorMessage = null;
+
+        try
+        {
+            await ClientSettingsService.SaveAsync(settings);
+            settings = await ClientSettingsService.GetAsync();
+            await RefreshStatusAsync();
+            saveMessage = await EnsureConfiguredModelsAvailableAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private async Task ResetToDefaultsAsync()
+    {
+        settings = new DesktopClientSettings
+        {
+            WorkspaceRoot = Path.Combine(FileSystem.Current.AppDataDirectory, "Workspace")
+        };
+
+        saveMessage = null;
+        errorMessage = null;
+        await SaveSettingsAsync();
+    }
+
+    private async Task RefreshStatusAsync()
+    {
+        isRefreshing = true;
+        saveMessage = null;
+        errorMessage = null;
+
+        try
+        {
+            workspace = await WorkspaceService.EnsureCreatedAsync();
+            workstationProfile = await WorkstationProfileService.GetProfileAsync();
+            supportedModels = OllamaModelCatalogService.GetSupportedModels(workstationProfile);
+            recommendedPrimaryModel = OllamaModelCatalogService.GetRecommendedPrimaryModel(workstationProfile);
+            recommendedFallbackModel = OllamaModelCatalogService.GetRecommendedFallbackModel(workstationProfile);
+            NormalizeSelectedModels();
+            backendStatus = await BackendSessionService.GetStatusAsync();
+            ollamaStatus = await OllamaService.GetStatusAsync();
+            ollamaRuntimeStatus = await OllamaRuntimeService.GetRuntimeStatusAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+        finally
+        {
+            isRefreshing = false;
+        }
+    }
+
+    private async Task InstallOrUpdateRuntimeAsync()
+    {
+        await RunRuntimeOperationAsync(
+            "Installing or updating managed Ollama runtime",
+            () => OllamaRuntimeService.InstallOrUpdateManagedRuntimeAsync());
+    }
+
+    private async Task StartRuntimeAsync()
+    {
+        await RunRuntimeOperationAsync(
+            "Starting managed Ollama runtime",
+            () => OllamaRuntimeService.StartManagedRuntimeAsync());
+    }
+
+    private async Task DownloadRequiredModelsAsync()
+    {
+        await RunRuntimeOperationAsync(
+            "Downloading required Ollama models",
+            () => OllamaRuntimeService.EnsureRequiredModelsAsync());
+    }
+
+    private async Task SaveModelsAndDownloadRequiredAsync()
+    {
+        isSaving = true;
+        saveMessage = null;
+        errorMessage = null;
+
+        try
+        {
+            await ClientSettingsService.SaveAsync(settings);
+            settings = await ClientSettingsService.GetAsync();
+            await RefreshStatusAsync();
+            await DownloadRequiredModelsAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private async Task PersistSelectedModelsAsync()
+    {
+        if (isSaving || isRuntimeBusy)
+        {
+            return;
+        }
+
+        isSaving = true;
+        saveMessage = null;
+        errorMessage = null;
+
+        try
+        {
+            await ClientSettingsService.SaveAsync(settings);
+            settings = await ClientSettingsService.GetAsync();
+            await RefreshStatusAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private async Task RemoveInstalledModelAsync(string model)
+    {
+        await RunRuntimeOperationAsync(
+            string.IsNullOrWhiteSpace(model) ? "Removing selected Ollama model" : $"Removing Ollama model {model}",
+            () => OllamaRuntimeService.RemoveModelAsync(model ?? string.Empty));
+    }
+
+    private async Task RemoveUnusedModelsAsync()
+    {
+        var unusedModels = installedModels.Where(model => !IsModelInUse(model)).ToArray();
+
+        await RunRuntimeOperationAsync(
+            "Removing unused Ollama models",
+            async () =>
+            {
+                if (unusedModels.Length == 0)
+                {
+                    return new OllamaRuntimeOperationResult(true, "No unused models were found.", null);
+                }
+
+                foreach (var model in unusedModels)
+                {
+                    var result = await OllamaRuntimeService.RemoveModelAsync(model);
+
+                    if (!result.IsSuccess)
+                    {
+                        return result;
+                    }
+                }
+
+                return new OllamaRuntimeOperationResult(true, $"Removed {unusedModels.Length} unused model(s).", null);
+            });
+    }
+
+    private void ApplyRecommendedModels()
+    {
+        if (recommendedPrimaryModel is null || recommendedFallbackModel is null)
+        {
+            return;
+        }
+
+        settings.PrimaryOllamaModel = recommendedPrimaryModel.Name;
+        settings.FallbackOllamaModel = recommendedFallbackModel.Name;
+    }
+
+    private async Task RunRuntimeOperationAsync(string operationLabel, Func<Task<OllamaRuntimeOperationResult>> operation)
+    {
+        isRuntimeBusy = true;
+        currentRuntimeOperation = operationLabel;
+        runtimeMessage = null;
+        runtimeErrorMessage = null;
+        runtimeActivityLog.Clear();
+        runtimeActivityLog.Add(new OllamaRuntimeActivityEventArgs($"{operationLabel} started.", false));
+        saveMessage = null;
+        errorMessage = null;
+
+        try
+        {
+            var result = await operation();
+
+            if (result.IsSuccess)
+            {
+                runtimeMessage = result.Summary;
+            }
+            else
+            {
+                runtimeErrorMessage = string.IsNullOrWhiteSpace(result.ErrorMessage)
+                    ? result.Summary
+                    : $"{result.Summary} {result.ErrorMessage}";
+            }
+
+            await RefreshStatusAsync();
+        }
+        catch (Exception ex)
+        {
+            runtimeErrorMessage = ex.Message;
+        }
+        finally
+        {
+            isRuntimeBusy = false;
+            currentRuntimeOperation = null;
+        }
+    }
+
+    private void HandleRuntimeActivityReported(object? sender, OllamaRuntimeActivityEventArgs eventArgs)
+    {
+        _ = InvokeAsync(() =>
+        {
+            if (!string.IsNullOrWhiteSpace(eventArgs.CollapseKey))
+            {
+                var existingIndex = runtimeActivityLog.FindIndex(
+                    entry => string.Equals(entry.CollapseKey, eventArgs.CollapseKey, StringComparison.Ordinal));
+
+                if (existingIndex >= 0)
+                {
+                    runtimeActivityLog[existingIndex] = eventArgs;
+                }
+                else
+                {
+                    runtimeActivityLog.Insert(0, eventArgs);
+                }
+            }
+            else
+            {
+                runtimeActivityLog.Insert(0, eventArgs);
+            }
+
+            if (runtimeActivityLog.Count > MaxRuntimeLogEntries)
+            {
+                runtimeActivityLog.RemoveAt(runtimeActivityLog.Count - 1);
+            }
+
+            StateHasChanged();
+        });
+    }
+
+    private static string DisplayOrPlaceholder(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value) ? "Not configured" : value;
+    }
+
+    private static string FormatGiB(ulong bytes)
+    {
+        return (bytes / (1024d * 1024d * 1024d)).ToString("0.0");
+    }
+
+    private bool IsConfiguredPrimaryModelRecommended()
+    {
+        return workstationProfile is not null
+            && recommendedPrimaryModel is not null
+            && string.Equals(settings.PrimaryOllamaModel, recommendedPrimaryModel.Name, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private bool IsModelInUse(string model)
+    {
+        return string.Equals(settings.PrimaryOllamaModel, model, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(settings.FallbackOllamaModel, model, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private void NormalizeSelectedModels()
+    {
+        if (selectableModels.Count == 0)
+        {
+            return;
+        }
+
+        recommendedPrimaryModel ??= selectableModels[0];
+        recommendedFallbackModel ??= selectableModels[0];
+
+        if (!selectableModels.Any(model => string.Equals(model.Name, settings.PrimaryOllamaModel, StringComparison.OrdinalIgnoreCase)))
+        {
+            settings.PrimaryOllamaModel = recommendedPrimaryModel.Name;
+        }
+
+        if (!selectableModels.Any(model => string.Equals(model.Name, settings.FallbackOllamaModel, StringComparison.OrdinalIgnoreCase)))
+        {
+            settings.FallbackOllamaModel = recommendedFallbackModel.Name;
+        }
+
+    }
+
+    private IReadOnlyList<OllamaModelOption> BuildSelectableModels()
+    {
+        var result = new List<OllamaModelOption>();
+
+        foreach (var model in supportedModels)
+        {
+            AddSelectableModel(result, model);
+        }
+
+        AddModelByNameIfMissing(result, settings.PrimaryOllamaModel);
+        AddModelByNameIfMissing(result, settings.FallbackOllamaModel);
+
+        foreach (var installedModel in installedModels)
+        {
+            AddModelByNameIfMissing(result, installedModel);
+        }
+
+        return result
+            .OrderBy(model => model.MinimumRecommendedAvailableMemoryBytes)
+            .ThenBy(model => model.Name, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+    }
+
+    private void AddModelByNameIfMissing(List<OllamaModelOption> models, string? modelName)
+    {
+        if (string.IsNullOrWhiteSpace(modelName)
+            || models.Any(model => string.Equals(model.Name, modelName, StringComparison.OrdinalIgnoreCase)))
+        {
+            return;
+        }
+
+        var knownModel = supportedModels.FirstOrDefault(model => string.Equals(model.Name, modelName, StringComparison.OrdinalIgnoreCase));
+
+        if (knownModel is not null)
+        {
+            models.Add(knownModel);
+            return;
+        }
+
+        models.Add(new OllamaModelOption(
+            modelName.Trim(),
+            modelName.Trim(),
+            "Installed/Custom",
+            0,
+            "Already configured or installed on this workstation."));
+    }
+
+    private static void AddSelectableModel(List<OllamaModelOption> models, OllamaModelOption model)
+    {
+        if (!models.Any(existing => string.Equals(existing.Name, model.Name, StringComparison.OrdinalIgnoreCase)))
+        {
+            models.Add(model);
+        }
+    }
+
+    private string GetModelOptionLabel(OllamaModelOption model, bool checkPrimaryRecommendation, bool checkFallbackRecommendation)
+    {
+        var tags = new List<string>();
+
+        if (checkPrimaryRecommendation
+            && recommendedPrimaryModel is not null
+            && string.Equals(model.Name, recommendedPrimaryModel.Name, StringComparison.OrdinalIgnoreCase))
+        {
+            tags.Add("Recommended primary");
+        }
+
+        if (checkFallbackRecommendation
+            && recommendedFallbackModel is not null
+            && string.Equals(model.Name, recommendedFallbackModel.Name, StringComparison.OrdinalIgnoreCase))
+        {
+            tags.Add("Recommended fallback");
+        }
+
+        if (installedModels.Contains(model.Name, StringComparer.OrdinalIgnoreCase))
+        {
+            tags.Add("Installed");
+        }
+
+        return tags.Count == 0
+            ? model.Name
+            : $"{model.Name} ({string.Join(", ", tags)})";
+    }
+
+    private async Task<string> EnsureConfiguredModelsAvailableAsync()
+    {
+        if (ollamaRuntimeStatus is null || ollamaRuntimeStatus.State == OllamaRuntimeState.Missing)
+        {
+            return "Settings saved. Install the managed Ollama runtime before downloading the selected models.";
+        }
+
+        var modelsToEnsure = new[] { settings.PrimaryOllamaModel, settings.FallbackOllamaModel }
+            .Where(static model => !string.IsNullOrWhiteSpace(model))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        var missingModels = modelsToEnsure
+            .Where(model => !installedModels.Contains(model, StringComparer.OrdinalIgnoreCase))
+            .ToArray();
+
+        if (missingModels.Length == 0)
+        {
+            return "Settings saved. Selected primary and fallback models are already available locally.";
+        }
+
+        foreach (var model in missingModels)
+        {
+            var result = await OllamaRuntimeService.EnsureModelAsync(model);
+
+            if (!result.IsSuccess)
+            {
+                await RefreshStatusAsync();
+                return $"Settings saved, but model download failed for {model}. {result.ErrorMessage ?? result.Summary}";
+            }
+        }
+
+        await RefreshStatusAsync();
+        return $"Settings saved. Downloaded missing selected model(s): {string.Join(", ", missingModels)}.";
+    }
+
+    private static string GetRuntimeBadgeClass(OllamaRuntimeState state)
+    {
+        return state == OllamaRuntimeState.Ready ? "text-bg-success" : "text-bg-warning";
+    }
+
+    private static string GetRuntimeLabel(OllamaRuntimeState state)
+    {
+        return state switch
+        {
+            OllamaRuntimeState.Missing => "Missing",
+            OllamaRuntimeState.WrongVersion => "Wrong Version",
+            OllamaRuntimeState.EndpointUnavailable => "Not Running",
+            OllamaRuntimeState.ConflictingInstance => "Conflict",
+            OllamaRuntimeState.ModelMissing => "Model Missing",
+            OllamaRuntimeState.Ready => "Ready",
+            _ => "Attention"
+        };
+    }
+
+    public void Dispose()
+    {
+        OllamaRuntimeService.ActivityReported -= HandleRuntimeActivityReported;
+    }
+}

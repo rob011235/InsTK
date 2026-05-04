@@ -1,0 +1,109 @@
+@page "/tutorials"
+@attribute [Authorize(Roles = "Admin")]
+@rendermode InteractiveServer
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+@inject NavigationManager Nav
+
+<h3>Tutorials</h3>
+
+<div class="mb-3">
+    <button class="btn btn-primary" @onclick="CreateNew">
+        New Tutorial
+    </button>
+</div>
+
+@if (tutorials == null)
+{
+    <p>Loading...</p>
+}
+else if (!tutorials.Any())
+{
+    <p>No tutorials found.</p>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Title</th>
+                <th>Technology</th>
+                <th>Gradable</th>
+                <th>Updated</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var t in tutorials)
+            {
+                <tr>
+                    <td>@t.Title</td>
+                    <td>@(t.Technology ?? "-")</td>
+                    <td>@(IsGradableTutorial(t) ? "Yes" : "No")</td>
+                    <td>@FormatDate(t.UpdatedUtc ?? t.CreatedUtc)</td>
+                    <td>
+                        <button class="btn btn-sm btn-secondary me-2" @onclick="() => Edit(t.Id)">
+                            Edit
+                        </button>
+
+                        <button class="btn btn-sm btn-danger" @onclick="() => Delete(t.Id)">
+                            Delete
+                        </button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<TutorialDefinition>? tutorials;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Load();
+    }
+
+    private async Task Load()
+    {
+        await using var db = await DbFactory.CreateDbContextAsync();
+
+        tutorials = await db.Tutorials
+            .AsNoTracking()
+            .OrderByDescending(t => t.UpdatedUtc ?? t.CreatedUtc)
+            .ToListAsync();
+    }
+
+    private void CreateNew()
+    {
+        Nav.NavigateTo("/tutorials/edit");
+    }
+
+    private void Edit(Guid id)
+    {
+        Nav.NavigateTo($"/tutorials/edit/{id}");
+    }
+
+    private async Task Delete(Guid id)
+    {
+        await using var db = await DbFactory.CreateDbContextAsync();
+
+        var entity = await db.Tutorials.FindAsync(id);
+        if (entity == null)
+            return;
+
+        db.Tutorials.Remove(entity);
+        await db.SaveChangesAsync();
+
+        await Load();
+    }
+
+    private static string FormatDate(DateTime date)
+    {
+        return date.ToLocalTime().ToString("yyyy-MM-dd HH:mm");
+    }
+
+    private static bool IsGradableTutorial(TutorialDefinition tutorial)
+    {
+        return !string.IsNullOrWhiteSpace(tutorial.ReferenceCode);
+    }
+}

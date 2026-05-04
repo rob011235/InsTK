@@ -1,31 +1,21 @@
-// <copyright file="IdentityComponentsEndpointRouteBuilderExtensions.cs" company="Rob Garner (rgarner011235@gmail.com)">
-// Copyright (c) Rob Garner (rgarner011235@gmail.com). All rights reserved.
-// </copyright>
+using InsTK.Server.Components.Account.Pages;
+using InsTK.Server.Components.Account.Pages.Manage;
+using InsTK.Server.Data;
+using Microsoft.AspNetCore.Antiforgery;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.AspNetCore.Http.Extensions;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Primitives;
+using System.Security.Claims;
+using System.Text.Json;
 
-namespace InsTK.Server.Components.Account
+namespace Microsoft.AspNetCore.Routing
 {
-    using System.Security.Claims;
-    using System.Text.Json;
-    using InsTK.Server.Components.Account.Pages;
-    using InsTK.Server.Components.Account.Pages.Manage;
-    using InsTK.Server.Data;
-    using Microsoft.AspNetCore.Authentication;
-    using Microsoft.AspNetCore.Components.Authorization;
-    using Microsoft.AspNetCore.Http.Extensions;
-    using Microsoft.AspNetCore.Identity;
-    using Microsoft.AspNetCore.Mvc;
-    using Microsoft.Extensions.Primitives;
-
-    /// <summary>
-    /// Provides extension methods for mapping additional identity-related endpoints required by Identity Razor components.
-    /// </summary>
     internal static class IdentityComponentsEndpointRouteBuilderExtensions
     {
-        /// <summary>
-        /// Maps additional endpoints required by the Identity Razor components in the /Components/Account/Pages directory.
-        /// </summary>
-        /// <param name="endpoints">The endpoint route builder to add endpoints to.</param>
-        /// <returns>An <see cref="IEndpointConventionBuilder"/> for further configuration of the endpoints.</returns>
+        // These endpoints are required by the Identity Razor components defined in the /Components/Account/Pages directory of this project.
         public static IEndpointConventionBuilder MapAdditionalIdentityEndpoints(this IEndpointRouteBuilder endpoints)
         {
             ArgumentNullException.ThrowIfNull(endpoints);
@@ -39,8 +29,8 @@ namespace InsTK.Server.Components.Account
                 [FromForm] string returnUrl) =>
             {
                 IEnumerable<KeyValuePair<string, StringValues>> query = [
-                    new ("ReturnUrl", returnUrl),
-                    new ("Action", ExternalLogin.LoginCallbackAction)];
+                    new("ReturnUrl", returnUrl),
+                    new("Action", ExternalLogin.LoginCallbackAction)];
 
                 var redirectUrl = UriHelper.BuildRelative(
                     context.Request.PathBase,
@@ -53,11 +43,50 @@ namespace InsTK.Server.Components.Account
 
             accountGroup.MapPost("/Logout", async (
                 ClaimsPrincipal user,
-                SignInManager<ApplicationUser> signInManager,
+                [FromServices] SignInManager<ApplicationUser> signInManager,
                 [FromForm] string returnUrl) =>
             {
                 await signInManager.SignOutAsync();
                 return TypedResults.LocalRedirect($"~/{returnUrl}");
+            });
+
+            accountGroup.MapPost("/PasskeyCreationOptions", async (
+                HttpContext context,
+                [FromServices] UserManager<ApplicationUser> userManager,
+                [FromServices] SignInManager<ApplicationUser> signInManager,
+                [FromServices] IAntiforgery antiforgery) =>
+            {
+                await antiforgery.ValidateRequestAsync(context);
+
+                var user = await userManager.GetUserAsync(context.User);
+                if (user is null)
+                {
+                    return Results.NotFound($"Unable to load user with ID '{userManager.GetUserId(context.User)}'.");
+                }
+
+                var userId = await userManager.GetUserIdAsync(user);
+                var userName = await userManager.GetUserNameAsync(user) ?? "User";
+                var optionsJson = await signInManager.MakePasskeyCreationOptionsAsync(new()
+                {
+                    Id = userId,
+                    Name = userName,
+                    DisplayName = userName
+                });
+                return TypedResults.Content(optionsJson, contentType: "application/json");
+            });
+
+            accountGroup.MapPost("/PasskeyRequestOptions", async (
+                HttpContext context,
+                [FromServices] UserManager<ApplicationUser> userManager,
+                [FromServices] SignInManager<ApplicationUser> signInManager,
+                [FromServices] IAntiforgery antiforgery,
+                [FromQuery] string? username) =>
+            {
+                await antiforgery.ValidateRequestAsync(context);
+
+                var user = string.IsNullOrEmpty(username) ? null : await userManager.FindByNameAsync(username);
+                var optionsJson = await signInManager.MakePasskeyRequestOptionsAsync(user);
+                return TypedResults.Content(optionsJson, contentType: "application/json");
             });
 
             var manageGroup = accountGroup.MapGroup("/Manage").RequireAuthorization();

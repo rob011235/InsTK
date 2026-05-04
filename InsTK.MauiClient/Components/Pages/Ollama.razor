@@ -1,0 +1,285 @@
+@* Copyright (c) Robert Garner. All rights reserved. *@
+@page "/ollama"
+
+@inject IOllamaService OllamaService
+@inject IOllamaPromptService OllamaPromptService
+@inject IOllamaRuntimeService OllamaRuntimeService
+
+<PageTitle>Ollama Console</PageTitle>
+
+<div class="ollama-page">
+    <section class="ollama-hero">
+        <p class="ollama-eyebrow">Local model console</p>
+        <h1>Ollama</h1>
+        <p class="ollama-description">Send a prompt to the workstation's configured Ollama model and review the response below.</p>
+    </section>
+
+    <section class="ollama-panel">
+        <div class="ollama-meta">
+            <span class="ollama-chip">Endpoint: @configuration.BaseUrl</span>
+            <span class="ollama-chip">Model: @configuration.Model</span>
+        </div>
+
+        @if (isLoadingStatus)
+        {
+            <div class="ollama-status ollama-status--info">
+                Checking Ollama runtime status...
+            </div>
+        }
+        else if (runtimeStatus is not null || connectionStatus is not null)
+        {
+            <div class="ollama-status @GetStatusClass()">
+                <div class="ollama-status__header">
+                    <strong>@GetStatusTitle()</strong>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="() => RefreshStatusAsync()" disabled="@isBusy">
+                        Refresh Status
+                    </button>
+                </div>
+                <div>@GetStatusSummary()</div>
+                @if (!string.IsNullOrWhiteSpace(GetStatusDetail()))
+                {
+                    <div class="ollama-status__detail">@GetStatusDetail()</div>
+                }
+            </div>
+        }
+
+        <div class="mb-3">
+            <label class="form-label" for="ollama-prompt">Prompt</label>
+            <InputTextArea id="ollama-prompt"
+                           class="form-control ollama-prompt-box"
+                           @bind-Value="prompt"
+                           disabled="@(!canSendPrompt)"
+                           placeholder="Ask Ollama to explain a code path, summarize an error, or draft a change." />
+        </div>
+
+        <div class="d-flex gap-2">
+            <button type="button" class="btn btn-primary" @onclick="SendAsync" disabled="@isPromptDisabled">
+                @(isBusy ? "Sending..." : "Send")
+            </button>
+            <button type="button" class="btn btn-outline-secondary" @onclick="ClearPrompt" disabled="@isPromptDisabled">
+                Clear
+            </button>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(errorMessage))
+        {
+            <div class="alert alert-danger mt-3 mb-0" role="alert">@errorMessage</div>
+        }
+    </section>
+
+    <section class="ollama-panel">
+        <div class="d-flex justify-content-between align-items-center gap-3">
+            <h2 class="h4 mb-0">Transcript</h2>
+            @if (entries.Count > 0)
+            {
+                <button type="button" class="btn btn-sm btn-outline-danger" @onclick="ClearTranscript" disabled="@isBusy">Clear Transcript</button>
+            }
+        </div>
+
+        @if (entries.Count == 0)
+        {
+            <div class="ollama-empty-state">No prompts submitted yet.</div>
+        }
+        else
+        {
+            <div class="ollama-transcript">
+                @foreach (var entry in entries)
+                {
+                    <article class="ollama-entry ollama-entry--@entry.RoleClass">
+                        <header class="ollama-entry__header">
+                            <div class="ollama-entry__meta">
+                                <span class="ollama-entry__role">@entry.RoleLabel</span>
+                                @if (!string.IsNullOrWhiteSpace(entry.ModelLabel))
+                                {
+                                    <span class="ollama-entry__model @(entry.UsedFallback ? "ollama-entry__model--fallback" : "ollama-entry__model--primary")">
+                                        @entry.ModelLabel
+                                    </span>
+                                }
+                            </div>
+                            <time class="ollama-entry__time">@entry.Timestamp.ToLocalTime().ToString("MMM d, yyyy h:mm tt")</time>
+                        </header>
+                        <p class="ollama-entry__content">@entry.Content</p>
+                    </article>
+                }
+            </div>
+        }
+    </section>
+</div>
+
+@code {
+    private readonly List<TranscriptEntry> entries = [];
+    private OllamaPromptConfiguration configuration = new("http://127.0.0.1:11434", "qwen3-coder:30b");
+    private OllamaConnectionStatus? connectionStatus;
+    private OllamaRuntimeStatus? runtimeStatus;
+    private string prompt = string.Empty;
+    private string? errorMessage;
+    private bool isBusy;
+    private bool isLoadingStatus;
+
+    private bool canSendPrompt => connectionStatus?.IsReachable == true;
+    private bool isPromptDisabled => isBusy || !canSendPrompt || string.IsNullOrWhiteSpace(prompt);
+
+    protected override async Task OnInitializedAsync()
+    {
+        configuration = await OllamaPromptService.GetConfigurationAsync();
+        await RefreshStatusAsync();
+    }
+
+    private async Task RefreshStatusAsync(bool clearErrorMessage = true)
+    {
+        isLoadingStatus = true;
+
+        if (clearErrorMessage)
+        {
+            errorMessage = null;
+        }
+
+        try
+        {
+            connectionStatus = await OllamaService.GetStatusAsync();
+            runtimeStatus = await OllamaRuntimeService.GetRuntimeStatusAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+        finally
+        {
+            isLoadingStatus = false;
+        }
+    }
+
+    private async Task SendAsync()
+    {
+        var trimmedPrompt = prompt.Trim();
+
+        if (string.IsNullOrWhiteSpace(trimmedPrompt))
+        {
+            return;
+        }
+
+        isBusy = true;
+        errorMessage = null;
+        entries.Insert(0, TranscriptEntry.User(trimmedPrompt));
+        prompt = string.Empty;
+
+        try
+        {
+            var response = await OllamaPromptService.GenerateAsync(trimmedPrompt);
+            entries.Insert(0, TranscriptEntry.Assistant(response.Response, response.Model, response.UsedFallback));
+            await RefreshStatusAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = BuildFriendlyErrorMessage(ex);
+            await RefreshStatusAsync(clearErrorMessage: false);
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    private void ClearPrompt()
+    {
+        prompt = string.Empty;
+    }
+
+    private void ClearTranscript()
+    {
+        entries.Clear();
+        errorMessage = null;
+    }
+
+    private string GetStatusClass()
+    {
+        if (connectionStatus?.IsReachable == true)
+        {
+            return "ollama-status--success";
+        }
+
+        return runtimeStatus?.State switch
+        {
+            OllamaRuntimeState.Missing => "ollama-status--danger",
+            OllamaRuntimeState.EndpointUnavailable => "ollama-status--warning",
+            OllamaRuntimeState.ModelMissing => "ollama-status--warning",
+            OllamaRuntimeState.WrongVersion => "ollama-status--warning",
+            OllamaRuntimeState.ConflictingInstance => "ollama-status--warning",
+            _ => "ollama-status--info"
+        };
+    }
+
+    private string GetStatusTitle()
+    {
+        if (connectionStatus?.IsReachable == true)
+        {
+            return "Ollama is reachable";
+        }
+
+        return runtimeStatus?.State switch
+        {
+            OllamaRuntimeState.Missing => "Ollama is not installed",
+            OllamaRuntimeState.EndpointUnavailable => "Ollama is installed but not running",
+            OllamaRuntimeState.ModelMissing => "Ollama is running but required models are missing",
+            OllamaRuntimeState.WrongVersion => "Managed Ollama version does not match policy",
+            OllamaRuntimeState.ConflictingInstance => "A conflicting Ollama instance was detected",
+            _ => "Ollama status is unavailable"
+        };
+    }
+
+    private string GetStatusSummary()
+    {
+        if (connectionStatus?.IsReachable == true)
+        {
+            return connectionStatus.Summary;
+        }
+
+        return runtimeStatus?.Summary
+            ?? connectionStatus?.Summary
+            ?? "Ollama status could not be determined.";
+    }
+
+    private string? GetStatusDetail()
+    {
+        if (connectionStatus?.IsReachable == true)
+        {
+            return $"You can use the prompt form now. Endpoint: {connectionStatus.BaseUrl}.";
+        }
+
+        return runtimeStatus?.State switch
+        {
+            OllamaRuntimeState.Missing => "Go to the Overview page and use 'Install or Update Runtime', then 'Start Runtime'.",
+            OllamaRuntimeState.EndpointUnavailable => "Go to the Overview page and use 'Start Runtime'.",
+            OllamaRuntimeState.ModelMissing => $"Go to the Overview page and use 'Download Required Models' for {runtimeStatus?.PrimaryModel} and {runtimeStatus?.FallbackModel}.",
+            OllamaRuntimeState.WrongVersion => $"Reinstall the managed runtime version {runtimeStatus?.RequiredVersion} from the Overview page.",
+            OllamaRuntimeState.ConflictingInstance => "Stop the other Ollama process or align the workstation configuration before using this page.",
+            _ => connectionStatus?.ErrorMessage ?? runtimeStatus?.ErrorMessage
+        };
+    }
+
+    private static string BuildFriendlyErrorMessage(Exception exception)
+    {
+        if (exception is HttpRequestException httpRequestException)
+        {
+            return $"Could not reach Ollama at the configured endpoint. {httpRequestException.Message}";
+        }
+
+        if (exception is TaskCanceledException)
+        {
+            return "The Ollama request timed out. The model may not be running or may still be loading.";
+        }
+
+        return exception.Message;
+    }
+
+    private sealed record TranscriptEntry(string RoleLabel, string RoleClass, string Content, DateTimeOffset Timestamp, string? ModelLabel, bool UsedFallback)
+    {
+        public static TranscriptEntry User(string content) => new("You", "user", content, DateTimeOffset.UtcNow, null, false);
+
+        public static TranscriptEntry Assistant(string content, string model, bool usedFallback)
+        {
+            var label = usedFallback ? $"Fallback: {model}" : $"Primary: {model}";
+            return new("Ollama", "assistant", content, DateTimeOffset.UtcNow, label, usedFallback);
+        }
+    }
+}

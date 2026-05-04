@@ -1,0 +1,380 @@
+@page "/tutorials/edit"
+@page "/tutorials/edit/{Id:guid}"
+@attribute [Authorize(Roles = "Admin")]
+@rendermode InteractiveServer
+
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+@inject NavigationManager Nav
+
+<h3>@(IsNew ? "Create Tutorial" : "Edit Tutorial")</h3>
+
+@if (model == null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <section class="mt-4">
+        <div class="rounded-4 border bg-body-tertiary p-3 shadow-sm">
+            <ul class="nav nav-tabs border-0 mb-0">
+                <li class="nav-item">
+                    <button type="button"
+                            class="nav-link rounded-top-3 @(activeTab == "tutorial" ? "active bg-white border-bottom border-white text-dark fw-semibold" : "text-secondary bg-transparent")"
+                            @onclick='() => SetActiveTab("tutorial")'>
+                        Tutorial
+                    </button>
+                </li>
+
+                <li class="nav-item">
+                    <button type="button"
+                            class="nav-link rounded-top-3 @(activeTab == "reference" ? "active bg-white border-bottom border-white text-dark fw-semibold" : "text-secondary bg-transparent")"
+                            @onclick='() => SetActiveTab("reference")'>
+                        Git Reference
+                    </button>
+                </li>
+
+                <li class="nav-item">
+                    <button type="button"
+                            class="nav-link rounded-top-3 @(activeTab == "assignment" ? "active bg-white border-bottom border-white text-dark fw-semibold" : "text-secondary bg-transparent")"
+                            @onclick='() => SetActiveTab("assignment")'>
+                        Brightspace Assignment
+                    </button>
+                </li>
+            </ul>
+
+            <div class="rounded-bottom-4 rounded-end-4 border border-top-0 bg-white p-4 shadow-sm">
+                @if (activeTab == "tutorial")
+                {
+                    <TutorialAuthoringTab Model="model"
+                                          OnTutorialTitleChanged="OnTutorialTitleChanged"
+                                          OnContentMarkdownChanged="OnContentMarkdownChanged"
+                                          OnSaveRequested="Save"
+                                          OnExportRequested="OpenTutorialExportModal"
+                                          OnReturnToListRequested="ReturnToList" />
+                }
+
+                @if (activeTab == "reference")
+                {
+                    <TutorialGitReferenceTab Model="model"
+                                             OnSaveRequested="Save"
+                                             OnReturnToListRequested="ReturnToList" />
+                }
+
+                @if (activeTab == "assignment")
+                {
+                    <TutorialBrightspaceAssignmentTab Model="model"
+                                                      OnAssignmentTitleChanged="OnBrightspaceAssignmentTitleChanged"
+                                                      OnSaveRequested="Save"
+                                                      OnExportRequested="OpenAssignmentExportModal"
+                                                      OnReturnToListRequested="ReturnToList" />
+                }
+            </div>
+        </div>
+    </section>
+
+    @if (exportModalSections.Count > 0)
+    {
+        <TutorialExportModal Title="@exportModalTitle"
+                             Sections="exportModalSections"
+                             OnCloseRequested="CloseExportModal" />
+    }
+}
+
+@code {
+    [Parameter]
+    public Guid? Id { get; set; }
+
+    private TutorialDefinition? model;
+
+    private bool IsNew => !Id.HasValue;
+    private string activeTab = "tutorial";
+    private bool assignmentTitleWasManuallyEdited;
+    private string exportModalTitle = string.Empty;
+    private List<TutorialExportSection> exportModalSections = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        await using var db = await DbFactory.CreateDbContextAsync();
+
+        if (IsNew)
+        {
+            model = new TutorialDefinition
+            {
+                CreatedUtc = DateTime.UtcNow
+            };
+        }
+        else
+        {
+            var tutorialId = Id.GetValueOrDefault();
+
+            model = await db.Tutorials
+                .FirstOrDefaultAsync(t => t.Id == tutorialId);
+
+            if (model == null)
+            {
+                Nav.NavigateTo("/tutorials");
+                return;
+            }
+
+            // Apply defaults for existing records
+            if (string.IsNullOrWhiteSpace(model.BrightspaceSubmissionInstructions))
+            {
+                model.BrightspaceSubmissionInstructions =
+                    TutorialDefinition.DefaultBrightspaceSubmissionInstructions;
+            }
+
+            if (string.IsNullOrWhiteSpace(model.BrightspaceAssignmentInstructions))
+            {
+                model.BrightspaceAssignmentInstructions =
+                    TutorialDefinition.DefaultBrightspaceAssignmentInstructions;
+            }
+        }
+
+        assignmentTitleWasManuallyEdited = !UsesDefaultAssignmentTitle(model.Title, model.BrightspaceAssignmentTitle);
+
+        if (!assignmentTitleWasManuallyEdited)
+        {
+            model.BrightspaceAssignmentTitle = BuildDefaultAssignmentTitle(model.Title);
+        }
+
+    }
+
+    private static string? NormalizeOptional(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+    }
+
+    private Task OnContentMarkdownChanged(string value)
+    {
+        if (model != null)
+        {
+            model.ContentMarkdown = value;
+        }
+
+        return Task.CompletedTask;
+    }
+
+    private async Task Save()
+    {
+        await using var db = await DbFactory.CreateDbContextAsync();
+
+        if (model == null)
+            return;
+
+        ApplyNormalizedDraft(CreateNormalizedDraft());
+
+        if (IsNew)
+        {
+            model.CreatedUtc = DateTime.UtcNow;
+            db.Tutorials.Add(model);
+        }
+        else
+        {
+            if (!await db.Tutorials.AnyAsync(t => t.Id == model.Id))
+            {
+                Nav.NavigateTo("/tutorials");
+                return;
+            }
+
+            var updatedUtc = DateTime.UtcNow;
+
+            await db.Tutorials
+                .Where(t => t.Id == model.Id)
+                .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(t => t.Title, model.Title)
+                    .SetProperty(t => t.Summary, model.Summary)
+                    .SetProperty(t => t.Technology, model.Technology)
+                    .SetProperty(t => t.YouTubeUrl, model.YouTubeUrl)
+                    .SetProperty(t => t.ContentMarkdown, model.ContentMarkdown)
+                    .SetProperty(t => t.RepoUrl, model.RepoUrl)
+                    .SetProperty(t => t.BranchName, model.BranchName)
+                    .SetProperty(t => t.ReferenceSubPath, model.ReferenceSubPath)
+                    .SetProperty(t => t.ReferenceFileNames, model.ReferenceFileNames)
+                    .SetProperty(t => t.ReferenceCode, model.ReferenceCode)
+                    .SetProperty(t => t.GradingHints, model.GradingHints)
+                    .SetProperty(t => t.UpdatedUtc, updatedUtc)
+                    .SetProperty(t => t.BrightspaceAssignmentTitle, model.BrightspaceAssignmentTitle)
+                    .SetProperty(t => t.BrightspaceAssignmentInstructions, model.BrightspaceAssignmentInstructions)
+                    .SetProperty(t => t.BrightspacePoints, model.BrightspacePoints)
+                    .SetProperty(t => t.BrightspaceSubmissionInstructions, model.BrightspaceSubmissionInstructions));
+        }
+
+        await db.SaveChangesAsync();
+
+        if (IsNew)
+        {
+            Nav.NavigateTo($"/tutorials/edit/{model.Id}");
+            return;
+        }
+    }
+
+    private void ReturnToList()
+    {
+        Nav.NavigateTo("/tutorials");
+    }
+
+    private void OpenTutorialExportModal()
+    {
+        if (model == null)
+            return;
+
+        var draft = CreateNormalizedDraft();
+        exportModalTitle = $"Tutorial Export: {draft.Title}";
+        var slug = BuildTutorialFileSlug(draft.Title);
+        exportModalSections =
+        [
+            new TutorialExportSection("WordPress HTML", TutorialContentFormatter.BuildWordPressHtml(draft), "text/html", $"{slug}.html", 320),
+            new TutorialExportSection("WordPress Markdown", TutorialContentFormatter.BuildWordPressMarkdown(draft), "text/markdown", $"{slug}.md", 320)
+        ];
+    }
+
+    private void SetActiveTab(string tabName)
+    {
+        activeTab = tabName;
+    }
+
+    private Task OnTutorialTitleChanged(string value)
+    {
+        if (model == null)
+        {
+            return Task.CompletedTask;
+        }
+
+        model.Title = value;
+
+        if (!assignmentTitleWasManuallyEdited)
+        {
+            model.BrightspaceAssignmentTitle = BuildDefaultAssignmentTitle(value);
+        }
+
+        return Task.CompletedTask;
+    }
+
+    private Task OnBrightspaceAssignmentTitleChanged(string value)
+    {
+        if (model == null)
+        {
+            return Task.CompletedTask;
+        }
+
+        model.BrightspaceAssignmentTitle = value;
+        assignmentTitleWasManuallyEdited = !UsesDefaultAssignmentTitle(model.Title, value);
+
+        return Task.CompletedTask;
+    }
+
+    private static string BuildDefaultAssignmentTitle(string? tutorialTitle)
+    {
+        return string.IsNullOrWhiteSpace(tutorialTitle)
+            ? "Tutorial"
+            : $"Tutorial - {tutorialTitle.Trim()}";
+    }
+
+    private static bool UsesDefaultAssignmentTitle(string? tutorialTitle, string? assignmentTitle)
+    {
+        if (string.IsNullOrWhiteSpace(assignmentTitle))
+        {
+            return true;
+        }
+
+        return string.Equals(
+            assignmentTitle.Trim(),
+            BuildDefaultAssignmentTitle(tutorialTitle),
+            StringComparison.Ordinal);
+    }
+
+    private void OpenAssignmentExportModal()
+    {
+        if (model == null)
+            return;
+
+        var draft = CreateNormalizedDraft();
+        exportModalTitle = $"Brightspace Assignment Export: {draft.BrightspaceAssignmentTitle}";
+        var slug = BuildTutorialFileSlug(draft.Title);
+        exportModalSections =
+        [
+            new TutorialExportSection("Brightspace Assignment HTML", TutorialContentFormatter.BuildBrightspaceAssignmentHtml(draft), "text/html", $"{slug}-brightspace-assignment.html", 360)
+        ];
+    }
+
+    private void CloseExportModal()
+    {
+        exportModalTitle = string.Empty;
+        exportModalSections = [];
+    }
+
+    private TutorialDefinition CreateNormalizedDraft()
+    {
+        if (model == null)
+        {
+            return new TutorialDefinition();
+        }
+
+        var normalizedTitle = model.Title?.Trim() ?? string.Empty;
+        var normalizedAssignmentTitle = string.IsNullOrWhiteSpace(model.BrightspaceAssignmentTitle)
+            ? BuildDefaultAssignmentTitle(normalizedTitle)
+            : model.BrightspaceAssignmentTitle.Trim();
+
+        return new TutorialDefinition
+        {
+            Id = model.Id,
+            Title = normalizedTitle,
+            Summary = NormalizeOptional(model.Summary),
+            Technology = NormalizeOptional(model.Technology),
+            YouTubeUrl = NormalizeOptional(model.YouTubeUrl),
+            ContentMarkdown = NormalizeOptional(model.ContentMarkdown),
+            RepoUrl = NormalizeOptional(model.RepoUrl),
+            BranchName = NormalizeOptional(model.BranchName),
+            ReferenceSubPath = NormalizeOptional(model.ReferenceSubPath),
+            ReferenceFileNames = NormalizeOptional(model.ReferenceFileNames),
+            ReferenceCode = NormalizeOptional(model.ReferenceCode),
+            GradingHints = NormalizeOptional(model.GradingHints),
+            BrightspaceAssignmentTitle = normalizedAssignmentTitle,
+            BrightspaceAssignmentInstructions = NormalizeOptional(model.BrightspaceAssignmentInstructions),
+            BrightspacePoints = model.BrightspacePoints > 0 ? model.BrightspacePoints : 100,
+            BrightspaceSubmissionInstructions = NormalizeOptional(model.BrightspaceSubmissionInstructions),
+            CreatedUtc = model.CreatedUtc,
+            UpdatedUtc = model.UpdatedUtc
+        };
+    }
+
+    private void ApplyNormalizedDraft(TutorialDefinition draft)
+    {
+        if (model == null)
+        {
+            return;
+        }
+
+        model.Title = draft.Title;
+        model.Summary = draft.Summary;
+        model.Technology = draft.Technology;
+        model.YouTubeUrl = draft.YouTubeUrl;
+        model.ContentMarkdown = draft.ContentMarkdown;
+        model.RepoUrl = draft.RepoUrl;
+        model.BranchName = draft.BranchName;
+        model.ReferenceSubPath = draft.ReferenceSubPath;
+        model.ReferenceFileNames = draft.ReferenceFileNames;
+        model.ReferenceCode = draft.ReferenceCode;
+        model.GradingHints = draft.GradingHints;
+        model.BrightspaceAssignmentTitle = draft.BrightspaceAssignmentTitle;
+        model.BrightspaceAssignmentInstructions = draft.BrightspaceAssignmentInstructions;
+        model.BrightspacePoints = draft.BrightspacePoints;
+        model.BrightspaceSubmissionInstructions = draft.BrightspaceSubmissionInstructions;
+    }
+
+    private static string BuildTutorialFileSlug(string? title)
+    {
+        var slug = new string((title ?? "tutorial")
+            .ToLowerInvariant()
+            .Select(ch => char.IsLetterOrDigit(ch) ? ch : '-')
+            .ToArray());
+
+        while (slug.Contains("--", StringComparison.Ordinal))
+        {
+            slug = slug.Replace("--", "-", StringComparison.Ordinal);
+        }
+
+        slug = slug.Trim('-');
+        return string.IsNullOrWhiteSpace(slug) ? "tutorial" : slug;
+    }
+}

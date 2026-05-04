@@ -1,0 +1,102 @@
+@using InsTK.Shared.Models.Tutorials
+
+<EditForm Model="Model" OnValidSubmit="OnSaveRequested" FormName="tutorialGitReferenceForm">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="mb-4">
+        <button type="submit" class="btn btn-outline-primary me-2">Save</button>
+
+        <button type="button" class="btn btn-outline-secondary" @onclick="OnReturnToListRequested">
+            Return to List
+        </button>
+    </div>
+
+    <div class="mb-3">
+        <h4>Instructor Reference</h4>
+        <p class="text-muted mb-0">
+            Identify the final repository evidence for the tutorial as a whole.
+        </p>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-md-6">
+            <label class="form-label">Technology</label>
+            <InputText class="form-control" @bind-Value="Model.Technology" />
+            <div class="form-text">
+                Grading-only technology label for instructor reference.
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <label class="form-label">Repository URL</label>
+            <InputText class="form-control font-monospace" @bind-Value="Model.RepoUrl" />
+        </div>
+
+        <div class="col-md-6">
+            <label class="form-label">Branch Name</label>
+            <InputText class="form-control font-monospace" @bind-Value="Model.BranchName" />
+        </div>
+
+        <div class="col-12">
+            <label class="form-label">Reference Subpath</label>
+            <InputText class="form-control font-monospace" @bind-Value="Model.ReferenceSubPath" />
+            <div class="form-text">
+                Optional repo subdirectory that contains the final tutorial result.
+            </div>
+        </div>
+
+        <div class="col-12">
+            <label class="form-label">Reference File Names</label>
+            <InputTextArea class="form-control font-monospace" style="min-height: 120px;"
+                           @bind-Value="Model.ReferenceFileNames" />
+            <div class="form-text">
+                List the repo files that demonstrate the final tutorial result. One file per line works well.
+            </div>
+        </div>
+
+        <div class="col-12">
+            <label class="form-label">Grading Hints</label>
+            <InputTextArea class="form-control" style="min-height: 120px;" @bind-Value="Model.GradingHints" />
+        </div>
+
+        <div class="col-12">
+            <label class="form-label">Reference Code</label>
+            <InputTextArea class="form-control font-monospace" style="min-height: 260px;"
+                           @bind-Value="Model.ReferenceCode" />
+            <div class="form-text">
+                Use this for the final reference implementation or combined expected result.
+            </div>
+        </div>
+    </div>
+
+    <div class="alert alert-light border small mt-3 mb-0">
+        Status: @(IsGradableTutorial() ? "Gradable tutorial" : "Instruction-only tutorial")
+    </div>
+
+    <hr />
+
+    <div class="mt-3 pb-4">
+        <button type="submit" class="btn btn-outline-primary me-2">Save</button>
+
+        <button type="button" class="btn btn-outline-secondary" @onclick="OnReturnToListRequested">
+            Return to List
+        </button>
+    </div>
+</EditForm>
+
+@code {
+    [Parameter, EditorRequired]
+    public TutorialDefinition Model { get; set; } = null!;
+
+    [Parameter, EditorRequired]
+    public EventCallback OnSaveRequested { get; set; }
+
+    [Parameter, EditorRequired]
+    public EventCallback OnReturnToListRequested { get; set; }
+
+    private bool IsGradableTutorial()
+    {
+        return !string.IsNullOrWhiteSpace(Model.ReferenceCode);
+    }
+}

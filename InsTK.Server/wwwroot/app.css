@@ -49,3 +49,204 @@ h1:focus {
 .darker-border-checkbox.form-check-input {
     border-color: #929292;
 }
+
+.form-floating > .form-control-plaintext::placeholder, .form-floating > .form-control::placeholder {
+    color: var(--bs-secondary-color);
+    text-align: end;
+}
+
+.form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
+    text-align: start;
+}
+
+.tutorial-markdown-editor .b-markdown {
+    display: block;
+}
+
+.tutorial-markdown-editor .EasyMDEContainer {
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius);
+}
+
+.tutorial-markdown-workbench {
+    border: 1px solid var(--bs-border-color-translucent);
+    border-radius: 0.75rem;
+    padding: 1rem;
+    background: linear-gradient(180deg, rgba(248, 249, 250, 0.7), rgba(255, 255, 255, 0.95));
+}
+
+.tutorial-markdown-preview {
+    border: 1px solid var(--bs-border-color);
+    border-radius: 0.75rem;
+    background: #fff;
+    min-height: 250px;
+    overflow: hidden;
+}
+
+.tutorial-markdown-preview__body {
+    padding: 1rem;
+}
+
+.tutorial-markdown-preview__body > :last-child {
+    margin-bottom: 0;
+}
+
+.tutorial-markdown-hidden-input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
+.tutorial-markdown-layout {
+    display: grid;
+    gap: 1rem;
+}
+
+.tutorial-markdown-layout__editor,
+.tutorial-markdown-layout__preview {
+    min-width: 0;
+}
+
+.tutorial-markdown-editor .CodeMirror,
+.tutorial-markdown-editor .editor-preview,
+.tutorial-markdown-editor .editor-preview-side {
+    min-height: inherit;
+}
+
+.wordpress-preview-shell {
+    display: flex;
+    justify-content: center;
+}
+
+.wordpress-preview-surface {
+    width: min(90vw, 1400px);
+    max-width: 100%;
+    background: #f4f1eb;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 1rem;
+    padding: 1.5rem;
+}
+
+.wordpress-preview-content {
+    background: #fff;
+    color: #1f2933;
+    border-radius: 0.75rem;
+    box-shadow: 0 12px 32px rgba(15, 23, 42, 0.08);
+    padding: clamp(1.5rem, 3vw, 3rem);
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 1.05rem;
+    line-height: 1.8;
+}
+
+.wordpress-preview-content h1,
+.wordpress-preview-content h2,
+.wordpress-preview-content h3,
+.wordpress-preview-content h4,
+.wordpress-preview-content h5,
+.wordpress-preview-content h6 {
+    color: #0f172a;
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-weight: 700;
+    line-height: 1.25;
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+}
+
+.wordpress-preview-content h1 {
+    font-size: clamp(2rem, 3vw, 2.75rem);
+    margin-top: 0;
+}
+
+.wordpress-preview-content h2 {
+    font-size: clamp(1.5rem, 2.3vw, 2rem);
+    padding-top: 1rem;
+    border-top: 1px solid #e5e7eb;
+}
+
+.wordpress-preview-content p,
+.wordpress-preview-content ul,
+.wordpress-preview-content ol,
+.wordpress-preview-content pre,
+.wordpress-preview-content blockquote {
+    margin-bottom: 1.25rem;
+}
+
+.wordpress-preview-content ul,
+.wordpress-preview-content ol {
+    padding-left: 1.5rem;
+}
+
+.wordpress-preview-content li + li {
+    margin-top: 0.4rem;
+}
+
+.wordpress-preview-content a {
+    color: #0f62b5;
+}
+
+.wordpress-preview-content img {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    margin: 1.5rem auto;
+    border-radius: 0.5rem;
+}
+
+.wordpress-preview-content code {
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 0.95em;
+    background: #f8fafc;
+    padding: 0.1rem 0.35rem;
+    border-radius: 0.25rem;
+}
+
+.wordpress-preview-content pre {
+    overflow-x: auto;
+    background: #0f172a;
+    color: #e2e8f0;
+    padding: 1rem 1.25rem;
+    border-radius: 0.75rem;
+}
+
+.wordpress-preview-content pre code {
+    background: transparent;
+    color: inherit;
+    padding: 0;
+}
+
+.wordpress-preview-content blockquote {
+    margin-left: 0;
+    padding: 0.25rem 0 0.25rem 1rem;
+    border-left: 4px solid #d4a373;
+    color: #475569;
+}
+
+.wordpress-preview-content > :last-child {
+    margin-bottom: 0;
+}
+
+@media (max-width: 767.98px) {
+    .wordpress-preview-surface {
+        width: 100%;
+        padding: 0.75rem;
+    }
+
+    .wordpress-preview-content {
+        padding: 1.25rem;
+    }
+}
+
+@media (min-width: 992px) {
+    .tutorial-markdown-layout {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        align-items: start;
+    }
+
+    .tutorial-markdown-layout__preview {
+        position: sticky;
+        top: 1rem;
+    }
+}

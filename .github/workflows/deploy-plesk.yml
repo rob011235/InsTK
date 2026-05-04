@@ -1,28 +1,56 @@
-﻿name: Build and Deploy Blazor to Plesk
+name: Build and Deploy Blazor to Plesk
 
 on:
   push:
-    branches: ["main"]
+    branches: ["main", "qa"]
   workflow_dispatch: {}
 
 env:
-  # ===== Project identity =====
   APP_NAME: InsTK
   SERVER_PROJECT_DIR: InsTK.Server
   SERVER_PROJECT_FILE: InsTK.Server.csproj
-
-  # ===== Build configuration =====
-  DOTNET_VERSION: 8.0.x
+  DOTNET_VERSION: 10.0.x
   RUNTIME_ID: win-x64
   PUBLISH_DIR: ./publish
 
 jobs:
   build-and-deploy:
+    if: github.ref_name == 'main' || github.ref_name == 'qa'
     runs-on: ubuntu-latest
+    environment: ${{ github.ref_name == 'main' && 'production' || 'staging' }}
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Resolve deployment settings
+        run: |
+          if [ "${GITHUB_REF_NAME}" = "main" ]; then
+            echo "DEPLOY_DOMAIN=instk.net" >> "$GITHUB_ENV"
+            echo "DEPLOY_DIRECTORY=instk.net" >> "$GITHUB_ENV"
+            echo "ALLOWED_HOSTS=instk.net" >> "$GITHUB_ENV"
+            echo "ADMIN_EMAIL=${{ secrets.ADMIN_EMAIL }}" >> "$GITHUB_ENV"
+            echo "ADMIN_PASSWORD=${{ secrets.ADMIN_PASSWORD }}" >> "$GITHUB_ENV"
+            {
+              echo "SQL_CONNECTION<<EOF"
+              echo "${{ secrets.PROD_SQL_CONNECTION }}"
+              echo "EOF"
+            } >> "$GITHUB_ENV"
+          elif [ "${GITHUB_REF_NAME}" = "qa" ]; then
+            echo "DEPLOY_DOMAIN=staging.instk.net" >> "$GITHUB_ENV"
+            echo "DEPLOY_DIRECTORY=staging.instk.net" >> "$GITHUB_ENV"
+            echo "ALLOWED_HOSTS=staging.instk.net" >> "$GITHUB_ENV"
+            echo "ADMIN_EMAIL=${{ secrets.ADMIN_EMAIL }}" >> "$GITHUB_ENV"
+            echo "ADMIN_PASSWORD=${{ secrets.ADMIN_PASSWORD }}" >> "$GITHUB_ENV"
+            {
+              echo "SQL_CONNECTION<<EOF"
+              echo "${{ secrets.STAGING_SQL_CONNECTION }}"
+              echo "EOF"
+            } >> "$GITHUB_ENV"
+          else
+            echo "Unsupported branch '${GITHUB_REF_NAME}' for deployment." >&2
+            exit 1
+          fi
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
@@ -30,22 +58,14 @@ jobs:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: Restore dependencies
-        run: dotnet restore
+        run: dotnet restore ${{ env.SERVER_PROJECT_DIR }}/${{ env.SERVER_PROJECT_FILE }}
 
       - name: Create appsettings.Production.json
-        env:
-          PROD_SQL_CONNECTION: ${{ secrets.PROD_SQL_CONNECTION }}
-          ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
-          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
         run: |
           cat > ${{ env.SERVER_PROJECT_DIR }}/appsettings.Production.json <<EOF
           {
             "ConnectionStrings": {
-              "DefaultConnection": "${PROD_SQL_CONNECTION}"
-            },
-            "Admin": {
-              "Email": "${ADMIN_EMAIL}",
-              "Password": "${ADMIN_PASSWORD}"
+              "DefaultConnection": "${SQL_CONNECTION}"
             },
             "Logging": {
               "LogLevel": {
@@ -53,12 +73,16 @@ jobs:
                 "Microsoft.AspNetCore": "Warning"
               }
             },
-            "AllowedHosts": "*"
+            "Admin": {
+              "Email": "${ADMIN_EMAIL}",
+              "Password": "${ADMIN_PASSWORD}"
+            },
+            "AllowedHosts": "${ALLOWED_HOSTS}"
           }
           EOF
 
       - name: Build
-        run: dotnet build --configuration Release --no-restore
+        run: dotnet build ${{ env.SERVER_PROJECT_DIR }}/${{ env.SERVER_PROJECT_FILE }} --configuration Release --no-restore
 
       - name: Publish ${{ env.APP_NAME }} (self-contained)
         run: |
@@ -70,23 +94,26 @@ jobs:
             -p:PublishTrimmed=false \
             --output ${{ env.PUBLISH_DIR }}
 
-      - name: Verify web.config exists (IIS requirement)
+      - name: Verify web.config exists
         run: |
           test -f "${{ env.PUBLISH_DIR }}/web.config" \
-            && echo "web.config present for ${{ env.APP_NAME }} ✅" \
+            && echo "web.config present for ${{ env.APP_NAME }} on ${DEPLOY_DOMAIN} ✅" \
             || (echo "web.config missing ❌" && exit 1)
 
       - name: List published files
         run: ls -R ${{ env.PUBLISH_DIR }}
 
       - name: Deploy ${{ env.APP_NAME }} via FTPS to Plesk
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.6
         with:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          protocol: ftp
+          protocol: ftps
           port: 21
+          security: loose
           local-dir: ${{ env.PUBLISH_DIR }}/
-          server-dir: ${{ secrets.FTP_REMOTE_DIR }}/
-          dangerous-clean-slate: true
+          server-dir: ${{ env.DEPLOY_DIRECTORY }}/
+          timeout: 120000
+          log-level: verbose
+          dangerous-clean-slate: false

@@ -266,6 +266,17 @@ ServiceFabricBackup/
 *.ldf
 *.ndf
 
+# Sqlite files
+*.sqlite
+*.sqlite3
+*.db
+*.db3
+
+# SQLite runtime / journal files
+*.db-wal
+*.db-shm
+*.db-journal
+
 # Business Intelligence projects
 *.rdl.data
 *.bim.layout
@@ -361,3 +372,11 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+.dotnethome/
+
+# Repo-specific generated artifacts
+/build-verify/
+/BrightspaceProbeArtifacts/
+/migration-build.log
+/InsTK.Server/wwwroot/uploads/*
+!/InsTK.Server/wwwroot/uploads/.gitkeep

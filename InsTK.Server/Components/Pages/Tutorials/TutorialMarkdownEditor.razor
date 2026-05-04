@@ -1,0 +1,57 @@
+@using Blazorise
+
+<div class="mb-3">
+    <label class="form-label">@Label</label>
+
+    <div class="tutorial-markdown-workbench">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+            <span class="small text-muted">Use the toolbar image button for PNG, JPG, JPEG, or GIF files up to 2 MB.</span>
+        </div>
+
+        <div class="tutorial-markdown-editor">
+            <Markdown @ref="markdownEditor"
+                      Value="@CurrentValue"
+                      ValueChanged="OnMarkdownChangedAsync"
+                      UploadImage="true"
+                      ShowIcons="@ToolbarIconsToShow"
+                      HideIcons="@ToolbarIconsToHide"
+                      ImageUploadEndpoint="/tutorials/markdown-images"
+                      ImagePathAbsolute="true"
+                      ImageAccept="image/png,image/jpeg,image/gif"
+                      ImageMaxSize="@MaxImageBytes"
+                      MinHeight="@MinHeight"
+                      MaxUploadImageChunkSize="20480"
+                      Placeholder="@Placeholder" />
+        </div>
+    </div>
+</div>
+
+@code {
+    private const long MaxImageBytes = 2 * 1024 * 1024;
+    private static readonly string[] ToolbarIconsToShow = ["upload-image"];
+    private static readonly string[] ToolbarIconsToHide = ["image"];
+
+    [Parameter, EditorRequired]
+    public string Label { get; set; } = string.Empty;
+
+    [Parameter]
+    public string? Value { get; set; }
+
+    [Parameter, EditorRequired]
+    public EventCallback<string> ValueChanged { get; set; }
+
+    [Parameter]
+    public string Placeholder { get; set; } = string.Empty;
+
+    [Parameter]
+    public string MinHeight { get; set; } = "250px";
+
+    private Blazorise.Markdown.Markdown? markdownEditor;
+
+    private string CurrentValue => Value ?? string.Empty;
+
+    private async Task OnMarkdownChangedAsync(string value)
+    {
+        await ValueChanged.InvokeAsync(value ?? string.Empty);
+    }
+}
