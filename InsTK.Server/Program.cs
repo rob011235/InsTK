@@ -5,6 +5,7 @@ using InsTK.WebClient.Pages;
 using InsTK.Server.Components;
 using InsTK.Server.Components.Account;
 using InsTK.Server.Data;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -65,6 +66,9 @@ namespace InsTK.Server
                 {
                     options.SignIn.RequireConfirmedAccount = true;
                     options.Stores.SchemaVersion = IdentitySchemaVersions.Version3;
+                    options.Lockout.AllowedForNewUsers = true;
+                    options.Lockout.MaxFailedAccessAttempts = 5;
+                    options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
                 })
                 .AddRoles<IdentityRole>()
                 .AddEntityFrameworkStores<ApplicationDbContext>()
@@ -91,6 +95,8 @@ namespace InsTK.Server
             app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
             app.UseHttpsRedirection();
 
+            app.UseAuthentication();
+            app.UseAuthorization();
             app.UseAntiforgery();
             app.UseStaticFiles();
 
@@ -127,6 +133,7 @@ namespace InsTK.Server
 
                     return Results.Json(new { data = new { filePath = $"/uploads/{fileName}" } });
                 })
+                .RequireAuthorization(new AuthorizeAttribute { Roles = "Admin" })
                 .DisableAntiforgery();
 
             app.MapStaticAssets();
