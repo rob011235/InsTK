@@ -37,7 +37,11 @@ namespace InsTK.Server
                 .AddAuthenticationStateSerialization();
 
             builder.Services
-                .AddBlazorise(options => options.Immediate = true)
+                .AddBlazorise(options =>
+                {
+                    options.Immediate = true;
+                    options.ProductToken = builder.Configuration["Blazorise:LicenseKey"];
+                })
                 .AddBootstrap5Providers()
                 .AddFontAwesomeIcons();
 
