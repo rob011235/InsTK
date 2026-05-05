@@ -1,13 +1,13 @@
 @using InsTK.Shared.Models.Tutorials
 
-<EditForm Model="Model" OnValidSubmit="OnSaveRequested" FormName="tutorialAuthoringForm">
+<EditForm Model="Model" OnValidSubmit="HandleSaveAsync" FormName="tutorialAuthoringForm">
     <DataAnnotationsValidator />
     <ValidationSummary />
 
     <div class="mb-4">
         <button type="submit" class="btn btn-outline-primary me-2">Save</button>
 
-        <button type="button" class="btn btn-outline-dark me-2" @onclick="OnExportRequested">
+        <button type="button" class="btn btn-outline-dark me-2" @onclick="HandleExportAsync">
             Export
         </button>
 
@@ -35,9 +35,8 @@
         </div>
     </div>
 
-    <TutorialHtmlEditor Label="Tutorial Content" Value="@Model.ContentHtml"
-                        ValueChanged="OnContentHtmlChanged" MinHeight="520px"
-                        ValueExpression="() => Model.ContentHtml"
+    <TutorialHtmlEditor @ref="editor" Label="Tutorial Content" Value="@Model.ContentHtml"
+                        MinHeight="520px" ValueExpression="() => Model.ContentHtml"
                         Placeholder="Write the full tutorial here using headings, lists, links, images, and tables as needed." />
 
     <hr />
@@ -45,7 +44,7 @@
     <div class="mt-3 pb-4">
         <button type="submit" class="btn btn-outline-primary me-2">Save</button>
 
-        <button type="button" class="btn btn-outline-dark me-2" @onclick="OnExportRequested">
+        <button type="button" class="btn btn-outline-dark me-2" @onclick="HandleExportAsync">
             Export
         </button>
 
@@ -73,4 +72,29 @@
 
     [Parameter, EditorRequired]
     public EventCallback OnReturnToListRequested { get; set; }
+
+    private TutorialHtmlEditor? editor;
+
+    private async Task HandleSaveAsync()
+    {
+        await SyncEditorContentAsync();
+        await OnSaveRequested.InvokeAsync();
+    }
+
+    private async Task HandleExportAsync()
+    {
+        await SyncEditorContentAsync();
+        await OnExportRequested.InvokeAsync();
+    }
+
+    private async Task SyncEditorContentAsync()
+    {
+        if (editor is null)
+        {
+            return;
+        }
+
+        var contentHtml = await editor.GetContentHtmlAsync();
+        await OnContentHtmlChanged.InvokeAsync(contentHtml);
+    }
 }

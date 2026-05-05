@@ -1,38 +1,20 @@
 @using System.Linq.Expressions
-@using System.Net
-
-@inject IWebHostEnvironment HostEnvironment
-
 <div class="mb-3">
     <label class="form-label">@Label</label>
 
     <div class="tutorial-html-workbench">
-        <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
-            <span class="small text-muted">
-                Edit the tutorial body as HTML-rich content. Uploaded images are saved locally and inserted directly
-                into the editor.
-            </span>
-
-            <div class="d-flex flex-column align-items-stretch gap-2">
-                <InputFile OnChange="OnImageSelectedAsync" accept="image/png,image/jpeg,image/gif"
-                           class="form-control form-control-sm" />
-
-                @if (!string.IsNullOrWhiteSpace(uploadStatusMessage))
-                {
-                    <span class="small @(uploadHadError ? "text-danger" : "text-muted")">@uploadStatusMessage</span>
-                }
-            </div>
+        <div class="small text-muted mb-3">
+            Edit the tutorial body as HTML-rich content directly in the editor.
         </div>
 
         <div class="tutorial-html-layout">
             <div class="tutorial-html-layout__editor">
                 <div class="tutorial-html-editor__surface">
-                    <SfRichTextEditor @ref="editorRef" CssClass="tutorial-html-editor" Height="@MinHeight"
-                                      Placeholder="@Placeholder" SaveInterval="300" ShowCharCount="true" AutoSaveOnIdle="true"
+                    <SfRichTextEditor @key="editorRenderKey" @ref="editorRef" CssClass="tutorial-html-editor" Height="@MinHeight"
+                                      Placeholder="@Placeholder" ShowCharCount="true"
                                       EnableTabKey="true" EnableXhtml="true"
-                                      Value="@editorValue">
+                                      Value="@renderedValue">
                         <RichTextEditorToolbarSettings Items="@toolbarItems" />
-                        <RichTextEditorEvents ValueChange="OnEditorValueChanged" />
                         <RichTextEditorQuickToolbarSettings Text="@TextQuickToolbarItems" ShowOnRightClick="true"
                                                             Table="@TableQuickToolbarItems" />
                         <RichTextEditorSlashMenuSettings Enable="true" Items="@slashmenuItems" />
@@ -46,16 +28,6 @@
 </div>
 
 @code {
-    private const long MaxImageBytes = 2 * 1024 * 1024;
-
-    private static readonly HashSet<string> AllowedExtensions = new(StringComparer.OrdinalIgnoreCase)
-    {
-        ".png",
-        ".jpg",
-        ".jpeg",
-        ".gif"
-    };
-
     private static readonly List<ToolbarItemModel> toolbarItems =
     [
         new ToolbarItemModel() { Command = ToolbarCommand.Undo },
@@ -134,9 +106,9 @@
     ];
 
     private SfRichTextEditor? editorRef;
-    private string editorValue = string.Empty;
-    private string? uploadStatusMessage;
-    private bool uploadHadError;
+    private string renderedValue = string.Empty;
+    private bool hasInitializedValue;
+    private int editorRenderKey;
     private FieldIdentifier? fieldIdentifier;
 
     [Parameter, EditorRequired]
@@ -144,9 +116,6 @@
 
     [Parameter]
     public string? Value { get; set; }
-
-    [Parameter, EditorRequired]
-    public EventCallback<string> ValueChanged { get; set; }
 
     [Parameter]
     public Expression<Func<string?>>? ValueExpression { get; set; }
@@ -170,86 +139,30 @@
         }
 
         var normalizedValue = Value ?? string.Empty;
-        if (!string.Equals(editorValue, normalizedValue, StringComparison.Ordinal))
+
+        if (!hasInitializedValue)
         {
-            editorValue = normalizedValue;
+            renderedValue = normalizedValue;
+            hasInitializedValue = true;
+            return;
+        }
+
+        if (!string.Equals(renderedValue, normalizedValue, StringComparison.Ordinal))
+        {
+            renderedValue = normalizedValue;
+            editorRenderKey++;
         }
     }
 
-    private async Task OnEditorValueChanged(Syncfusion.Blazor.RichTextEditor.ChangeEventArgs args)
+    public async Task<string> GetContentHtmlAsync()
     {
-        var normalizedValue = args.Value ?? string.Empty;
-        if (string.Equals(editorValue, normalizedValue, StringComparison.Ordinal))
+        if (editorRef is null)
         {
-            return;
+            return renderedValue;
         }
 
-        editorValue = normalizedValue;
-        uploadStatusMessage = null;
-        uploadHadError = false;
-
-        await ValueChanged.InvokeAsync(editorValue);
-
-        if (fieldIdentifier is FieldIdentifier currentFieldIdentifier)
-        {
-            EditContext?.NotifyFieldChanged(currentFieldIdentifier);
-        }
-    }
-
-    private async Task OnImageSelectedAsync(InputFileChangeEventArgs args)
-    {
-        var file = args.File;
-        if (file is null)
-        {
-            return;
-        }
-
-        var extension = Path.GetExtension(file.Name ?? string.Empty);
-        if (!AllowedExtensions.Contains(extension))
-        {
-            uploadStatusMessage = "Only PNG, JPG, JPEG, and GIF images are allowed.";
-            uploadHadError = true;
-            return;
-        }
-
-        if (file.Size > MaxImageBytes)
-        {
-            uploadStatusMessage = "Image must be 2 MB or smaller.";
-            uploadHadError = true;
-            return;
-        }
-
-        var uploadsRoot = Path.Combine(HostEnvironment.WebRootPath, "uploads");
-        Directory.CreateDirectory(uploadsRoot);
-
-        var fileName = $"{Guid.NewGuid():N}{extension.ToLowerInvariant()}";
-        var physicalPath = Path.Combine(uploadsRoot, fileName);
-
-        await using (var targetStream = File.Create(physicalPath))
-        await using (var sourceStream = file.OpenReadStream(MaxImageBytes))
-        {
-            await sourceStream.CopyToAsync(targetStream);
-        }
-
-        var altText = WebUtility.HtmlEncode(Path.GetFileNameWithoutExtension(file.Name));
-        var imageHtml = $"<p><img src=\"/uploads/{fileName}\" alt=\"{altText}\" /></p>";
-        editorValue = string.IsNullOrWhiteSpace(editorValue)
-            ? imageHtml
-            : $"{editorValue}{Environment.NewLine}{imageHtml}";
-
-        uploadStatusMessage = $"Uploaded {file.Name} and inserted the image.";
-        uploadHadError = false;
-
-        if (editorRef != null)
-        {
-            await editorRef.RefreshUIAsync();
-        }
-
-        await ValueChanged.InvokeAsync(editorValue);
-
-        if (fieldIdentifier is FieldIdentifier currentFieldIdentifier)
-        {
-            EditContext?.NotifyFieldChanged(currentFieldIdentifier);
-        }
+        var normalizedValue = (await editorRef.GetXhtmlAsync()) ?? string.Empty;
+        renderedValue = normalizedValue;
+        return normalizedValue;
     }
 }
