@@ -122,7 +122,7 @@ jobs:
       - name: Deactivate site for deployment
         run: |
           REMOTE_DIR="${DEPLOY_DIRECTORY#/}"
-          curl --fail --silent --show-error --ftp-ssl --ssl-reqd \
+          curl --fail --silent --show-error --insecure --ftp-ssl --ssl-reqd \
             --user "${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}" \
             --upload-file "${{ env.PUBLISH_DIR }}/app_offline.htm" \
             "ftp://${{ secrets.FTP_SERVER }}/${REMOTE_DIR}/app_offline.htm"
@@ -148,7 +148,7 @@ jobs:
         if: ${{ always() }}
         run: |
           REMOTE_DIR="${DEPLOY_DIRECTORY#/}"
-          curl --fail --silent --show-error --ftp-ssl --ssl-reqd \
+          curl --fail --silent --show-error --insecure --ftp-ssl --ssl-reqd \
             --user "${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}" \
             --quote "DELE ${REMOTE_DIR}/app_offline.htm" \
             "ftp://${{ secrets.FTP_SERVER }}/"
