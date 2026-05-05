@@ -103,6 +103,33 @@ jobs:
       - name: List published files
         run: ls -R ${{ env.PUBLISH_DIR }}
 
+      - name: Create temporary app_offline.htm
+        run: |
+          cat > "${{ env.PUBLISH_DIR }}/app_offline.htm" <<EOF
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+            <meta charset="utf-8" />
+            <title>Temporarily Offline</title>
+          </head>
+          <body>
+            <h1>Temporarily Offline</h1>
+            <p>Deployment is in progress. Please try again shortly.</p>
+          </body>
+          </html>
+          EOF
+
+      - name: Deactivate site for deployment
+        run: |
+          REMOTE_DIR="${DEPLOY_DIRECTORY#/}"
+          curl --fail --silent --show-error --insecure --ftp-ssl --ssl-reqd \
+            --user "${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}" \
+            --upload-file "${{ env.PUBLISH_DIR }}/app_offline.htm" \
+            "ftp://${{ secrets.FTP_SERVER }}/${REMOTE_DIR}/app_offline.htm"
+
+      - name: Wait for IIS to unload the app
+        run: sleep 20
+
       - name: Deploy ${{ env.APP_NAME }} via FTPS to Plesk
         uses: SamKirkland/FTP-Deploy-Action@v4.3.6
         with:
@@ -114,6 +141,17 @@ jobs:
           security: loose
           local-dir: ${{ env.PUBLISH_DIR }}/
           server-dir: ${{ env.DEPLOY_DIRECTORY }}/
+          exclude: |
+            **/app_offline.htm
           timeout: 120000
           log-level: verbose
           dangerous-clean-slate: false
+
+      - name: Reactivate site after deployment
+        if: ${{ always() }}
+        run: |
+          REMOTE_DIR="${DEPLOY_DIRECTORY#/}"
+          curl --fail --silent --show-error --insecure --ftp-ssl --ssl-reqd \
+            --user "${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}" \
+            --quote "DELE ${REMOTE_DIR}/app_offline.htm" \
+            "ftp://${{ secrets.FTP_SERVER }}/"
