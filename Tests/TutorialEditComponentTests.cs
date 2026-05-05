@@ -1,6 +1,4 @@
-using AngleSharp.Dom;
 using Bunit;
-using BlazorBootstrap;
 using InsTK.Server.Components.Pages.Tutorials;
 using InsTK.Server.Data;
 using InsTK.Shared.Models.Tutorials;
@@ -19,7 +17,6 @@ public sealed class TutorialEditComponentTests : TestContext
     {
         JSInterop.Mode = JSRuntimeMode.Loose;
 
-        Services.AddBlazorBootstrap();
         Services.AddSyncfusionBlazor();
         Services.AddSingleton<IWebHostEnvironment>(new TestWebHostEnvironment());
     }
@@ -102,24 +99,48 @@ public sealed class TutorialEditComponentTests : TestContext
     }
 
     [Fact]
-    public void EditPage_LoadsExistingMarkdownIntoEditor()
+    public void EditPage_LoadsExistingHtmlIntoEditorAndPreview()
     {
         var tutorialId = Guid.NewGuid();
-        using var seedContext = CreateContext("existing-markdown");
+        using var seedContext = CreateContext("existing-html");
         seedContext.Tutorials.Add(new TutorialDefinition
         {
             Id = tutorialId,
             Title = "Existing Tutorial",
-            ContentMarkdown = "## Existing Step\n\nSaved content."
+            ContentHtml = "<h2>Existing Step</h2><p>Saved content.</p>"
         });
         seedContext.SaveChanges();
 
-        Services.AddSingleton<IDbContextFactory<ApplicationDbContext>>(CreateFactory("existing-markdown"));
+        Services.AddSingleton<IDbContextFactory<ApplicationDbContext>>(CreateFactory("existing-html"));
 
         var cut = RenderComponent<Edit>(parameters => parameters.Add(component => component.Id, tutorialId));
 
-        Assert.Contains("Existing Step", cut.Markup);
-        Assert.Contains("Saved content.", cut.Markup);
+        Assert.Contains("<h2>Existing Step</h2>", cut.Markup);
+        Assert.Contains("<p>Saved content.</p>", cut.Markup);
+    }
+
+    [Fact]
+    public async Task Save_PreservesStoredHtmlWithoutMarkdownConversion()
+    {
+        Services.AddSingleton<IDbContextFactory<ApplicationDbContext>>(CreateFactory("save-html"));
+
+        var cut = RenderComponent<Edit>();
+        cut.Find("#tutorial-title").Change("Created Tutorial");
+
+        var updateTask = (Task)cut.Instance.GetType()
+            .GetMethod("OnContentHtmlChanged", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!
+            .Invoke(cut.Instance, ["<h2>Updated</h2><p><strong>Saved</strong> content.</p>"])!;
+        await updateTask;
+
+        var saveTask = (Task)cut.Instance.GetType()
+            .GetMethod("Save", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!
+            .Invoke(cut.Instance, [])!;
+        await saveTask;
+
+        using var verifyContext = CreateContext("save-html");
+        var savedTutorial = verifyContext.Tutorials.Single();
+        Assert.Equal("Created Tutorial", savedTutorial.Title);
+        Assert.Equal("<h2>Updated</h2><p><strong>Saved</strong> content.</p>", savedTutorial.ContentHtml);
     }
 
     private static IDbContextFactory<ApplicationDbContext> CreateFactory(string databaseName = "edit-tests")

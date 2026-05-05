@@ -1,13 +1,13 @@
 using System.Net;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Xml;
 using System.Xml.Linq;
 using InsTK.Shared.Models.Tutorials;
-using Markdig;
 
 namespace InsTK.Server.Components.Pages.Tutorials
 {
-    internal static class TutorialContentFormatter
+    internal static partial class TutorialContentFormatter
     {
         private static readonly HashSet<string> AllowedElements =
         [
@@ -36,6 +36,7 @@ namespace InsTK.Server.Components.Pages.Tutorials
             "th",
             "thead",
             "tr",
+            "u",
             "ul"
         ];
 
@@ -53,14 +54,40 @@ namespace InsTK.Server.Components.Pages.Tutorials
             "textarea"
         ];
 
-        private static readonly MarkdownPipeline MarkdownPipeline = new MarkdownPipelineBuilder()
-            .UseAdvancedExtensions()
-            .Build();
+        [GeneratedRegex(@"<(?:[A-Za-z][A-Za-z0-9]*)(?:\s[^>]*)?>", RegexOptions.Compiled)]
+        private static partial Regex HtmlTagRegex();
 
-        public static string RenderMarkdown(string? markdown)
+        [GeneratedRegex(@"(?<url>https?://[^\s<]+)", RegexOptions.Compiled | RegexOptions.IgnoreCase)]
+        private static partial Regex UrlRegex();
+
+        public static string SanitizeHtmlFragment(string? html)
         {
-            var html = Markdown.ToHtml(markdown ?? string.Empty, MarkdownPipeline);
-            return SanitizeHtml(html).Trim();
+            if (string.IsNullOrWhiteSpace(html))
+            {
+                return string.Empty;
+            }
+
+            try
+            {
+                var root = XElement.Parse($"<root>{html}</root>", LoadOptions.PreserveWhitespace);
+                var output = new StringBuilder();
+
+                foreach (var node in root.Nodes())
+                {
+                    AppendSanitizedNode(output, node);
+                }
+
+                return output.ToString().Trim();
+            }
+            catch (XmlException)
+            {
+                return FormatPlainTextAsHtml(html);
+            }
+        }
+
+        public static bool LooksLikeHtmlFragment(string? value)
+        {
+            return !string.IsNullOrWhiteSpace(value) && HtmlTagRegex().IsMatch(value);
         }
 
         public static string BuildWordPressHtml(TutorialDefinition tutorial)
@@ -82,58 +109,12 @@ namespace InsTK.Server.Components.Pages.Tutorials
                 html.AppendLine("</div>");
             }
 
-            if (!string.IsNullOrWhiteSpace(tutorial.ContentMarkdown))
+            if (!string.IsNullOrWhiteSpace(tutorial.ContentHtml))
             {
-                html.AppendLine(RenderMarkdown(tutorial.ContentMarkdown));
+                html.AppendLine(SanitizeHtmlFragment(tutorial.ContentHtml));
             }
 
             return html.ToString().Trim();
-        }
-
-        public static string BuildWordPressMarkdown(TutorialDefinition tutorial)
-        {
-            var markdown = new StringBuilder();
-
-            markdown.AppendLine($"# {tutorial.Title}");
-            markdown.AppendLine();
-
-            if (!string.IsNullOrWhiteSpace(tutorial.Summary))
-            {
-                markdown.AppendLine(tutorial.Summary.Trim());
-                markdown.AppendLine();
-            }
-
-            var watchUrl = BuildYouTubeWatchUrl(tutorial.YouTubeUrl);
-            if (watchUrl != null)
-            {
-                markdown.AppendLine(watchUrl);
-                markdown.AppendLine();
-            }
-
-            if (!string.IsNullOrWhiteSpace(tutorial.ContentMarkdown))
-            {
-                markdown.AppendLine(tutorial.ContentMarkdown.Trim());
-                markdown.AppendLine();
-            }
-
-            return markdown.ToString().Trim();
-        }
-
-        private static string Encode(string? value)
-        {
-            return WebUtility.HtmlEncode(value ?? string.Empty);
-        }
-
-        private static string? BuildYouTubeEmbedUrl(string? youtubeUrl)
-        {
-            var videoId = TryExtractYouTubeVideoId(youtubeUrl);
-            return videoId == null ? null : $"https://www.youtube.com/embed/{videoId}";
-        }
-
-        private static string? BuildYouTubeWatchUrl(string? youtubeUrl)
-        {
-            var videoId = TryExtractYouTubeVideoId(youtubeUrl);
-            return videoId == null ? null : $"https://www.youtube.com/watch?v={videoId}";
         }
 
         public static string BuildBrightspaceAssignmentHtml(TutorialDefinition tutorial)
@@ -150,10 +131,10 @@ namespace InsTK.Server.Components.Pages.Tutorials
                 ? TutorialDefinition.DefaultBrightspaceAssignmentInstructions
                 : tutorial.BrightspaceAssignmentInstructions;
 
-            assignmentInstructions = assignmentInstructions.Replace("{{url}}", BuildTutorialUrl(tutorial));
+            assignmentInstructions = assignmentInstructions.Replace("{{url}}", BuildTutorialUrl(tutorial), StringComparison.Ordinal);
 
             html.AppendLine("<h2>Assignment Overview</h2>");
-            html.AppendLine(RenderMarkdown(assignmentInstructions));
+            html.AppendLine(FormatPlainTextAsHtml(assignmentInstructions));
 
             html.AppendLine("<h2>Submission Requirements</h2>");
 
@@ -161,7 +142,7 @@ namespace InsTK.Server.Components.Pages.Tutorials
                 ? TutorialDefinition.DefaultBrightspaceSubmissionInstructions
                 : tutorial.BrightspaceSubmissionInstructions;
 
-            html.AppendLine(RenderMarkdown(submissionInstructions));
+            html.AppendLine(FormatPlainTextAsHtml(submissionInstructions));
 
             html.AppendLine("<h2>Points</h2>");
 
@@ -172,6 +153,69 @@ namespace InsTK.Server.Components.Pages.Tutorials
             html.AppendLine($"<p>This assignment is worth {points} points.</p>");
 
             return html.ToString().Trim();
+        }
+
+        public static string FormatPlainTextAsHtml(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return string.Empty;
+            }
+
+            var normalized = value.Replace("\r\n", "\n", StringComparison.Ordinal).Trim();
+            var paragraphs = normalized.Split("\n\n", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            var output = new StringBuilder();
+
+            foreach (var paragraph in paragraphs)
+            {
+                var encodedLines = paragraph.Split('\n', StringSplitOptions.TrimEntries)
+                    .Select(Encode)
+                    .ToArray();
+
+                var encodedParagraph = string.Join("<br />", encodedLines);
+                var linkedParagraph = UrlRegex().Replace(
+                    encodedParagraph,
+                    match => BuildAnchorTag(match.Groups["url"].Value));
+
+                output.Append("<p>").Append(linkedParagraph).AppendLine("</p>");
+            }
+
+            return output.ToString().Trim();
+        }
+
+        internal static string BuildLegacyHtmlFromMarkdown(string? markdown)
+        {
+            return LegacyMarkdownToHtmlConverter.Convert(markdown);
+        }
+
+        private static string Encode(string? value)
+        {
+            return WebUtility.HtmlEncode(value ?? string.Empty);
+        }
+
+        private static string? BuildYouTubeEmbedUrl(string? youtubeUrl)
+        {
+            var videoId = TryExtractYouTubeVideoId(youtubeUrl);
+            return videoId == null ? null : $"https://www.youtube.com/embed/{videoId}";
+        }
+
+        private static string BuildAnchorTag(string url)
+        {
+            if (!TrySanitizeUrl(url, out var sanitizedUrl))
+            {
+                return Encode(url);
+            }
+
+            var builder = new StringBuilder();
+            builder.Append("<a href=\"").Append(EncodeAttribute(sanitizedUrl)).Append('"');
+
+            if (ShouldOpenInNewTab(sanitizedUrl))
+            {
+                builder.Append(" target=\"_blank\"");
+            }
+
+            builder.Append('>').Append(Encode(sanitizedUrl)).Append("</a>");
+            return builder.ToString();
         }
 
         private static string BuildDefaultAssignmentTitle(string? tutorialTitle)
@@ -308,31 +352,6 @@ namespace InsTK.Server.Components.Pages.Tutorials
             return null;
         }
 
-        private static string SanitizeHtml(string html)
-        {
-            if (string.IsNullOrWhiteSpace(html))
-            {
-                return string.Empty;
-            }
-
-            try
-            {
-                var root = XElement.Parse($"<root>{html}</root>", LoadOptions.PreserveWhitespace);
-                var output = new StringBuilder();
-
-                foreach (var node in root.Nodes())
-                {
-                    AppendSanitizedNode(output, node);
-                }
-
-                return output.ToString();
-            }
-            catch (XmlException)
-            {
-                return WebUtility.HtmlEncode(html);
-            }
-        }
-
         private static void AppendSanitizedNode(StringBuilder output, XNode node)
         {
             switch (node)
@@ -422,7 +441,7 @@ namespace InsTK.Server.Components.Pages.Tutorials
             }
         }
 
-        private static bool TrySanitizeUrl(string? value, out string sanitized)
+        internal static bool TrySanitizeUrl(string? value, out string sanitized)
         {
             sanitized = string.Empty;
 

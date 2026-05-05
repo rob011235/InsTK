@@ -35,10 +35,10 @@
         </div>
     </div>
 
-    <TutorialMarkdownEditor Label="Tutorial Content Markdown" Value="@Model.ContentMarkdown"
-                            ValueChanged="OnContentMarkdownChanged" MinHeight="520px"
-                            ValueExpression="() => Model.ContentMarkdown"
-                            Placeholder="Write the full tutorial here. Use markdown headings like ## Step 1 if you want step structure." />
+    <TutorialHtmlEditor Label="Tutorial Content" Value="@Model.ContentHtml"
+                        ValueChanged="OnContentHtmlChanged" MinHeight="520px"
+                        ValueExpression="() => Model.ContentHtml"
+                        Placeholder="Write the full tutorial here using headings, lists, links, images, and tables as needed." />
 
     <hr />
 
@@ -63,7 +63,7 @@
     public EventCallback<string> OnTutorialTitleChanged { get; set; }
 
     [Parameter, EditorRequired]
-    public EventCallback<string> OnContentMarkdownChanged { get; set; }
+    public EventCallback<string> OnContentHtmlChanged { get; set; }
 
     [Parameter, EditorRequired]
     public EventCallback OnSaveRequested { get; set; }

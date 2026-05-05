@@ -47,7 +47,7 @@ else
                 {
                     <TutorialAuthoringTab Model="model"
                                           OnTutorialTitleChanged="OnTutorialTitleChanged"
-                                          OnContentMarkdownChanged="OnContentMarkdownChanged"
+                                          OnContentHtmlChanged="OnContentHtmlChanged"
                                           OnSaveRequested="Save"
                                           OnExportRequested="OpenTutorialExportModal"
                                           OnReturnToListRequested="ReturnToList" />
@@ -100,7 +100,8 @@ else
         {
             model = new TutorialDefinition
             {
-                CreatedUtc = DateTime.UtcNow
+                CreatedUtc = DateTime.UtcNow,
+                ContentHtml = TutorialDefinition.DefaultContentHtml
             };
         }
         else
@@ -144,11 +145,11 @@ else
         return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
     }
 
-    private Task OnContentMarkdownChanged(string value)
+    private Task OnContentHtmlChanged(string value)
     {
         if (model != null)
         {
-            model.ContentMarkdown = value;
+            model.ContentHtml = value;
         }
 
         return Task.CompletedTask;
@@ -185,7 +186,7 @@ else
                     .SetProperty(t => t.Summary, model.Summary)
                     .SetProperty(t => t.Technology, model.Technology)
                     .SetProperty(t => t.YouTubeUrl, model.YouTubeUrl)
-                    .SetProperty(t => t.ContentMarkdown, model.ContentMarkdown)
+                    .SetProperty(t => t.ContentHtml, model.ContentHtml)
                     .SetProperty(t => t.RepoUrl, model.RepoUrl)
                     .SetProperty(t => t.BranchName, model.BranchName)
                     .SetProperty(t => t.ReferenceSubPath, model.ReferenceSubPath)
@@ -223,8 +224,7 @@ else
         var slug = BuildTutorialFileSlug(draft.Title);
         exportModalSections =
         [
-            new TutorialExportSection("WordPress HTML", TutorialContentFormatter.BuildWordPressHtml(draft), "text/html", $"{slug}.html", 320),
-            new TutorialExportSection("WordPress Markdown", TutorialContentFormatter.BuildWordPressMarkdown(draft), "text/markdown", $"{slug}.md", 320)
+            new TutorialExportSection("WordPress HTML", TutorialContentFormatter.BuildWordPressHtml(draft), "text/html", $"{slug}.html", 320)
         ];
     }
 
@@ -322,7 +322,7 @@ else
             Summary = NormalizeOptional(model.Summary),
             Technology = NormalizeOptional(model.Technology),
             YouTubeUrl = NormalizeOptional(model.YouTubeUrl),
-            ContentMarkdown = NormalizeOptional(model.ContentMarkdown),
+            ContentHtml = NormalizeOptional(model.ContentHtml),
             RepoUrl = NormalizeOptional(model.RepoUrl),
             BranchName = NormalizeOptional(model.BranchName),
             ReferenceSubPath = NormalizeOptional(model.ReferenceSubPath),
@@ -349,7 +349,7 @@ else
         model.Summary = draft.Summary;
         model.Technology = draft.Technology;
         model.YouTubeUrl = draft.YouTubeUrl;
-        model.ContentMarkdown = draft.ContentMarkdown;
+        model.ContentHtml = draft.ContentHtml;
         model.RepoUrl = draft.RepoUrl;
         model.BranchName = draft.BranchName;
         model.ReferenceSubPath = draft.ReferenceSubPath;

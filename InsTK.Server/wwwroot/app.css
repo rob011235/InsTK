@@ -59,43 +59,25 @@ h1:focus {
     text-align: start;
 }
 
-.tutorial-markdown-workbench {
+.tutorial-html-workbench {
     border: 1px solid var(--bs-border-color-translucent);
     border-radius: 0.75rem;
     padding: 1rem;
     background: linear-gradient(180deg, rgba(248, 249, 250, 0.7), rgba(255, 255, 255, 0.95));
 }
 
-.tutorial-markdown-editor__surface {
+.tutorial-html-editor__surface {
     min-height: 0;
+    width: 100%;
 }
 
-.tutorial-markdown-editor__surface .e-richtexteditor {
+.tutorial-html-editor__surface .e-richtexteditor {
     border-radius: 0.75rem;
     overflow: hidden;
+    width: 100%;
 }
 
-.tutorial-markdown-editor__surface .e-rte-content {
-    font-family: Consolas, "Courier New", monospace;
-}
-
-.tutorial-markdown-preview {
-    border: 1px solid var(--bs-border-color);
-    border-radius: 0.75rem;
-    background: #fff;
-    min-height: 250px;
-    overflow: hidden;
-}
-
-.tutorial-markdown-preview__body {
-    padding: 1rem;
-}
-
-.tutorial-markdown-preview__body > :last-child {
-    margin-bottom: 0;
-}
-
-.tutorial-markdown-hidden-input {
+.tutorial-html-hidden-input {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -104,30 +86,13 @@ h1:focus {
     white-space: nowrap;
 }
 
-.tutorial-markdown-layout {
-    display: grid;
-    gap: 1rem;
+.tutorial-html-layout {
+    width: 100%;
 }
 
-@media (min-width: 992px) {
-    .tutorial-markdown-layout {
-        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-        align-items: start;
-    }
-}
-
-.tutorial-markdown-layout__editor,
-.tutorial-markdown-layout__preview {
+.tutorial-html-layout__editor {
     min-width: 0;
-}
-
-.tutorial-markdown-preview .table:last-child,
-.tutorial-markdown-preview p:last-child,
-.tutorial-markdown-preview ul:last-child,
-.tutorial-markdown-preview ol:last-child,
-.tutorial-markdown-preview pre:last-child,
-.tutorial-markdown-preview blockquote:last-child {
-    margin-bottom: 0;
+    width: 100%;
 }
 
 .wordpress-preview-shell {
@@ -253,14 +218,3 @@ h1:focus {
     }
 }
 
-@media (min-width: 992px) {
-    .tutorial-markdown-layout {
-        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-        align-items: start;
-    }
-
-    .tutorial-markdown-layout__preview {
-        position: sticky;
-        top: 1rem;
-    }
-}

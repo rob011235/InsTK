@@ -1,7 +1,7 @@
-using BlazorBootstrap;
 using InsTK.WebClient.Pages;
 using InsTK.Server.Components;
 using InsTK.Server.Components.Account;
+using InsTK.Server.Components.Pages.Tutorials;
 using InsTK.Server.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components.Authorization;
@@ -15,16 +15,6 @@ namespace InsTK.Server
 {
     public class Program
     {
-        private const long MaxMarkdownImageBytes = 2 * 1024 * 1024;
-
-        private static readonly HashSet<string> AllowedMarkdownImageExtensions = new(StringComparer.OrdinalIgnoreCase)
-        {
-            ".png",
-            ".jpg",
-            ".jpeg",
-            ".gif"
-        };
-
         public static async Task Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
@@ -39,7 +29,6 @@ namespace InsTK.Server
                 .AddInteractiveWebAssemblyComponents()
                 .AddAuthenticationStateSerialization();
 
-            builder.Services.AddBlazorBootstrap();
             builder.Services.AddSyncfusionBlazor();
 
             builder.Services.AddCascadingAuthenticationState();
@@ -101,42 +90,6 @@ namespace InsTK.Server
             app.UseAntiforgery();
             app.UseStaticFiles();
 
-            app.MapPost("/tutorials/markdown-images", async (HttpRequest request, IWebHostEnvironment environment) =>
-                {
-                    var form = await request.ReadFormAsync();
-                    var image = form.Files["image"];
-
-                    if (image is null)
-                    {
-                        return Results.BadRequest(new { error = "Select an image to upload." });
-                    }
-
-                    var extension = Path.GetExtension(image.FileName ?? string.Empty);
-                    if (!AllowedMarkdownImageExtensions.Contains(extension))
-                    {
-                        return Results.BadRequest(new { error = "Only PNG, JPG, JPEG, and GIF images are allowed." });
-                    }
-
-                    if (image.Length > MaxMarkdownImageBytes)
-                    {
-                        return Results.BadRequest(new { error = "Image must be 2 MB or smaller." });
-                    }
-
-                    var uploadsRoot = Path.Combine(environment.WebRootPath, "uploads");
-                    Directory.CreateDirectory(uploadsRoot);
-
-                    var fileName = $"{Guid.NewGuid():N}{extension.ToLowerInvariant()}";
-                    var physicalPath = Path.Combine(uploadsRoot, fileName);
-
-                    await using var targetStream = File.Create(physicalPath);
-                    await using var sourceStream = image.OpenReadStream();
-                    await sourceStream.CopyToAsync(targetStream);
-
-                    return Results.Json(new { data = new { filePath = $"/uploads/{fileName}" } });
-                })
-                .RequireAuthorization(new AuthorizeAttribute { Roles = "Admin" })
-                .DisableAntiforgery();
-
             app.MapStaticAssets();
             app.MapRazorComponents<App>()
                 .AddInteractiveServerRenderMode()
@@ -147,6 +100,7 @@ namespace InsTK.Server
             app.MapAdditionalIdentityEndpoints();
 
             RunMigrations(app);
+            await UpgradeLegacyTutorialContentAsync(app);
 
             await AddRolesAsync(app);
             await AddAdminUser(app);
@@ -178,6 +132,34 @@ namespace InsTK.Server
             var factory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<ApplicationDbContext>>();
             using var db = factory.CreateDbContext();
             db.Database.Migrate();
+        }
+
+        private static async Task UpgradeLegacyTutorialContentAsync(WebApplication app)
+        {
+            using var scope = app.Services.CreateScope();
+            var factory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<ApplicationDbContext>>();
+            await using var db = await factory.CreateDbContextAsync();
+
+            var tutorials = await db.Tutorials
+                .Where(t => !string.IsNullOrWhiteSpace(t.ContentHtml))
+                .ToListAsync();
+
+            var changed = false;
+            foreach (var tutorial in tutorials)
+            {
+                if (TutorialContentFormatter.LooksLikeHtmlFragment(tutorial.ContentHtml))
+                {
+                    continue;
+                }
+
+                tutorial.ContentHtml = TutorialContentFormatter.BuildLegacyHtmlFromMarkdown(tutorial.ContentHtml);
+                changed = true;
+            }
+
+            if (changed)
+            {
+                await db.SaveChangesAsync();
+            }
         }
 
         /// <summary>

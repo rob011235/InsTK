@@ -7,13 +7,13 @@ namespace Tests;
 public sealed class TutorialContentFormatterTests
 {
     [Fact]
-    public void BuildWordPressHtml_UsesContentMarkdown()
+    public void BuildWordPressHtml_UsesStoredContentHtml()
     {
         var tutorial = new TutorialDefinition
         {
             Title = "Sample Tutorial",
             Technology = "ASP.NET Core",
-            ContentMarkdown = "## Step 1\n\nDo the thing."
+            ContentHtml = "<h2>Step 1</h2><p>Do the thing.</p>"
         };
 
         var html = TutorialContentFormatter.BuildWordPressHtml(tutorial);
@@ -31,7 +31,7 @@ public sealed class TutorialContentFormatterTests
             Title = "Sample Tutorial",
             Summary = "Learn the workflow.",
             YouTubeUrl = "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-            ContentMarkdown = "## Step 1\n\nDo the thing."
+            ContentHtml = "<h2>Step 1</h2><p>Do the thing.</p>"
         };
 
         var html = TutorialContentFormatter.BuildWordPressHtml(tutorial);
@@ -42,39 +42,6 @@ public sealed class TutorialContentFormatterTests
         Assert.True(summaryIndex >= 0);
         Assert.True(iframeIndex > summaryIndex);
         Assert.True(contentIndex > iframeIndex);
-    }
-
-    [Fact]
-    public void BuildWordPressMarkdown_UsesContentMarkdown()
-    {
-        var tutorial = new TutorialDefinition
-        {
-            Title = "Sample Tutorial",
-            Technology = "ASP.NET Core",
-            ContentMarkdown = "## Step 1\n\nDo the thing."
-        };
-
-        var markdown = TutorialContentFormatter.BuildWordPressMarkdown(tutorial);
-
-        Assert.Contains("## Step 1", markdown);
-        Assert.Contains("Do the thing.", markdown);
-        Assert.DoesNotContain("Technology:", markdown);
-    }
-
-    [Fact]
-    public void BuildWordPressMarkdown_NormalizesShortYouTubeUrlToWatchUrl()
-    {
-        var tutorial = new TutorialDefinition
-        {
-            Title = "Sample Tutorial",
-            Summary = "Learn the workflow.",
-            YouTubeUrl = "https://youtu.be/dQw4w9WgXcQ",
-            ContentMarkdown = "## Step 1\n\nDo the thing."
-        };
-
-        var markdown = TutorialContentFormatter.BuildWordPressMarkdown(tutorial);
-
-        Assert.Contains("https://www.youtube.com/watch?v=dQw4w9WgXcQ", markdown);
     }
 
     [Fact]
@@ -92,21 +59,19 @@ public sealed class TutorialContentFormatterTests
     }
 
     [Fact]
-    public void BuildWordPressExports_SkipInvalidYouTubeUrl()
+    public void BuildWordPressHtml_SkipsInvalidYouTubeUrl()
     {
         var tutorial = new TutorialDefinition
         {
             Title = "Sample Tutorial",
             Summary = "Learn the workflow.",
             YouTubeUrl = "https://example.com/not-youtube",
-            ContentMarkdown = "## Step 1\n\nDo the thing."
+            ContentHtml = "<h2>Step 1</h2><p>Do the thing.</p>"
         };
 
         var html = TutorialContentFormatter.BuildWordPressHtml(tutorial);
-        var markdown = TutorialContentFormatter.BuildWordPressMarkdown(tutorial);
 
         Assert.DoesNotContain("youtube.com/embed", html, StringComparison.OrdinalIgnoreCase);
-        Assert.DoesNotContain("youtube.com/watch", markdown, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -115,7 +80,7 @@ public sealed class TutorialContentFormatterTests
         var tutorial = new TutorialDefinition
         {
             Title = "Sample Tutorial",
-            ContentMarkdown = "This should never appear in Brightspace export.",
+            ContentHtml = "<p>This should never appear in Brightspace export.</p>",
             BrightspaceAssignmentInstructions = "Read this assignment carefully.",
             BrightspaceSubmissionInstructions = "Submit your repository URL.",
             BrightspacePoints = 75
@@ -159,35 +124,50 @@ public sealed class TutorialContentFormatterTests
     }
 
     [Fact]
-    public void RenderMarkdown_StripsUnsafeScriptAndEventHandlerMarkup()
+    public void SanitizeHtmlFragment_StripsUnsafeScriptAndEventHandlerMarkup()
     {
-        const string markdown = """
+        const string html = """
         <script>alert('x')</script>
         <p onclick="alert('x')">Safe text</p>
         """;
 
-        var html = TutorialContentFormatter.RenderMarkdown(markdown);
+        var sanitized = TutorialContentFormatter.SanitizeHtmlFragment(html);
 
-        Assert.DoesNotContain("<script", html, StringComparison.OrdinalIgnoreCase);
-        Assert.DoesNotContain("onclick", html, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("<p>Safe text</p>", html);
+        Assert.DoesNotContain("<script", sanitized, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("onclick", sanitized, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("<p>Safe text</p>", sanitized);
     }
 
     [Fact]
-    public void RenderMarkdown_StripsJavascriptUrlsButPreservesSafeLinksAndImages()
+    public void SanitizeHtmlFragment_StripsJavascriptUrlsButPreservesSafeLinksAndImages()
     {
-        const string markdown = """
-        [Good](https://example.com/docs)
+        const string html = """
+        <a href="https://example.com/docs">Good</a>
         <a href="javascript:alert('x')">Bad</a>
         <img src="/uploads/example.png" alt="sample" onerror="alert('x')" />
         """;
 
-        var html = TutorialContentFormatter.RenderMarkdown(markdown);
+        var sanitized = TutorialContentFormatter.SanitizeHtmlFragment(html);
 
-        Assert.Contains("href=\"https://example.com/docs\"", html);
-        Assert.Contains("target=\"_blank\"", html);
-        Assert.DoesNotContain("javascript:alert", html, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("src=\"/uploads/example.png\"", html);
-        Assert.DoesNotContain("onerror", html, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("href=\"https://example.com/docs\"", sanitized);
+        Assert.Contains("target=\"_blank\"", sanitized);
+        Assert.DoesNotContain("javascript:alert", sanitized, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("src=\"/uploads/example.png\"", sanitized);
+        Assert.DoesNotContain("onerror", sanitized, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void BuildLegacyHtmlFromMarkdown_ConvertsExistingMarkdownForMigration()
+    {
+        const string markdown = """
+        ## Step 1
+
+        Do the thing.
+        """;
+
+        var html = TutorialContentFormatter.BuildLegacyHtmlFromMarkdown(markdown);
+
+        Assert.Contains("<h2>Step 1</h2>", html);
+        Assert.Contains("<p>Do the thing.</p>", html);
     }
 }

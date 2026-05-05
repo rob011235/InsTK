@@ -108,7 +108,7 @@ namespace InsTK.Server.Migrations
                     b.Property<string>("BrightspaceSubmissionInstructions")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("ContentMarkdown")
+                    b.Property<string>("ContentHtml")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("CreatedUtc")

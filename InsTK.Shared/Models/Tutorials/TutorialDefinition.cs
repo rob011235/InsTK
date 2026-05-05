@@ -4,6 +4,16 @@ namespace InsTK.Shared.Models.Tutorials
 {
     public class TutorialDefinition
     {
+        public const string DefaultContentHtml = """
+        <h2>Overview</h2>
+        <p>Write the tutorial content here.</p>
+        <h2>Steps</h2>
+        <ol>
+          <li>First step.</li>
+          <li>Second step.</li>
+        </ol>
+        """;
+
         public const string DefaultBrightspaceSubmissionInstructions = """
         Submit the URL to your GitHub repository in the Brightspace submission comments.
 
@@ -44,7 +54,7 @@ namespace InsTK.Shared.Models.Tutorials
         [Url]
         public string? YouTubeUrl { get; set; }
 
-        public string? ContentMarkdown { get; set; }
+        public string? ContentHtml { get; set; } = DefaultContentHtml;
 
         [Url]
         public string? RepoUrl { get; set; }
