@@ -104,6 +104,7 @@ jobs:
         run: ls -R ${{ env.PUBLISH_DIR }}
 
       - name: Create temporary app_offline.htm
+        if: ${{ github.ref_name == 'main' }}
         run: |
           cat > "${{ env.PUBLISH_DIR }}/app_offline.htm" <<EOF
           <!DOCTYPE html>
@@ -120,6 +121,7 @@ jobs:
           EOF
 
       - name: Deactivate site for deployment
+        if: ${{ github.ref_name == 'main' }}
         run: |
           REMOTE_DIR="${DEPLOY_DIRECTORY#/}"
           curl --fail --silent --show-error --insecure --ftp-ssl --ssl-reqd \
@@ -128,6 +130,7 @@ jobs:
             "ftp://${{ secrets.FTP_SERVER }}/${REMOTE_DIR}/app_offline.htm"
 
       - name: Wait for IIS to unload the app
+        if: ${{ github.ref_name == 'main' }}
         run: sleep 20
 
       - name: Deploy ${{ env.APP_NAME }} via FTPS to Plesk
@@ -148,7 +151,7 @@ jobs:
           dangerous-clean-slate: false
 
       - name: Reactivate site after deployment
-        if: ${{ always() }}
+        if: ${{ always() && github.ref_name == 'main' }}
         run: |
           REMOTE_DIR="${DEPLOY_DIRECTORY#/}"
           curl --fail --silent --show-error --insecure --ftp-ssl --ssl-reqd \
