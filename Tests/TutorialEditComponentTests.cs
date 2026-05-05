@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
+using Syncfusion.Blazor;
 using Xunit;
 
 namespace Tests;
@@ -19,6 +20,7 @@ public sealed class TutorialEditComponentTests : TestContext
         JSInterop.Mode = JSRuntimeMode.Loose;
 
         Services.AddBlazorBootstrap();
+        Services.AddSyncfusionBlazor();
         Services.AddSingleton<IWebHostEnvironment>(new TestWebHostEnvironment());
     }
 
@@ -29,10 +31,11 @@ public sealed class TutorialEditComponentTests : TestContext
 
         var cut = RenderComponent<Edit>();
 
-        FindInputByLabel(cut, "Title").Change("Routing Basics");
+        cut.Find("#tutorial-title").Change("Routing Basics");
         cut.FindAll("button").Single(button => button.TextContent.Contains("Brightspace Assignment", StringComparison.Ordinal)).Click();
+        cut.WaitForAssertion(() => Assert.Contains("Assignment Title", cut.Markup));
 
-        var assignmentTitle = FindInputByLabel(cut, "Assignment Title");
+        var assignmentTitle = cut.Find("#assignment-title");
         Assert.Equal("Tutorial - Routing Basics", assignmentTitle.GetAttribute("value"));
     }
 
@@ -55,10 +58,11 @@ public sealed class TutorialEditComponentTests : TestContext
 
         var cut = RenderComponent<Edit>(parameters => parameters.Add(component => component.Id, tutorialId));
 
-        FindInputByLabel(cut, "Title").Change("Updated Tutorial Title");
+        cut.Find("#tutorial-title").Change("Updated Tutorial Title");
         cut.FindAll("button").Single(button => button.TextContent.Contains("Brightspace Assignment", StringComparison.Ordinal)).Click();
+        cut.WaitForAssertion(() => Assert.Contains("Assignment Title", cut.Markup));
 
-        var assignmentTitle = FindInputByLabel(cut, "Assignment Title");
+        var assignmentTitle = cut.Find("#assignment-title");
         Assert.Equal("Custom Assignment Name", assignmentTitle.GetAttribute("value"));
     }
 
@@ -69,8 +73,9 @@ public sealed class TutorialEditComponentTests : TestContext
 
         var cut = RenderComponent<Edit>();
 
-        FindInputByLabel(cut, "Title").Change("Unsaved Tutorial Title");
+        cut.Find("#tutorial-title").Change("Unsaved Tutorial Title");
         cut.FindAll("button").First(button => button.TextContent.Trim() == "Export").Click();
+        cut.WaitForAssertion(() => Assert.Contains("Tutorial Export: Unsaved Tutorial Title", cut.Markup));
 
         Assert.Contains("Tutorial Export: Unsaved Tutorial Title", cut.Markup);
         Assert.Contains("&lt;h1&gt;Unsaved Tutorial Title&lt;/h1&gt;", cut.Markup);
@@ -84,9 +89,11 @@ public sealed class TutorialEditComponentTests : TestContext
 
         var cut = RenderComponent<Edit>();
         cut.FindAll("button").Single(button => button.TextContent.Contains("Brightspace Assignment", StringComparison.Ordinal)).Click();
+        cut.WaitForAssertion(() => Assert.Contains("Assignment Instructions", cut.Markup));
 
-        FindTextAreaByLabel(cut, "Assignment Instructions").Change("Review the draft instructions.");
+        cut.Find("#assignment-instructions").Change("Review the draft instructions.");
         cut.FindAll("button").First(button => button.TextContent.Trim() == "Export").Click();
+        cut.WaitForAssertion(() => Assert.Contains("Brightspace Assignment Export: Tutorial", cut.Markup));
 
         Assert.Contains("Brightspace Assignment Export: Tutorial", cut.Markup);
         Assert.Contains("Brightspace Assignment HTML", cut.Markup);
@@ -131,18 +138,6 @@ public sealed class TutorialEditComponentTests : TestContext
             .Options;
 
         return new ApplicationDbContext(options);
-    }
-
-    private static IElement FindInputByLabel(IRenderedFragment cut, string labelText)
-    {
-        var label = cut.FindAll("label").Single(label => label.TextContent.Trim() == labelText);
-        return label.NextElementSibling!;
-    }
-
-    private static IElement FindTextAreaByLabel(IRenderedFragment cut, string labelText)
-    {
-        var label = cut.FindAll("label").Single(label => label.TextContent.Trim() == labelText);
-        return label.NextElementSibling!;
     }
 
     private sealed class TestDbContextFactory(DbContextOptions<ApplicationDbContext> options) : IDbContextFactory<ApplicationDbContext>

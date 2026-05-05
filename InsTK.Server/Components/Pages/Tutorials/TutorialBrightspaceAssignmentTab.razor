@@ -26,7 +26,7 @@
     <div class="row g-3">
         <div class="col-md-8">
             <label class="form-label">Assignment Title</label>
-            <InputText class="form-control" Value="@Model.BrightspaceAssignmentTitle"
+            <InputText id="assignment-title" class="form-control" Value="@Model.BrightspaceAssignmentTitle"
                        ValueChanged="OnAssignmentTitleChanged"
                        ValueExpression="() => Model.BrightspaceAssignmentTitle" />
             <div class="form-text">
@@ -41,7 +41,7 @@
 
         <div class="col-12">
             <label class="form-label">Assignment Instructions</label>
-            <InputTextArea class="form-control" style="min-height: 180px;"
+            <InputTextArea id="assignment-instructions" class="form-control" style="min-height: 180px;"
                            @bind-Value="Model.BrightspaceAssignmentInstructions" />
             <div class="form-text">
                 These are instructor-facing assignment directions for Brightspace.

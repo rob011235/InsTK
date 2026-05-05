@@ -26,11 +26,19 @@
 
         <div class="tutorial-markdown-layout">
             <div class="tutorial-markdown-layout__editor">
-                <textarea class="form-control font-monospace tutorial-markdown-editor__textarea"
-                          style="@($"min-height: {MinHeight};")"
-                          placeholder="@Placeholder"
-                          value="@editorValue"
-                          @oninput="OnEditorInputAsync"></textarea>
+                <div class="tutorial-markdown-editor__surface">
+                    @* Keep tutorial content as Markdown text in storage; Markdig handles HTML rendering separately for preview/export. *@
+                    <SfRichTextEditor CssClass="tutorial-markdown-editor"
+                                      EditorMode="EditorMode.Markdown"
+                                      Height="@MinHeight"
+                                      Placeholder="@Placeholder"
+                                      SaveInterval="300"
+                                      AutoSaveOnIdle="true"
+                                      Value="@editorValue">
+                        <RichTextEditorToolbarSettings Items="@toolbarItems" />
+                        <RichTextEditorEvents ValueChange="OnEditorValueChanged" />
+                    </SfRichTextEditor>
+                </div>
             </div>
 
             <div class="tutorial-markdown-layout__preview tutorial-markdown-preview">
@@ -60,6 +68,23 @@
         ".jpeg",
         ".gif"
     };
+    private static readonly List<ToolbarItemModel> toolbarItems =
+    [
+        new() { Command = ToolbarCommand.Bold },
+        new() { Command = ToolbarCommand.Italic },
+        new() { Command = ToolbarCommand.Separator },
+        new() { Command = ToolbarCommand.Formats },
+        new() { Command = ToolbarCommand.OrderedList },
+        new() { Command = ToolbarCommand.UnorderedList },
+        new() { Command = ToolbarCommand.Separator },
+        new() { Command = ToolbarCommand.CreateLink },
+        new() { Command = ToolbarCommand.Image },
+        new() { Command = ToolbarCommand.CreateTable },
+        new() { Command = ToolbarCommand.SourceCode },
+        new() { Command = ToolbarCommand.Separator },
+        new() { Command = ToolbarCommand.Undo },
+        new() { Command = ToolbarCommand.Redo }
+    ];
 
     private string editorValue = string.Empty;
     private string? uploadStatusMessage;
@@ -104,9 +129,9 @@
         }
     }
 
-    private async Task OnEditorInputAsync(ChangeEventArgs args)
+    private async Task OnEditorValueChanged(Syncfusion.Blazor.RichTextEditor.ChangeEventArgs args)
     {
-        var normalizedValue = args.Value?.ToString() ?? string.Empty;
+        var normalizedValue = args.Value ?? string.Empty;
         if (string.Equals(editorValue, normalizedValue, StringComparison.Ordinal))
         {
             return;

@@ -59,20 +59,24 @@ h1:focus {
     text-align: start;
 }
 
-.tutorial-markdown-editor .b-markdown {
-    display: block;
-}
-
-.tutorial-markdown-editor__textarea {
-    min-height: inherit;
-    resize: vertical;
-}
-
 .tutorial-markdown-workbench {
     border: 1px solid var(--bs-border-color-translucent);
     border-radius: 0.75rem;
     padding: 1rem;
     background: linear-gradient(180deg, rgba(248, 249, 250, 0.7), rgba(255, 255, 255, 0.95));
+}
+
+.tutorial-markdown-editor__surface {
+    min-height: 0;
+}
+
+.tutorial-markdown-editor__surface .e-richtexteditor {
+    border-radius: 0.75rem;
+    overflow: hidden;
+}
+
+.tutorial-markdown-editor__surface .e-rte-content {
+    font-family: Consolas, "Courier New", monospace;
 }
 
 .tutorial-markdown-preview {

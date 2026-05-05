@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using Syncfusion.Blazor;
 using System.IO;
 
 namespace InsTK.Server
@@ -27,6 +28,7 @@ namespace InsTK.Server
         public static async Task Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
+            RegisterSyncfusionLicense(builder);
 
             // Add services to the container.
             builder.Services.AddRazorComponents()
@@ -38,6 +40,7 @@ namespace InsTK.Server
                 .AddAuthenticationStateSerialization();
 
             builder.Services.AddBlazorBootstrap();
+            builder.Services.AddSyncfusionBlazor();
 
             builder.Services.AddCascadingAuthenticationState();
             builder.Services.AddScoped<IdentityRedirectManager>();
@@ -149,6 +152,24 @@ namespace InsTK.Server
             await AddAdminUser(app);
 
             app.Run();
+        }
+
+        private static void RegisterSyncfusionLicense(WebApplicationBuilder builder)
+        {
+            var licenseKey = builder.Configuration["Syncfusion:LicenseKey"];
+            if (!string.IsNullOrWhiteSpace(licenseKey))
+            {
+                Syncfusion.Licensing.SyncfusionLicenseProvider.RegisterLicense(licenseKey);
+                return;
+            }
+
+            if (builder.Environment.IsDevelopment())
+            {
+                // TODO: Configure Syncfusion:LicenseKey via user secrets or an environment variable for local development.
+                return;
+            }
+
+            Console.Error.WriteLine("Syncfusion:LicenseKey is not configured. Syncfusion components may show a license warning at runtime.");
         }
 
         private static void RunMigrations(WebApplication app)
