@@ -127,6 +127,9 @@ jobs:
             --upload-file "${{ env.PUBLISH_DIR }}/app_offline.htm" \
             "ftp://${{ secrets.FTP_SERVER }}/${REMOTE_DIR}/app_offline.htm"
 
+      - name: Wait for IIS to unload the app
+        run: sleep 20
+
       - name: Deploy ${{ env.APP_NAME }} via FTPS to Plesk
         uses: SamKirkland/FTP-Deploy-Action@v4.3.6
         with:
