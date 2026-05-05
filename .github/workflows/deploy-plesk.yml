@@ -153,5 +153,6 @@ jobs:
           REMOTE_DIR="${DEPLOY_DIRECTORY#/}"
           curl --fail --silent --show-error --insecure --ftp-ssl --ssl-reqd \
             --user "${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}" \
-            --quote "DELE ${REMOTE_DIR}/app_offline.htm" \
+            --quote "CWD ${REMOTE_DIR}" \
+            --quote "DELE app_offline.htm" \
             "ftp://${{ secrets.FTP_SERVER }}/"
