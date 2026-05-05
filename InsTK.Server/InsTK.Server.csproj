@@ -6,9 +6,7 @@
   </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Blazorise.Bootstrap5" Version="2.1.1" />
-        <PackageReference Include="Blazorise.Icons.FontAwesome" Version="2.1.1" />
-        <PackageReference Include="Blazorise.Markdown" Version="2.1.1" />
+        <PackageReference Include="Blazor.Bootstrap" Version="3.5.0" />
         <ProjectReference Include="..\InsTK.WebClient\InsTK.WebClient.csproj" />
         <PackageReference Include="Markdig" Version="1.1.3" />
         <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="10.0.6" />

@@ -155,7 +155,7 @@ public class TutorialDefinition
 
 ### Implemented Markdown Workflow
 
-* Tutorial introduction, each step, and conclusion use Blazorise Markdown as the editor UI
+* Tutorial introduction, each step, and conclusion use the tutorial markdown editor with Blazor Bootstrap preview
 * Markdig is the canonical renderer for preview and export
 * Runtime image uploads are stored under `/wwwroot/uploads`
 * Uploaded images are inserted as URL-based Markdown images, not base64 blobs

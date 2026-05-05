@@ -37,6 +37,7 @@
 
     <TutorialMarkdownEditor Label="Tutorial Content Markdown" Value="@Model.ContentMarkdown"
                             ValueChanged="OnContentMarkdownChanged" MinHeight="520px"
+                            ValueExpression="() => Model.ContentMarkdown"
                             Placeholder="Write the full tutorial here. Use markdown headings like ## Step 1 if you want step structure." />
 
     <hr />
